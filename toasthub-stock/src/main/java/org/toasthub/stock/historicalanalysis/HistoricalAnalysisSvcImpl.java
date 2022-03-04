@@ -108,17 +108,17 @@ public class HistoricalAnalysisSvcImpl implements HistoricalAnalysisSvc {
 				} else if (m.get("trailingStopPercent") instanceof String) {
 					trade.setTrailingStopPercent(new BigDecimal((String)m.get("trailingStopPercent")));
 				}
-				if (m.containsKey("algorithum")) {
-					trade.setAlgorithum((String)m.get("algorithum"));
+				if (m.containsKey("Algorithm")) {
+					trade.setAlgorithm((String)m.get("Algorithm"));
 				}else
-				trade.setAlgorithum("touchesLBB");
-				String algorithum2 ="";
-				if(m.containsKey("algorithum2"))
-				algorithum2 = " "+(String)m.get("algorithum2");
+				trade.setAlgorithm("touchesLBB");
+				String Algorithm2 ="";
+				if(m.containsKey("Algorithm2"))
+				Algorithm2 = " "+(String)m.get("Algorithm2");
 				else
-				algorithum2 = " touchesLBB";
+				Algorithm2 = " touchesLBB";
 				if(m.containsKey("operand")){
-					trade.setAlgorithum(trade.getAlgorithum() + " "+ m.get("operand") + algorithum2);
+					trade.setAlgorithm(trade.getAlgorithm() + " "+ m.get("operand") + Algorithm2);
 				}
 			}
 			request.addParam("item", trade);

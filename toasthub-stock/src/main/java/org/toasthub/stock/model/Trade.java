@@ -27,8 +27,10 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Table;
 
+import org.toasthub.common.BaseEntity;
+
 @Entity
-@Table(name = "tb_trade")
+@Table(name = "sa_trade")
 public class Trade extends BaseEntity{
 
 	private static final long serialVersionUID = 1L;
@@ -37,34 +39,32 @@ public class Trade extends BaseEntity{
 	protected String stock;
 	protected BigDecimal buyAmount;
 	protected BigDecimal sellAmount;
-	protected String algorithum;
+	protected String algorithm;
 	protected String runStatus;
 	protected BigDecimal trailingStopPercent;
 	protected BigDecimal profitLimit;
 
 
-	//Constructor
+	//Constructors
 	public Trade() {
 		super();
 		this.setActive(true);
 		this.setArchive(false);
 		this.setLocked(false);
 		this.setCreated(Instant.now());
+		this.setIdentifier("TRADE");
 	}
 	
 	public Trade(String code, Boolean defaultLang, String dir){
+		super();
 		this.setActive(true);
 		this.setArchive(false);
 		this.setLocked(false);
 		this.setCreated(Instant.now());
-		
+		this.setIdentifier("TRADE");
 	}
 
 	// Methods
-	@Column(name = "name")
-	public String getName() {
-		return name;
-	}
 	public void setName(String name) {
 		this.name = name;
 	}
@@ -93,12 +93,12 @@ public class Trade extends BaseEntity{
 		this.sellAmount = sellAmount;
 	}
 
-	@Column(name = "algorithum")
-	public String getAlgorithum() {
-		return algorithum;
+	@Column(name = "algorithm")
+	public String getAlgorithm() {
+		return algorithm;
 	}
-	public void setAlgorithum(String algorithum) {
-		this.algorithum = algorithum;
+	public void setAlgorithm(String algorithm) {
+		this.algorithm = algorithm;
 	}
 
 	@Column(name = "run_status")

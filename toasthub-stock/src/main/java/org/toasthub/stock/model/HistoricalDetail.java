@@ -16,12 +16,15 @@ import javax.persistence.Transient;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import org.toasthub.common.BaseEntity;
+
 
 @Entity
 @Table(name = "sa_historical_detail")
 public class HistoricalDetail extends BaseEntity {
 
 	private static final long serialVersionUID = 1L;
+    
 	private HistoricalAnalysis historicalAnalysis;
     private long boughtAtTime;
     private String stringedBoughtAtTime;
@@ -31,51 +34,56 @@ public class HistoricalDetail extends BaseEntity {
     private BigDecimal soldAt;
     private BigDecimal highPrice;
 
+    //Constructors
     public HistoricalDetail() {
 		super();
 		this.setActive(true);
 		this.setArchive(false);
 		this.setLocked(false);
 		this.setCreated(Instant.now());
+        this.setIdentifier("HistoricalDetail");
 	}
     public HistoricalDetail(String code, Boolean defaultLang, String dir) {
+        super();
 		this.setActive(true);
 		this.setArchive(false);
 		this.setLocked(false);
 		this.setCreated(Instant.now());
-
+        this.setIdentifier("HistoricalDetail");
 	}
+
+    //Methods
     @JsonIgnore
     @ManyToOne(targetEntity = HistoricalAnalysis.class , fetch = FetchType.LAZY)
-    @JoinColumn(name = "historicalAnalysis_id")
+    @JoinColumn(name = "historical_analysis_id")
     public HistoricalAnalysis getHistoricalAnalysis() {
         return historicalAnalysis;
     }
     public void setHistoricalAnalysis(HistoricalAnalysis historicalAnalysis) {
         this.historicalAnalysis = historicalAnalysis;
     }
-    @Column(name = "highPrice")
+    @Column(name = "high_price")
     public BigDecimal getHighPrice() {
         return highPrice;
     }
     public void setHighPrice(BigDecimal highPrice) {
         this.highPrice = highPrice;
     }
-    @Column(name = "soldAt")
+    @Column(name = "sold_at")
     public BigDecimal getSoldAt() {
         return soldAt;
     }
     public void setSoldAt(BigDecimal soldAt) {
         this.soldAt = soldAt;
     }
-    @Column(name = "boughtAt")
+    @Column(name = "bought_at")
     public BigDecimal getBoughtAt() {
         return boughtAt;
     }
     public void setBoughtAt(BigDecimal boughtAt) {
         this.boughtAt = boughtAt;
     }
-    @Column(name = "soldAtTime")
+    @Column(name = "sold_at_time")
     public long getSoldAtTime() {
         return soldAtTime;
     }
@@ -84,7 +92,7 @@ public class HistoricalDetail extends BaseEntity {
         if(soldAtTime != 0)
         setStringedSoldAtTime(soldAtTime);
     }
-    @Column(name = "boughtAtTime")
+    @Column(name = "bought_at_time")
     public long getBoughtAtTime() {
         return boughtAtTime;
     }

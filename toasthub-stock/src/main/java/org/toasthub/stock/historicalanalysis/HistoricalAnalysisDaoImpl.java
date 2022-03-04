@@ -24,7 +24,6 @@ import javax.persistence.Query;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import org.toasthub.stock.model.Backtest;
 import org.toasthub.stock.model.HistoricalAnalysis;
 import org.toasthub.stock.model.Trade;
 import org.toasthub.utils.GlobalConstant;
@@ -42,9 +41,9 @@ public class HistoricalAnalysisDaoImpl implements HistoricalAnalysisDao {
 	public void delete(Request request, Response response){
 		if (request.containsParam(GlobalConstant.ITEMID) && !"".equals(request.getParam(GlobalConstant.ITEMID))) {
 
-			Backtest backtest = (Backtest) entityManager.getReference(Backtest.class,
+			HistoricalAnalysis historicalAnalysis = (HistoricalAnalysis) entityManager.getReference(HistoricalAnalysis.class,
 					new Long((Integer) request.getParam(GlobalConstant.ITEMID)));
-			entityManager.remove(backtest);
+			entityManager.remove(historicalAnalysis);
 
 		} else {
 			// utilSvc.addStatus(Response.ERROR, Response.ACTIONFAILED, "Missing ID",
@@ -60,24 +59,24 @@ public class HistoricalAnalysisDaoImpl implements HistoricalAnalysisDao {
 
 	@Override
 	public void items(Request request, Response response){
-		String queryStr = "SELECT DISTINCT x FROM Backtest AS x ";
+		String queryStr = "SELECT DISTINCT x FROM HistoricalAnalysis AS x ";
 		Query query = entityManager.createQuery(queryStr);
 		@SuppressWarnings("unchecked")
-		List<Backtest> backtests = query.getResultList();
+		List<HistoricalAnalysis> historicalAnalyses = query.getResultList();
 
-		response.addParam("backtests", backtests);
+		response.addParam(GlobalConstant.HISTORICAL_ANALYSES, historicalAnalyses);
 	}
 
 	@Override
 	public void itemCount(Request request, Response response){
-		String queryStr = "SELECT COUNT(DISTINCT x) FROM Backtest as x ";
+		String queryStr = "SELECT COUNT(DISTINCT x) FROM HistoricalAnalysis as x ";
 		Query query = entityManager.createQuery(queryStr);
 
 		Long count = (Long) query.getSingleResult();
 		if (count == null) {
 			count = 0l;
 		}
-		response.addParam("backtestCount", count);
+		response.addParam(GlobalConstant.ITEMCOUNT, count);
 
 	}
 

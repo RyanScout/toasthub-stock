@@ -108,17 +108,17 @@ public class TradeSvcImpl implements TradeSvc {
 				} else if (m.get("trailingStopPercent") instanceof String) {
 					trade.setTrailingStopPercent(new BigDecimal((String)m.get("trailingStopPercent")));
 				}
-				if (m.containsKey("algorithum")) {
-					trade.setAlgorithum((String)m.get("algorithum"));
+				if (m.containsKey("algorithm")) {
+					trade.setAlgorithm((String)m.get("algorithm"));
 				}else
-				trade.setAlgorithum("touchesLBB");
-				String algorithum2 ="";
-				if(m.containsKey("algorithum2"))
-				algorithum2 = " "+(String)m.get("algorithum2");
+				trade.setAlgorithm("touchesLBB");
+				String algorithm2 ="";
+				if(m.containsKey("algorithm2"))
+				algorithm2 = " "+(String)m.get("algorithm2");
 				else
-				algorithum2 = " touchesLBB";
+				algorithm2 = " touchesLBB";
 				if(m.containsKey("operand")){
-					trade.setAlgorithum(trade.getAlgorithum() + " "+ m.get("operand") + algorithum2);
+					trade.setAlgorithm(trade.getAlgorithm() + " "+ m.get("operand") + algorithm2);
 				}
 			}
 			request.addParam("item", trade);
@@ -189,7 +189,7 @@ public class TradeSvcImpl implements TradeSvc {
 		// } else {
 		// 	new Thread(()->{
 		// 		tradeAnalysisJobRunning.set(true);
-		// 		algorithumCruncherSvc.load();
+		// 		algorithmCruncherSvc.load();
 		// 		checkTrades();
 		// 		tradeAnalysisJobRunning.set(false);
 		// 	}).start();

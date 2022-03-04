@@ -10,6 +10,7 @@ import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.toasthub.analysis.model.StockDay;
 import org.toasthub.stock.historicalanalysis.HistoricalAnalysisDao;
 import org.toasthub.stock.model.HistoricalAnalysis;
 import org.toasthub.stock.model.HistoricalDetail;
@@ -33,6 +34,9 @@ public class HistoricalAnalyzingSvcImpl implements HistoricalAnalyzingSvc {
     @Autowired
     protected HistoricalAnalysisDao historicalAnalysisDao;
 
+    @Autowired
+    protected HistoricalAnalyzingDao historicalAnalyzingDao;
+
     // Constructors
     public HistoricalAnalyzingSvcImpl() {
     }
@@ -46,11 +50,11 @@ public class HistoricalAnalyzingSvcImpl implements HistoricalAnalyzingSvc {
     public void process(Request request, Response response){
         String action = (String) request.getParams().get("action");
         switch (action) {
-            case "SWING_TRADE_HISTORICAL_ANALYSIS":
-                swingTradehistoricalAnalysis(request, response);
+            case "HISTORICALLY_ANALYZE_SWING_TRADE":
+                historicallyAnalyzeSwingTrade(request, response);
                 break;
-            case "DAY_TRADE_HISTORICAL_ANALYSIS":
-                dayTradehistoricalAnalysis(request, response);
+            case "HISTORICALLY_ANALYZE_DAY_TRADE":
+                historicallyAnalyzeDayTrade(request, response);
                 break;
             default:
                 break;
@@ -70,37 +74,45 @@ public class HistoricalAnalyzingSvcImpl implements HistoricalAnalyzingSvc {
     }
 
     @SuppressWarnings("unchecked")
-    private void swingTradehistoricalAnalysis(Request request, Response response){
-        Map<String, ?> map = (Map<String, ?>) request.getParam("ITEM");
+    private void historicallyAnalyzeSwingTrade(Request request, Response response){
+        Map<String, ?> map = (Map<String, ?>) request.getParam(GlobalConstant.ITEM);
         HistoricalAnalysis historicalAnalysis = new HistoricalAnalysis(map);
-        String algorithum = (String) map.get("algorithum");
+        String algorithm = (String) map.get("algorithm");
         Set<HistoricalDetail> historicalDetails = new LinkedHashSet<HistoricalDetail>();
 
-        String alg1 = algorithum;
+        String alg1 = algorithm;
         String operand = "";
         String alg2 = "";
-        if (algorithum.contains(" ")) {
-            alg1 = algorithum.substring(0, algorithum.indexOf(" "));
-            operand = algorithum.substring(algorithum.indexOf(" ") + 1,
-                    algorithum.indexOf((" "), algorithum.indexOf(" ") + 1));
-            alg2 = algorithum.substring(algorithum.indexOf((" "), algorithum.indexOf(" ") + 1) + 1,
-                    algorithum.length());
+        if (algorithm.contains(" ")) {
+            alg1 = algorithm.substring(0, algorithm.indexOf(" "));
+            operand = algorithm.substring(algorithm.indexOf(" ") + 1,
+                    algorithm.indexOf((" "), algorithm.indexOf(" ") + 1));
+            alg2 = algorithm.substring(algorithm.indexOf((" "), algorithm.indexOf(" ") + 1) + 1,
+                    algorithm.length());
         }
 
-        List<StockBar> prestockBars = Functions.swingTradingBars(alpacaAPI, historicalAnalysis.getStock(), historicalAnalysis.getStartDate(), historicalAnalysis.getEndDate());
-        List<StockBar> overlapBars = Functions.swingTradingOverlapBars(alpacaAPI, historicalAnalysis.getStock(), historicalAnalysis.getStartDate());
-        List<StockBar> stockBars = new ArrayList<StockBar>(overlapBars);
-        stockBars.addAll(prestockBars);
+        request.addParam(GlobalConstant.IDENTIFIER, "StockDay");
+        historicalAnalyzingDao.items(request, response);
+        List<StockDay> stockDays = (List<StockDay>)response.getParam(GlobalConstant.ITEMS);
+        int startIndex, endIndex;
+        for(int i = 0 ; i< stockDays.size() ; i++){
+            if (stockDays.get(i).getEpochSeconds() == historicalAnalysis.startTime)
+            startIndex = i;
+            if (stockDays.get(i).getEpochSeconds() == historicalAnalysis.endTime)
+            endIndex = i;
+        }
+        List<StockDay> userStockDays = stockDays.subList(startIndex, endIndex +1);
         BigDecimal totalValue = BigDecimal.ZERO;
         BigDecimal moneySpent = BigDecimal.ZERO;
         BigDecimal stockPrice = BigDecimal.ZERO;
         long currentTime;
         List<Order> orders = new ArrayList<Order>();
 
-        for (int i = overlapBars.size(); i < stockBars.size(); i++) {
+        for (int i = 0 ; i < userStockDays.size(); i++) {
 
-            stockPrice = BigDecimal.valueOf(stockBars.get(i).getClose());
-            currentTime = stockBars.get(i).getTimestamp().toEpochSecond();
+            stockPrice = userStockDays.get(i).getClose();
+            currentTime = userStockDays.get(i).getEpochSeconds();
+
             if (evaluate(
                 buySignals.process(stockBars, i, alg1, historicalAnalysis.getStock()),
                 buySignals.process(stockBars, i, alg2, historicalAnalysis.getStock()),
@@ -164,7 +176,7 @@ public class HistoricalAnalyzingSvcImpl implements HistoricalAnalyzingSvc {
     }
 
     @SuppressWarnings("unchecked")
-    private void dayTradehistoricalAnalysis(Request request, Response response){
+    private void historicallyAnalyzeDayTrade(Request request, Response response){
         Map<String, ?> map = (Map<String, ?>) request.getParam("ITEM");
         HistoricalAnalysis historicalAnalysis = new HistoricalAnalysis();
         String stockName = (String) map.get("stock");
@@ -173,8 +185,8 @@ public class HistoricalAnalyzingSvcImpl implements HistoricalAnalyzingSvc {
         BigDecimal trailingStopPercent = new BigDecimal((Double) map.get("trailingStopPercent"));
         BigDecimal maxProfit = new BigDecimal((Double) map.get("profitLimit"));
         historicalAnalysis.setStock((String) map.get("stock"));
-        String algorithum = (String) map.get("algorithum");
-        historicalAnalysis.setAlgorithum(algorithum);
+        String algorithm = (String) map.get("algorithm");
+        historicalAnalysis.setAlgorithm(algorithm);
         historicalAnalysis.setStartDate((String) map.get("startDate"));
         historicalAnalysis.setEndDate((String) map.get("endDate"));
         historicalAnalysis.setBuyAmount(new BigDecimal((Integer) map.get("buyAmount")));
@@ -183,15 +195,15 @@ public class HistoricalAnalyzingSvcImpl implements HistoricalAnalyzingSvc {
         historicalAnalysis.setProfitLimit(new BigDecimal((Double) map.get("profitLimit")));
         historicalAnalysis.setName((String) map.get("name"));
 
-        String alg1 = algorithum;
+        String alg1 = algorithm;
         String operand = "";
         String alg2 = "";
-        if (algorithum.contains(" ")) {
-            alg1 = algorithum.substring(0, algorithum.indexOf(" "));
-            operand = algorithum.substring(algorithum.indexOf(" ") + 1,
-                    algorithum.indexOf((" "), algorithum.indexOf(" ") + 1));
-            alg2 = algorithum.substring(algorithum.indexOf((" "), algorithum.indexOf(" ") + 1) + 1,
-                    algorithum.length());
+        if (algorithm.contains(" ")) {
+            alg1 = algorithm.substring(0, algorithm.indexOf(" "));
+            operand = algorithm.substring(algorithm.indexOf(" ") + 1,
+                    algorithm.indexOf((" "), algorithm.indexOf(" ") + 1));
+            alg2 = algorithm.substring(algorithm.indexOf((" "), algorithm.indexOf(" ") + 1) + 1,
+                    algorithm.length());
         }
 
         if ("".equals(stockName)) {

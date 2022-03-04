@@ -88,7 +88,7 @@ public class TradeDaoImpl implements TradeDao {
 		@SuppressWarnings("unchecked")
 		List<Trade> trades = query.getResultList();
 
-		response.addParam(GlobalConstant.ITEMS, trades);
+		response.addParam(GlobalConstant.TRADES, trades);
 	}
 
 	@Override

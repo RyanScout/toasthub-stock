@@ -22,6 +22,7 @@ import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 
+import org.springframework.aop.framework.adapter.GlobalAdvisorAdapterRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,7 +31,6 @@ import org.toasthub.analysis.model.LBB;
 import org.toasthub.analysis.model.MACD;
 import org.toasthub.analysis.model.SL;
 import org.toasthub.analysis.model.SMA;
-import org.toasthub.stock.model.Backtest;
 import org.toasthub.stock.model.HistoricalAnalysis;
 import org.toasthub.stock.model.Trade;
 import org.toasthub.utils.GlobalConstant;
@@ -48,9 +48,9 @@ public class HistoricalAnalyzingDaoImpl implements HistoricalAnalyzingDao {
 	public void delete(Request request, Response response){
 		if (request.containsParam(GlobalConstant.ITEMID) && !"".equals(request.getParam(GlobalConstant.ITEMID))) {
 
-			Backtest backtest = (Backtest) entityManager.getReference(Backtest.class,
+			HistoricalAnalysis historicalAnalysis = (HistoricalAnalysis) entityManager.getReference(HistoricalAnalysis.class,
 					new Long((Integer) request.getParam(GlobalConstant.ITEMID)));
-			entityManager.remove(backtest);
+			entityManager.remove(historicalAnalysis);
 
 		} else {
 			// utilSvc.addStatus(Response.ERROR, Response.ACTIONFAILED, "Missing ID",
@@ -60,50 +60,89 @@ public class HistoricalAnalyzingDaoImpl implements HistoricalAnalyzingDao {
 
 	@Override
 	public void save(Request request, Response response) throws Exception {
-		HistoricalAnalysis historicalAnalysis = (HistoricalAnalysis) request.getParam(GlobalConstant.ITEM);
-		entityManager.merge(historicalAnalysis);
+		entityManager.merge( (Object) response.getParam(GlobalConstant.ITEM));
 	}
 
 	@Override
-	public void items(Request request, Response response){
-		String queryStr = "SELECT DISTINCT x FROM Backtest AS x ";
-		Query query = entityManager.createQuery(queryStr);
-		@SuppressWarnings("unchecked")
-		List<Backtest> backtests = query.getResultList();
+	public void items(Request request, Response response) throws Exception {
+		String queryStr = "SELECT DISTINCT x FROM "
+		+request.getParam(GlobalConstant.IDENTIFIER)
+		+" AS x ";
 
-		response.addParam("backtests", backtests);
+		Query query = entityManager.createQuery(queryStr);
+		List<?> items = query.getResultList();
+
+		response.addParam(GlobalConstant.ITEMS, items);
 	}
 
 	@Override
-	public void itemCount(Request request, Response response){
-		String queryStr = "SELECT COUNT(DISTINCT x) FROM Backtest as x ";
+	public void itemCount(Request request, Response response) throws Exception {
+		String queryStr = "SELECT COUNT(DISTINCT x) FROM "
+		+request.getParam(GlobalConstant.IDENTIFIER)
+		+" as x ";
+
+		boolean and = false;
+		if (request.containsParam(GlobalConstant.EPOCHSECONDS)) {
+			if (!and)
+				queryStr += " WHERE ";
+			else
+				queryStr += " AND ";
+
+			queryStr += "x.epochSeconds =:epochSeconds ";
+			and = true;
+		}
+		if (request.containsParam(GlobalConstant.STOCK)) {
+			if (!and)
+				queryStr += " WHERE ";
+			else
+				queryStr += " AND ";
+
+			queryStr += "x.stock =:stock ";
+			and = true;
+		}
+		if (request.containsParam(GlobalConstant.TYPE)) {
+			if (!and)
+				queryStr += " WHERE ";
+			else
+				queryStr += " AND ";
+
+			queryStr += "x.type =:type ";
+			and = true;
+		}
+
 		Query query = entityManager.createQuery(queryStr);
+
+		if (request.containsParam(GlobalConstant.EPOCHSECONDS)) {
+			query.setParameter("epochSeconds", (long)request.getParam(GlobalConstant.EPOCHSECONDS));
+		}
+		if (request.containsParam(GlobalConstant.TYPE)) {
+			query.setParameter("type", (String) request.getParam(GlobalConstant.TYPE));
+		}
+		if (request.containsParam(GlobalConstant.STOCK)) {
+			query.setParameter("stock", (String) request.getParam(GlobalConstant.STOCK));
+		}
 
 		Long count = (Long) query.getSingleResult();
 		if (count == null) {
 			count = 0l;
 		}
-		response.addParam("backtestCount", count);
-
+		response.addParam(GlobalConstant.ITEMCOUNT, count);
 	}
-
 
 	@Override
 	public void item(Request request, Response response) throws Exception {
-		if (request.containsParam(GlobalConstant.ITEMID) && !"".equals(request.getParam(GlobalConstant.ITEMID))) {
-			String queryStr = "SELECT x FROM Trade AS x WHERE x.id =:id";
-			Query query = entityManager.createQuery(queryStr);
+		String queryStr = "SELECT DISTINCT x FROM " + request.getParam(GlobalConstant.IDENTIFIER) + " AS x"
+				+ " WHERE x.epochSeconds =:epochSeconds"
+				+ " AND x.type =: type AND x.stock =:stock";
+		Query query = entityManager.createQuery(queryStr);
+		query.setParameter("epochSeconds", request.getParam(GlobalConstant.EPOCHSECONDS));
+		query.setParameter("type", request.getParam(GlobalConstant.TYPE));
+		query.setParameter("stock", request.getParam(GlobalConstant.STOCK));
+		Object result = query.getSingleResult();
 
-			query.setParameter("id", new Long((Integer) request.getParam(GlobalConstant.ITEMID)));
-			Trade trade = (Trade) query.getSingleResult();
-
-			response.addParam("item", trade);
-		} else {
-			// utilSvc.addStatus(RestResponse.ERROR, RestResponse.EXECUTIONFAILED,
-			// prefCacheUtil.getPrefText("GLOBAL_SERVICE",
-			// "GLOBAL_SERVICE_MISSING_ID",prefCacheUtil.getLang(request)), response);
-		}
+		response.addParam(GlobalConstant.ITEM , result);
 	}
+
 	@Override
 	public BigDecimal queryAlgValue(String alg, String stock, String type, long epochSeconds) {
 		String queryStr = "SELECT DISTINCT x FROM " + alg + " AS x"

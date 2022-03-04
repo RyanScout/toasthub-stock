@@ -29,7 +29,7 @@ public class CurrentTestingSvcImpl{
     }
 
     public void currentTest(Trade trade) {
-            if (currentBuySignals.process(trade.getAlgorithum(), trade.getStock())){
+            if (currentBuySignals.process(trade.getAlgorithm(), trade.getStock())){
                 try{
                 alpacaAPI.orders().requestOrder(trade.getStock(), null, trade.getBuyAmount().doubleValue(), 
                 OrderSide.BUY, OrderType.TRAILING_STOP, OrderTimeInForce.DAY, null, null, null,
