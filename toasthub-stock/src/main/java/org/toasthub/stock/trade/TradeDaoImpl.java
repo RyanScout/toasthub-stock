@@ -143,5 +143,18 @@ public class TradeDaoImpl implements TradeDao {
 			// "GLOBAL_SERVICE_MISSING_ID",prefCacheUtil.getLang(request)), response);
 		}
 	}
+	@Override
+	public List<Trade> getAutomatedTrades(String runStatus) {
+		String queryStr = "SELECT DISTINCT x FROM Trade AS x WHERE x.active =:active AND x.runStatus =:runStatus";
+
+		Query query = entityManager.createQuery(queryStr);
+		query.setParameter("active", true);
+		query.setParameter("runStatus", "Yes");
+
+		@SuppressWarnings("unchecked")
+		List<Trade> trades = query.getResultList();
+
+		return trades;
+	}
 
 }

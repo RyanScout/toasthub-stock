@@ -1,33 +1,37 @@
 package org.toasthub.stock.analysis;
 
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.toasthub.analysis.model.MACD;
+import org.toasthub.analysis.model.SL;
+import org.toasthub.analysis.model.SMA;
+import org.toasthub.stock.model.cache.BuySignalCache;
+import org.toasthub.utils.GlobalConstant;
+import org.toasthub.utils.Request;
+import org.toasthub.utils.Response;
 
 @Service("CurrentBuySignals")
-public class CurrentBuySignals{
-    
-    @Autowired
-    HistoricalAnalyzingDao historicalAnalyzingDao;
+public class CurrentBuySignals {
 
-    private Instant instant = Instant.now().truncatedTo(ChronoUnit.MINUTES);
-
-    public Boolean process(String alg, String stock) {
+    public Boolean process(String alg) {
         Boolean result = false;
         switch (alg) {
 
             case "goldenCross":
-                result = currentGoldenCross(stock);
+                result = currentGoldenCross();
                 break;
 
             case "touchesLBB":
-                result = currentTouchesLBB(stock);
+                result = currentTouchesLBB();
                 break;
 
             case "signalLineCross":
-                result = currentSignalLineCross(stock);
+                result = currentSignalLineCross();
                 break;
 
             default:
@@ -36,22 +40,15 @@ public class CurrentBuySignals{
         return result;
     }
 
-    public Boolean currentSignalLineCross(String stock) {
-        if (historicalAnalyzingDao.queryAlgValue("MACD", stock, "MACD", instant.getEpochSecond())
-        .compareTo(historicalAnalyzingDao.queryAlgValue("SL", stock, "SL", instant.getEpochSecond())) > 0)
-            return true;
+    public Boolean currentSignalLineCross() {
         return false;
     }
-    public Boolean currentTouchesLBB(String stock) {
-       if (historicalAnalyzingDao.queryAlgValue("SMA", stock, "20-day", instant.getEpochSecond())
-       .compareTo(historicalAnalyzingDao.queryAlgValue("LBB", stock, "20-day",instant.getEpochSecond())) <= 0)
-           return true;
-       return false;
-   }
-   public Boolean currentGoldenCross(String stock) {
-       if (historicalAnalyzingDao.queryAlgValue("SMA", stock, "15-day",instant.getEpochSecond())
-       .compareTo(historicalAnalyzingDao.queryAlgValue("SMA", stock, "50-day",instant.getEpochSecond())) > 0)
-           return true;
-       return false;
-   }
+
+    public Boolean currentTouchesLBB() {
+        return false;
+    }
+
+    public Boolean currentGoldenCross() {
+        return BuySignalCache.getInstance().getGoldenCrossMap().get("GLOBAL").isBuyIndicator();
+    }
 }

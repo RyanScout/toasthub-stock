@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package org.toasthub.stock.trade;
+package org.toasthub.stock.model.cache;
 
-import java.util.List;
+import java.math.BigDecimal;
 
 import org.toasthub.common.BaseDao;
-import org.toasthub.stock.model.Trade;
 
-public interface TradeDao extends BaseDao {
-    public List<Trade> getAutomatedTrades(String runStatus);
+public interface BuySignalCacheDao extends BaseDao {
+	public BigDecimal queryAlgValue(String alg, String stock, String type, long epochSeconds);
 }

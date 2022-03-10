@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.toasthub.stock.analysis;
+package org.toasthub.stock.model.cache;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -37,9 +37,9 @@ import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
 
-@Repository("HistoricalAnalyzingDao")
+@Repository("BuySignalCacheDao")
 @Transactional()
-public class HistoricalAnalyzingDaoImpl implements HistoricalAnalyzingDao {
+public class BuySignalCacheDaoImpl implements BuySignalCacheDao {
 
 	@Autowired
 	protected EntityManager entityManager;

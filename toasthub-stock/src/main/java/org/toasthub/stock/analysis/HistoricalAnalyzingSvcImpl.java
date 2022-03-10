@@ -2,6 +2,10 @@ package org.toasthub.stock.analysis;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -75,8 +79,20 @@ public class HistoricalAnalyzingSvcImpl implements HistoricalAnalyzingSvc {
 
     @SuppressWarnings("unchecked")
     private void historicallyAnalyzeSwingTrade(Request request, Response response){
+        try{
         Map<String, ?> map = (Map<String, ?>) request.getParam(GlobalConstant.ITEM);
         HistoricalAnalysis historicalAnalysis = new HistoricalAnalysis(map);
+
+        historicalAnalysis.setStartTime(   
+            ZonedDateTime.ofInstant(
+            Instant.ofEpochSecond(new Long((Integer)(map.get("startTime")))),
+            ZoneId.of("America/New_York")).truncatedTo(ChronoUnit.DAYS).toEpochSecond());
+
+        historicalAnalysis.setEndTime(   
+            ZonedDateTime.ofInstant(
+            Instant.ofEpochSecond(new Long((Integer)(map.get("endTime")))),
+            ZoneId.of("America/New_York")).truncatedTo(ChronoUnit.DAYS).toEpochSecond());
+            
         String algorithm = (String) map.get("algorithm");
         Set<HistoricalDetail> historicalDetails = new LinkedHashSet<HistoricalDetail>();
 
@@ -94,28 +110,31 @@ public class HistoricalAnalyzingSvcImpl implements HistoricalAnalyzingSvc {
         request.addParam(GlobalConstant.IDENTIFIER, "StockDay");
         historicalAnalyzingDao.items(request, response);
         List<StockDay> stockDays = (List<StockDay>)response.getParam(GlobalConstant.ITEMS);
-        int startIndex, endIndex;
+        int startIndex = 0;
+        int endIndex = 0;
         for(int i = 0 ; i< stockDays.size() ; i++){
-            if (stockDays.get(i).getEpochSeconds() == historicalAnalysis.startTime)
+            if (stockDays.get(i).getEpochSeconds() == historicalAnalysis.getStartTime())
             startIndex = i;
-            if (stockDays.get(i).getEpochSeconds() == historicalAnalysis.endTime)
+            if (stockDays.get(i).getEpochSeconds() == historicalAnalysis.getEndTime())
             endIndex = i;
         }
-        List<StockDay> userStockDays = stockDays.subList(startIndex, endIndex +1);
         BigDecimal totalValue = BigDecimal.ZERO;
         BigDecimal moneySpent = BigDecimal.ZERO;
         BigDecimal stockPrice = BigDecimal.ZERO;
         long currentTime;
         List<Order> orders = new ArrayList<Order>();
+        request.addParam(GlobalConstant.STOCK ,historicalAnalysis.getStock() );
 
-        for (int i = 0 ; i < userStockDays.size(); i++) {
+        for (int i = startIndex ; i < endIndex+1 ; i++) {
 
-            stockPrice = userStockDays.get(i).getClose();
-            currentTime = userStockDays.get(i).getEpochSeconds();
+            stockPrice = stockDays.get(i).getClose();
+            currentTime = stockDays.get(i).getEpochSeconds();
+            request.addParam("STOCKPRICE", stockPrice);
+            request.addParam(GlobalConstant.EPOCHSECONDS, currentTime);
 
             if (evaluate(
-                buySignals.process(stockBars, i, alg1, historicalAnalysis.getStock()),
-                buySignals.process(stockBars, i, alg2, historicalAnalysis.getStock()),
+                buySignals.process(alg1 , request , response),
+                buySignals.process(alg2, request, response),
                 operand)){
                 Order order = new Order(historicalAnalysis.getBuyAmount() , stockPrice);
                 order.setTrailingStopPercent(historicalAnalysis.getTrailingStopPercent());
@@ -170,92 +189,93 @@ public class HistoricalAnalyzingSvcImpl implements HistoricalAnalyzingSvc {
         historicalAnalysis.setMoneySpent(moneySpent);
         historicalAnalysis.setTotalValue(totalValue);
         request.addParam(GlobalConstant.ITEM, historicalAnalysis);
-        try {
         historicalAnalysisDao.save(request,response);
-        }catch(Exception e){}
+        }catch(Exception e){
+            e.printStackTrace();
+        }
     }
 
     @SuppressWarnings("unchecked")
     private void historicallyAnalyzeDayTrade(Request request, Response response){
-        Map<String, ?> map = (Map<String, ?>) request.getParam("ITEM");
-        HistoricalAnalysis historicalAnalysis = new HistoricalAnalysis();
-        String stockName = (String) map.get("stock");
-        String date = (String) map.get("startDate");
-        BigDecimal orderAmount = new BigDecimal((Integer) map.get("buyAmount"));
-        BigDecimal trailingStopPercent = new BigDecimal((Double) map.get("trailingStopPercent"));
-        BigDecimal maxProfit = new BigDecimal((Double) map.get("profitLimit"));
-        historicalAnalysis.setStock((String) map.get("stock"));
-        String algorithm = (String) map.get("algorithm");
-        historicalAnalysis.setAlgorithm(algorithm);
-        historicalAnalysis.setStartDate((String) map.get("startDate"));
-        historicalAnalysis.setEndDate((String) map.get("endDate"));
-        historicalAnalysis.setBuyAmount(new BigDecimal((Integer) map.get("buyAmount")));
-        historicalAnalysis.setSellAmount(new BigDecimal((Integer) map.get("sellAmount")));
-        historicalAnalysis.setTrailingStopPercent(new BigDecimal((Double) map.get("trailingStopPercent")));
-        historicalAnalysis.setProfitLimit(new BigDecimal((Double) map.get("profitLimit")));
-        historicalAnalysis.setName((String) map.get("name"));
+    //     Map<String, ?> map = (Map<String, ?>) request.getParam("ITEM");
+    //     HistoricalAnalysis historicalAnalysis = new HistoricalAnalysis();
+    //     String stockName = (String) map.get("stock");
+    //     String date = (String) map.get("startDate");
+    //     BigDecimal orderAmount = new BigDecimal((Integer) map.get("buyAmount"));
+    //     BigDecimal trailingStopPercent = new BigDecimal((Double) map.get("trailingStopPercent"));
+    //     BigDecimal maxProfit = new BigDecimal((Double) map.get("profitLimit"));
+    //     historicalAnalysis.setStock((String) map.get("stock"));
+    //     String algorithm = (String) map.get("algorithm");
+    //     historicalAnalysis.setAlgorithm(algorithm);
+    //     historicalAnalysis.setStartDate((String) map.get("startDate"));
+    //     historicalAnalysis.setEndDate((String) map.get("endDate"));
+    //     historicalAnalysis.setBuyAmount(new BigDecimal((Integer) map.get("buyAmount")));
+    //     historicalAnalysis.setSellAmount(new BigDecimal((Integer) map.get("sellAmount")));
+    //     historicalAnalysis.setTrailingStopPercent(new BigDecimal((Double) map.get("trailingStopPercent")));
+    //     historicalAnalysis.setProfitLimit(new BigDecimal((Double) map.get("profitLimit")));
+    //     historicalAnalysis.setName((String) map.get("name"));
 
-        String alg1 = algorithm;
-        String operand = "";
-        String alg2 = "";
-        if (algorithm.contains(" ")) {
-            alg1 = algorithm.substring(0, algorithm.indexOf(" "));
-            operand = algorithm.substring(algorithm.indexOf(" ") + 1,
-                    algorithm.indexOf((" "), algorithm.indexOf(" ") + 1));
-            alg2 = algorithm.substring(algorithm.indexOf((" "), algorithm.indexOf(" ") + 1) + 1,
-                    algorithm.length());
-        }
+    //     String alg1 = algorithm;
+    //     String operand = "";
+    //     String alg2 = "";
+    //     if (algorithm.contains(" ")) {
+    //         alg1 = algorithm.substring(0, algorithm.indexOf(" "));
+    //         operand = algorithm.substring(algorithm.indexOf(" ") + 1,
+    //                 algorithm.indexOf((" "), algorithm.indexOf(" ") + 1));
+    //         alg2 = algorithm.substring(algorithm.indexOf((" "), algorithm.indexOf(" ") + 1) + 1,
+    //                 algorithm.length());
+    //     }
 
-        if ("".equals(stockName)) {
-            response.addParam("error", "Stock name is empty");
-            return;
-        }
+    //     if ("".equals(stockName)) {
+    //         response.addParam("error", "Stock name is empty");
+    //         return;
+    //     }
 
-        List<StockBar> prestockBars = Functions.dayTradingBars(alpacaAPI, stockName, date);
-        List<StockBar> overlapBars = Functions.dayTradingOverlapBars(alpacaAPI, stockName, date);
-        List<StockBar> stockBars = new ArrayList<StockBar>(overlapBars);
-        stockBars.addAll(prestockBars);
-        BigDecimal totalValue = BigDecimal.ZERO;
-        BigDecimal moneySpent = BigDecimal.ZERO;
-        BigDecimal stockPrice = BigDecimal.ZERO;
-        List<Order> orders = new ArrayList<Order>(0);
+    //     List<StockBar> prestockBars = Functions.dayTradingBars(alpacaAPI, stockName, date);
+    //     List<StockBar> overlapBars = Functions.dayTradingOverlapBars(alpacaAPI, stockName, date);
+    //     List<StockBar> stockBars = new ArrayList<StockBar>(overlapBars);
+    //     stockBars.addAll(prestockBars);
+    //     BigDecimal totalValue = BigDecimal.ZERO;
+    //     BigDecimal moneySpent = BigDecimal.ZERO;
+    //     BigDecimal stockPrice = BigDecimal.ZERO;
+    //     List<Order> orders = new ArrayList<Order>(0);
 
-        for (int i = overlapBars.size(); i < stockBars.size(); i++) {
+    //     for (int i = overlapBars.size(); i < stockBars.size(); i++) {
 
-            stockPrice = BigDecimal.valueOf(stockBars.get(i).getClose());
-            if (evaluate(buySignals.process(stockBars, i, alg1, stockName),
-                    buySignals.process(stockBars, i, alg2, stockName),
-                    operand)) {
-                orders.add(new Order(orderAmount, null, null, trailingStopPercent,
-                        maxProfit.multiply(stockPrice), stockPrice));
-                moneySpent = moneySpent.add(orderAmount);
+    //         stockPrice = BigDecimal.valueOf(stockBars.get(i).getClose());
+    //         if (evaluate(buySignals.process(stockBars, i, alg1, stockName),
+    //                 buySignals.process(stockBars, i, alg2, stockName),
+    //                 operand)) {
+    //             orders.add(new Order(orderAmount, null, null, trailingStopPercent,
+    //                     maxProfit.multiply(stockPrice), stockPrice));
+    //             moneySpent = moneySpent.add(orderAmount);
 
-            }
+    //         }
 
-            for (int f = orders.size() - 1; f >= 0; f--) {
-                if (orders.get(f).getHighPrice().compareTo(stockPrice) < 0)
-                    orders.get(f).setHighPrice(stockPrice);
+    //         for (int f = orders.size() - 1; f >= 0; f--) {
+    //             if (orders.get(f).getHighPrice().compareTo(stockPrice) < 0)
+    //                 orders.get(f).setHighPrice(stockPrice);
 
-                if ((stockPrice.compareTo(orders.get(f).getTotalProfit())) >= 0) {
-                    totalValue = totalValue.add(orders.get(f).convertToDollars(stockPrice));
-                    orders.remove(f);
-                } else if ((stockPrice.divide(orders.get(f).getHighPrice(), MathContext.DECIMAL32))
-                        .compareTo(orders.get(f).getTrailingStopPercent()) < 0) {
-                    totalValue = totalValue.add(orders.get(f).convertToDollars(stockPrice));
-                    orders.remove(f);
-                }
-            }
-        }
-        for (int i = 0; i < orders.size(); i++)
-            totalValue = totalValue.add(orders.get(i).convertToDollars(stockPrice));
+    //             if ((stockPrice.compareTo(orders.get(f).getTotalProfit())) >= 0) {
+    //                 totalValue = totalValue.add(orders.get(f).convertToDollars(stockPrice));
+    //                 orders.remove(f);
+    //             } else if ((stockPrice.divide(orders.get(f).getHighPrice(), MathContext.DECIMAL32))
+    //                     .compareTo(orders.get(f).getTrailingStopPercent()) < 0) {
+    //                 totalValue = totalValue.add(orders.get(f).convertToDollars(stockPrice));
+    //                 orders.remove(f);
+    //             }
+    //         }
+    //     }
+    //     for (int i = 0; i < orders.size(); i++)
+    //         totalValue = totalValue.add(orders.get(i).convertToDollars(stockPrice));
 
-        historicalAnalysis.setType("Day Trade");
-        historicalAnalysis.setMoneySpent(moneySpent);
-        historicalAnalysis.setTotalValue(totalValue);
-        request.addParam(GlobalConstant.ITEM, historicalAnalysis);
-        try {
-        historicalAnalysisDao.save(request, response);
-        }catch(Exception e) {}
+    //     historicalAnalysis.setType("Day Trade");
+    //     historicalAnalysis.setMoneySpent(moneySpent);
+    //     historicalAnalysis.setTotalValue(totalValue);
+    //     request.addParam(GlobalConstant.ITEM, historicalAnalysis);
+    //     try {
+    //     historicalAnalysisDao.save(request, response);
+    //     }catch(Exception e) {}
 
     }
 }

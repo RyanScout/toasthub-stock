@@ -1,38 +1,44 @@
 package org.toasthub.stock.analysis;
 
 import java.math.BigDecimal;
-import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import net.jacobpeterson.alpaca.model.endpoint.marketdata.stock.historical.bar.StockBar;
+import org.toasthub.analysis.model.LBB;
+import org.toasthub.analysis.model.MACD;
+import org.toasthub.analysis.model.SL;
+import org.toasthub.analysis.model.SMA;
+import org.toasthub.utils.GlobalConstant;
+import org.toasthub.utils.Request;
+import org.toasthub.utils.Response;
 
 @Service("BuySignals")
 public class BuySignals {
 
+    @Autowired
+    HistoricalAnalyzingDao historicalAnalyzingDao;
 
     // signals return true if buy signal is present, false otherwise
 
     // measures whether a 15 day moving average is above a 50 day moving average
 
-    public Boolean process(List<StockBar> stockBars, int start, String key, String stockName) {
+    public Boolean process(String alg , Request request, Response response) {
         Boolean result = false;
-        switch (key) {
+        switch (alg) {
 
             case "goldenCross":
-                result = goldenCross(stockBars, start);
+                result = goldenCross(request, response);
                 break;
 
             case "touchesLBB":
-                result = touchesLBB(stockBars, start);
+                result = touchesLBB(request , response);
                 break;
 
             case "signalLineCross":
-                result = signalLineCross(stockBars,stockName);
+                result = signalLineCross(request , response);
                 break;
-            case "":
-                result = false;
             default:
+                result = false;
                 break;
         }
         return result;
@@ -40,39 +46,67 @@ public class BuySignals {
 
     
 
-    public Boolean goldenCross(List<StockBar> stockBars, int start) {
-        List<StockBar> shortStockBars = stockBars.subList(start - 15, start);
-        BigDecimal shortMovingAverage = Functions.simpleMovingAverage(shortStockBars);
-        List<StockBar> longStockBars = stockBars.subList(start - 50, start);
-        BigDecimal longMovingAverage = Functions.simpleMovingAverage(longStockBars);
+    public Boolean goldenCross(Request request, Response response) {
+        try{
+        request.addParam(GlobalConstant.IDENTIFIER , "SMA");
 
-        if (shortMovingAverage.compareTo(longMovingAverage) > 0)
+        request.addParam(GlobalConstant.TYPE, "15-day");
+        historicalAnalyzingDao.item(request, response);
+        SMA shortMovingAverage = (SMA) response.getParam(GlobalConstant.ITEM);
+
+        request.addParam(GlobalConstant.TYPE, "50-day");
+        historicalAnalyzingDao.item(request, response);
+        SMA longMovingAverage = (SMA) response.getParam(GlobalConstant.ITEM);
+
+
+        if (shortMovingAverage.getValue().compareTo(longMovingAverage.getValue()) > 0)
             return true;
         return false;
+
+        }catch(Exception e){
+            e.printStackTrace();
+            return false;
+        }
     }
 
     // indicates whether the 20 day sma touches or falls beneath the lower bollinger
     // band
-    public Boolean touchesLBB(List<StockBar> stockBars, int start) {
-        List<StockBar> stockBar = stockBars.subList(start - 20, start);
-        BigDecimal sma = Functions.simpleMovingAverage(stockBar);
-        BigDecimal lowerBollingerBand = Functions.lowerBollingerBand(stockBar);
-        if (sma.compareTo(lowerBollingerBand) <= 0)
+    public Boolean touchesLBB(Request request, Response response) {
+        try{
+        request.addParam(GlobalConstant.IDENTIFIER, "LBB");
+        request.addParam(GlobalConstant.TYPE, "20-day");
+        historicalAnalyzingDao.item(request, response);
+        LBB lbb = (LBB) response.getParam(GlobalConstant.ITEM);
+
+        if ( ((BigDecimal) (request.getParam("STOCKPRICE"))) . compareTo(lbb.getValue()) <= 0)
             return true;
         return false;
+        }catch(Exception e){
+            e.printStackTrace();
+            return false;
+        }
     }
 
     //indicates whether or not macd has crossed over the signal line within the period
-    public Boolean signalLineCross(List<StockBar> stockBars, String stockName) {
-//        MACD macd = new MACD(stockName);
-//        macd.initializer(stockBars);
-//        SL sl = new SL(stockName);
-//        sl.initializer(stockBars);
-//        EMA ema = new EMA(stockName);
-//        ema.initializer(stockBars, 100);
-//        if (tradeBlasterDao.queryMACDValue(macd)
-//        .compareTo(tradeBlasterDao.querySLValue(sl)) > 0)
-//            return true;
+    public Boolean signalLineCross(Request request, Response response) {
+        try{
+        request.addParam(GlobalConstant.IDENTIFIER, "MACD");
+        request.addParam(GlobalConstant.TYPE, "Day");
+        historicalAnalyzingDao.item(request, response);
+        MACD macd = (MACD) response.getParam(GlobalConstant.ITEM);
+
+        request.addParam(GlobalConstant.IDENTIFIER, "SL");
+        request.addParam(GlobalConstant.TYPE, "Day");
+        historicalAnalyzingDao.item(request, response);
+        SL sl = (SL) response.getParam(GlobalConstant.ITEM);
+
+       if (macd.getValue()
+       .compareTo(sl.getValue()) > 0)
+           return true;
         return false;
+        }catch(Exception e){
+            e.printStackTrace();
+            return false;
+        }
     }
 }
