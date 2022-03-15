@@ -14,32 +14,24 @@
  * limitations under the License.
  */
 
-package org.toasthub.stock.model.cache;
+package org.toasthub.stock.analysis;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 
-import org.springframework.aop.framework.adapter.GlobalAdvisorAdapterRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import org.toasthub.analysis.model.EMA;
-import org.toasthub.analysis.model.LBB;
-import org.toasthub.analysis.model.MACD;
-import org.toasthub.analysis.model.SL;
-import org.toasthub.analysis.model.SMA;
 import org.toasthub.stock.model.HistoricalAnalysis;
-import org.toasthub.stock.model.Trade;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
 
-@Repository("BuySignalCacheDao")
+@Repository("CurrentTestingDao")
 @Transactional()
-public class BuySignalCacheDaoImpl implements BuySignalCacheDao {
+public class CurrentTestingDaoImpl implements CurrentTestingDao {
 
 	@Autowired
 	protected EntityManager entityManager;
@@ -167,47 +159,34 @@ public class BuySignalCacheDaoImpl implements BuySignalCacheDao {
 		response.addParam(GlobalConstant.ITEM , result);
 	}
 
-	@Override
-	public BigDecimal queryAlgValue(String alg, String stock, String type, long epochSeconds) {
-		String queryStr = "SELECT DISTINCT x FROM " + alg + " AS x"
-				+ " WHERE x.epochSeconds =:epochSeconds"
-				+ " AND x.type =: type AND x.stock =:stock";
-		Query query = entityManager.createQuery(queryStr);
-		query.setParameter("epochSeconds", epochSeconds);
-		query.setParameter("type", type);
-		query.setParameter("stock", stock);
-		try {
-			switch (alg) {
-				case "SMA":
-					SMA sma = (SMA) query.getSingleResult();
-					return sma.getValue();
-
-				case "MACD":
-					MACD macd = (MACD) query.getSingleResult();
-					return macd.getValue();
-
-				case "SL":
-					SL sl = (SL) query.getSingleResult();
-					return sl.getValue();
-
-				case "EMA":
-					EMA ema = (EMA) query.getSingleResult();
-					return ema.getValue();
-
-				case "LBB":
-					LBB lbb = (LBB) query.getSingleResult();
-					return lbb.getValue();
-
-				default:
-					return null;
-			}
-		} catch (Exception e) {
-			if (e.getMessage().equals("No entity found for query"))
-				return null;
-			else {
-				e.printStackTrace();
-				return null;
-			}
+	public void getFinalRow(Request request, Response response){
+		String x = "";
+		switch ((String) request.getParam(GlobalConstant.IDENTIFIER)) {
+			case "SMA":
+				x = "SMA";
+				break;
+			case "EMA":
+				x= "EMA";
+				break;
+			case "LBB":
+				x = "LBB";
+				break;
+			case "MACD":
+				x = "MACD";
+				break;
+			case "SL":
+				x = "SL";
+				break;
+			default:
+				break;
 		}
+
+		String queryStr = "SELECT * FROM " + x + " WHERE ID = (SELECT max(ID) FROM " + x + " )";
+		Query query = entityManager.createQuery(queryStr);
+		Object result = query.getSingleResult();
+
+		response.addParam(GlobalConstant.ITEM , result);
 	}
+
+	
 }

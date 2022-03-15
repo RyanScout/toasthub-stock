@@ -24,7 +24,6 @@ import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
 
 import net.jacobpeterson.alpaca.AlpacaAPI;
-import net.jacobpeterson.alpaca.model.endpoint.marketdata.stock.historical.bar.StockBar;
 
 @Service("HistoricalAnalyzingSvc")
 public class HistoricalAnalyzingSvcImpl implements HistoricalAnalyzingSvc {

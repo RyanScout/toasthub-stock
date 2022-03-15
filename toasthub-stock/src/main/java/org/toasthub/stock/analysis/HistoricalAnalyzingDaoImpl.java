@@ -22,7 +22,6 @@ import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 
-import org.springframework.aop.framework.adapter.GlobalAdvisorAdapterRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +31,6 @@ import org.toasthub.analysis.model.MACD;
 import org.toasthub.analysis.model.SL;
 import org.toasthub.analysis.model.SMA;
 import org.toasthub.stock.model.HistoricalAnalysis;
-import org.toasthub.stock.model.Trade;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;

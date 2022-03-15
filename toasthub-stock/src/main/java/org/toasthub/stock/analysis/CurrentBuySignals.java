@@ -1,22 +1,15 @@
 package org.toasthub.stock.analysis;
 
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.temporal.ChronoUnit;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.toasthub.analysis.model.MACD;
-import org.toasthub.analysis.model.SL;
-import org.toasthub.analysis.model.SMA;
-import org.toasthub.stock.model.cache.BuySignalCache;
-import org.toasthub.utils.GlobalConstant;
-import org.toasthub.utils.Request;
-import org.toasthub.utils.Response;
+import org.toasthub.stock.model.cache.TradeSignalCache;
 
 @Service("CurrentBuySignals")
 public class CurrentBuySignals {
+
+    @Autowired
+    protected TradeSignalCache tradeSignalCache;
+    
 
     public Boolean process(String alg) {
         Boolean result = false;
@@ -49,6 +42,6 @@ public class CurrentBuySignals {
     }
 
     public Boolean currentGoldenCross() {
-        return BuySignalCache.getInstance().getGoldenCrossMap().get("GLOBAL").isBuyIndicator();
+        return tradeSignalCache.getGoldenCrossMap().get("GLOBAL").isBuyIndicator();
     }
 }

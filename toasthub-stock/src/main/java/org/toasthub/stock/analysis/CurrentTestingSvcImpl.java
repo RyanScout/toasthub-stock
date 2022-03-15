@@ -11,22 +11,20 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.toasthub.analysis.model.LBB;
 import org.toasthub.analysis.model.SMA;
+import org.toasthub.analysis.model.StockDay;
 import org.toasthub.stock.model.Trade;
-import org.toasthub.stock.model.cache.BuySignalCache;
-import org.toasthub.stock.model.cache.BuySignalCacheDao;
 import org.toasthub.stock.model.cache.GoldenCross;
+import org.toasthub.stock.model.cache.LowerBollingerBand;
+import org.toasthub.stock.model.cache.TradeSignalCache;
 import org.toasthub.stock.trade.TradeDao;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
 
-import ch.qos.logback.core.joran.conditional.ElseAction;
 import net.jacobpeterson.alpaca.AlpacaAPI;
-import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderClass;
 import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderSide;
-import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderTimeInForce;
-import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderType;
 
 @Service("CurrentTestingSvc")
 public class CurrentTestingSvcImpl {
@@ -41,7 +39,10 @@ public class CurrentTestingSvcImpl {
     protected CurrentBuySignals currentBuySignals;
 
     @Autowired
-    protected BuySignalCacheDao buySignalCacheDao;
+    protected CurrentTestingDao CurrentTestingDao;
+
+    @Autowired
+    protected TradeSignalCache tradeSignalCache;
 
     private long now = ZonedDateTime.ofInstant(Instant.now(),
             ZoneId.of("America/New_York")).truncatedTo(ChronoUnit.DAYS).toEpochSecond();
@@ -66,17 +67,37 @@ public class CurrentTestingSvcImpl {
 
         } else {
             tradeAnalysisJobRunning.set(true);
-            setBuySignalCacheGlobals();
+            setTradeSignalCacheGlobals();
             checkTrades();
             tradeAnalysisJobRunning.set(false);
         }
     }
 
-    public void setBuySignalCacheGlobals() {
+    public void setTradeSignalCacheGlobals() {
+        Request request = new Request();
+        Response response = new Response();
+        setTradeSignalCacheClosingPrice(request, response);
+        setTradeSignalGoldenCrossCache(request, response);
+        setTradeSignalLowerBollingerBandCache(request, response);
+    }
+
+    public void setTradeSignalCacheClosingPrice(Request request, Response response){
+        try{
+        request.addParam(GlobalConstant.IDENTIFIER, "StockDay");
+
+        CurrentTestingDao.getFinalRow(request, response);
+
+        StockDay stockDay = (StockDay)response.getParam(GlobalConstant.ITEM);
+
+        tradeSignalCache.setClosingPrice(stockDay.getClose());
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public void setTradeSignalGoldenCrossCache(Request request, Response response){
         try {
-            BuySignalCache buySignalCache = BuySignalCache.getInstance();
-            Request request = new Request();
-            Response response = new Response();
+
             request.addParam(GlobalConstant.EPOCHSECONDS, now);
             request.addParam(GlobalConstant.STOCK, "SPY");
 
@@ -84,11 +105,11 @@ public class CurrentTestingSvcImpl {
             request.addParam(GlobalConstant.IDENTIFIER, "SMA");
 
             request.addParam(GlobalConstant.TYPE, globalGoldenCross.getShortSMAType());
-            buySignalCacheDao.item(request, response);
+            CurrentTestingDao.item(request, response);
             SMA shortSMA = (SMA) response.getParam(GlobalConstant.ITEM);
 
             request.addParam(GlobalConstant.TYPE, globalGoldenCross.getLongSMAType());
-            buySignalCacheDao.item(request, response);
+            CurrentTestingDao.item(request, response);
             SMA longSMA = (SMA) response.getParam(GlobalConstant.ITEM);
 
             if (shortSMA.getValue().compareTo(longSMA.getValue()) > 0)
@@ -96,14 +117,42 @@ public class CurrentTestingSvcImpl {
             else
                 globalGoldenCross.setBuyIndicator(false);
 
-            Map<String, GoldenCross> clone = buySignalCache.getGoldenCrossMap();
+            Map<String, GoldenCross> clone = tradeSignalCache.getGoldenCrossMap();
             clone.put("GLOBAL", globalGoldenCross);
-            buySignalCache.setGoldenCrossMap(clone);
+            tradeSignalCache.setGoldenCrossMap(clone);
 
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
+    public void setTradeSignalLowerBollingerBandCache(Request request, Response response){
+        try {
+            
+            request.addParam(GlobalConstant.EPOCHSECONDS, now);
+            request.addParam(GlobalConstant.STOCK, "SPY");
+
+            LowerBollingerBand lowerBollingerBand = new LowerBollingerBand();
+            request.addParam(GlobalConstant.IDENTIFIER, "LBB");
+
+            request.addParam(GlobalConstant.TYPE, lowerBollingerBand.getLBBType());
+            CurrentTestingDao.item(request, response);
+            LBB lbb = (LBB) response.getParam(GlobalConstant.ITEM);
+
+            if (lbb.getValue().compareTo(tradeSignalCache.getClosingPrice()) < 0 )
+                lowerBollingerBand.setBuyIndicator(true);
+            else
+                lowerBollingerBand.setBuyIndicator(false);
+
+            Map<String, LowerBollingerBand> clone = tradeSignalCache.getLowerBollingerBandMap();
+            clone.put("GLOBAL", lowerBollingerBand);
+            tradeSignalCache.setLowerBollingerBandMap(clone);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 
     private void checkTrades() {
         try {

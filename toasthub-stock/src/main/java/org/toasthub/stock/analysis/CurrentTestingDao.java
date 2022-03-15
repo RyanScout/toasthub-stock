@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package org.toasthub.stock.model.cache;
-
-import java.math.BigDecimal;
+package org.toasthub.stock.analysis;
 
 import org.toasthub.common.BaseDao;
+import org.toasthub.utils.Request;
+import org.toasthub.utils.Response;
 
-public interface BuySignalCacheDao extends BaseDao {
-	public BigDecimal queryAlgValue(String alg, String stock, String type, long epochSeconds);
+public interface CurrentTestingDao extends BaseDao {
+	public void getFinalRow(Request request, Response response);
 }
