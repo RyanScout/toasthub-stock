@@ -58,7 +58,7 @@ public class CurrentTestingSvcImpl {
         super.finalize();
     }
 
-    @Scheduled(cron = "30 * * * * ?")
+    // @Scheduled(cron = "30 * * * * ?")
     public void tradeAnalysisTask() {
 
         if (tradeAnalysisJobRunning.get()) {
@@ -81,21 +81,21 @@ public class CurrentTestingSvcImpl {
         setTradeSignalLowerBollingerBandCache(request, response);
     }
 
-    public void setTradeSignalCacheClosingPrice(Request request, Response response){
-        try{
-        request.addParam(GlobalConstant.IDENTIFIER, "StockDay");
+    public void setTradeSignalCacheClosingPrice(Request request, Response response) {
+        try {
+            request.addParam(GlobalConstant.IDENTIFIER, "StockDay");
 
-        CurrentTestingDao.getFinalRow(request, response);
+            CurrentTestingDao.getFinalRow(request, response);
 
-        StockDay stockDay = (StockDay)response.getParam(GlobalConstant.ITEM);
+            StockDay stockDay = (StockDay) response.getParam(GlobalConstant.ITEM);
 
-        tradeSignalCache.setClosingPrice(stockDay.getClose());
-        }catch(Exception e){
+            tradeSignalCache.setClosingPrice(stockDay.getClose());
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public void setTradeSignalGoldenCrossCache(Request request, Response response){
+    public void setTradeSignalGoldenCrossCache(Request request, Response response) {
         try {
 
             request.addParam(GlobalConstant.EPOCHSECONDS, now);
@@ -117,18 +117,16 @@ public class CurrentTestingSvcImpl {
             else
                 globalGoldenCross.setBuyIndicator(false);
 
-            Map<String, GoldenCross> clone = tradeSignalCache.getGoldenCrossMap();
-            clone.put("GLOBAL", globalGoldenCross);
-            tradeSignalCache.setGoldenCrossMap(clone);
+            tradeSignalCache.getGoldenCrossMap().put("GLOBAL" , globalGoldenCross);
 
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public void setTradeSignalLowerBollingerBandCache(Request request, Response response){
+    public void setTradeSignalLowerBollingerBandCache(Request request, Response response) {
         try {
-            
+
             request.addParam(GlobalConstant.EPOCHSECONDS, now);
             request.addParam(GlobalConstant.STOCK, "SPY");
 
@@ -139,7 +137,7 @@ public class CurrentTestingSvcImpl {
             CurrentTestingDao.item(request, response);
             LBB lbb = (LBB) response.getParam(GlobalConstant.ITEM);
 
-            if (lbb.getValue().compareTo(tradeSignalCache.getClosingPrice()) < 0 )
+            if (lbb.getValue().compareTo(tradeSignalCache.getClosingPrice()) < 0)
                 lowerBollingerBand.setBuyIndicator(true);
             else
                 lowerBollingerBand.setBuyIndicator(false);
@@ -153,6 +151,32 @@ public class CurrentTestingSvcImpl {
         }
     }
 
+    public void setTradeSignalSignalLineCrossCache(Request request, Response response) {
+        try {
+
+            request.addParam(GlobalConstant.EPOCHSECONDS, now);
+            request.addParam(GlobalConstant.STOCK, "SPY");
+
+            LowerBollingerBand lowerBollingerBand = new LowerBollingerBand();
+            request.addParam(GlobalConstant.IDENTIFIER, "LBB");
+
+            request.addParam(GlobalConstant.TYPE, lowerBollingerBand.getLBBType());
+            CurrentTestingDao.item(request, response);
+            LBB lbb = (LBB) response.getParam(GlobalConstant.ITEM);
+
+            if (lbb.getValue().compareTo(tradeSignalCache.getClosingPrice()) < 0)
+                lowerBollingerBand.setBuyIndicator(true);
+            else
+                lowerBollingerBand.setBuyIndicator(false);
+
+            Map<String, LowerBollingerBand> clone = tradeSignalCache.getLowerBollingerBandMap();
+            clone.put("GLOBAL", lowerBollingerBand);
+            tradeSignalCache.setLowerBollingerBandMap(clone);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     private void checkTrades() {
         try {
@@ -201,9 +225,16 @@ public class CurrentTestingSvcImpl {
                 operand)) {
 
             try {
-                alpacaAPI.orders().requestNotionalMarketOrder(trade.getStock(), trade.getBuyAmount().doubleValue(),
-                        OrderSide.BUY);
-                System.out.print("Trade Executed!");
+                if (trade.getOrderType().equals("buy")) {
+                    alpacaAPI.orders().requestNotionalMarketOrder(trade.getStock(), trade.getAmount().doubleValue(),
+                            OrderSide.BUY);
+                    System.out.print("Trade Executed!");
+                }
+                if (trade.getOrderType().equals("sell")) {
+                    alpacaAPI.orders().requestNotionalMarketOrder(trade.getStock(), trade.getAmount().doubleValue(),
+                            OrderSide.SELL);
+                    System.out.print("Trade Executed!");
+                }
 
             } catch (Exception e) {
                 System.out.println("Not Executed!");

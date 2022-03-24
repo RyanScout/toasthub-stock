@@ -82,21 +82,22 @@ public class TradeSvcImpl implements TradeSvc {
 				} else {
 					trade.setName("Test");
 				}
+
+				trade.setOrderType((String) m.get("orderType"));
+
+				trade.setFrequency((String)m.get("frequency"));
+
 				trade.setStock((String) m.get("stock"));
+				
 				if (m.containsKey("status")) {
 					trade.setRunStatus((String) m.get("status"));
 				} else {
 					trade.setRunStatus("No");
 				}
-				if (m.get("buyAmount") instanceof Integer) {
-					trade.setBuyAmount(new BigDecimal((Integer)m.get("buyAmount")));
-				} else if (m.get("buyAmount") instanceof String) {
-					trade.setBuyAmount(new BigDecimal((String)m.get("buyAmount")));
-				}
-				if (m.get("sellAmount") instanceof Integer) {
-					trade.setSellAmount(new BigDecimal((Integer)m.get("sellAmount")));
-				} else if (m.get("sellAmount") instanceof String) {
-					trade.setSellAmount(new BigDecimal((String)m.get("sellAmount")));
+				if (m.get("amount") instanceof Integer) {
+					trade.setAmount(new BigDecimal((Integer)m.get("amount")));
+				} else if (m.get("amount") instanceof String) {
+					trade.setAmount(new BigDecimal((String)m.get("amount")));
 				}
 				if (m.get("profitLimit") instanceof Integer) {
 					trade.setProfitLimit(new BigDecimal((Integer)m.get("profitLimit")));
@@ -108,15 +109,14 @@ public class TradeSvcImpl implements TradeSvc {
 				} else if (m.get("trailingStopPercent") instanceof String) {
 					trade.setTrailingStopPercent(new BigDecimal((String)m.get("trailingStopPercent")));
 				}
+
 				if (m.containsKey("algorithm")) {
 					trade.setAlgorithm((String)m.get("algorithm"));
-				}else
-				trade.setAlgorithm("touchesLBB");
+				}
 				String algorithm2 ="";
 				if(m.containsKey("algorithm2"))
 				algorithm2 = " "+(String)m.get("algorithm2");
-				else
-				algorithm2 = " touchesLBB";
+
 				if(m.containsKey("operand")){
 					trade.setAlgorithm(trade.getAlgorithm() + " "+ m.get("operand") + algorithm2);
 				}

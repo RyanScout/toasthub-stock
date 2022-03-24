@@ -37,12 +37,14 @@ public class Trade extends BaseEntity{
 	
 	protected String name;
 	protected String stock;
-	protected BigDecimal buyAmount;
-	protected BigDecimal sellAmount;
+	protected String orderType;
+	protected BigDecimal amount;
 	protected String algorithm;
 	protected String runStatus;
 	protected BigDecimal trailingStopPercent;
 	protected BigDecimal profitLimit;
+	private String frequency;
+	private int frequencyExecuted;
 
 
 	//Constructors
@@ -52,16 +54,34 @@ public class Trade extends BaseEntity{
 		this.setArchive(false);
 		this.setLocked(false);
 		this.setCreated(Instant.now());
-		this.setIdentifier("TRADE");
+		this.setIdentifier("Trade");
 	}
 	
+	@Column(name = "frequency_executed")
+	public int getFrequencyExecuted() {
+		return frequencyExecuted;
+	}
+
+	public void setFrequencyExecuted(int frequencyExecuted) {
+		this.frequencyExecuted = frequencyExecuted;
+	}
+
+	@Column(name = "frequency")
+	public String getFrequency() {
+		return frequency;
+	}
+
+	public void setFrequency(String frequency) {
+		this.frequency = frequency;
+	}
+
 	public Trade(String code, Boolean defaultLang, String dir){
 		super();
 		this.setActive(true);
 		this.setArchive(false);
 		this.setLocked(false);
 		this.setCreated(Instant.now());
-		this.setIdentifier("TRADE");
+		this.setIdentifier("Trade");
 	}
 
 	// Methods
@@ -81,21 +101,22 @@ public class Trade extends BaseEntity{
 	public void setStock(String stock) {
 		this.stock = stock;
 	}
-	
-	@Column(name = "buy_amount")
-	public BigDecimal getBuyAmount() {
-		return buyAmount;
-	}
-	public void setBuyAmount(BigDecimal buyAmount) {
-		this.buyAmount = buyAmount;
+
+	@Column(name = "order_type")
+	public String getOrderType(){
+		return orderType;
 	}
 
-	@Column(name = "sell_amount")
-	public BigDecimal getSellAmount() {
-		return sellAmount;
+	public void setOrderType(String orderType){
+		this.orderType = orderType;
 	}
-	public void setSellAmount(BigDecimal sellAmount) {
-		this.sellAmount = sellAmount;
+
+	@Column(name = "amount")
+	public BigDecimal getAmount() {
+		return amount;
+	}
+	public void setAmount(BigDecimal amount) {
+		this.amount = amount;
 	}
 
 	@Column(name = "algorithm")

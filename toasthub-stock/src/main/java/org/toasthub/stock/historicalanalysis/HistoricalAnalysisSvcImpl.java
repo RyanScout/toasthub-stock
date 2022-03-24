@@ -82,21 +82,20 @@ public class HistoricalAnalysisSvcImpl implements HistoricalAnalysisSvc {
 				} else {
 					trade.setName("Test");
 				}
+
+				trade.setName((String) m.get("orderType"));
+
 				trade.setStock((String) m.get("stock"));
+
 				if (m.containsKey("status")) {
 					trade.setRunStatus((String) m.get("status"));
 				} else {
 					trade.setRunStatus("No");
 				}
-				if (m.get("buyAmount") instanceof Integer) {
-					trade.setBuyAmount(new BigDecimal((Integer)m.get("buyAmount")));
-				} else if (m.get("buyAmount") instanceof String) {
-					trade.setBuyAmount(new BigDecimal((String)m.get("buyAmount")));
-				}
-				if (m.get("sellAmount") instanceof Integer) {
-					trade.setSellAmount(new BigDecimal((Integer)m.get("sellAmount")));
-				} else if (m.get("sellAmount") instanceof String) {
-					trade.setSellAmount(new BigDecimal((String)m.get("sellAmount")));
+				if (m.get("amount") instanceof Integer) {
+					trade.setAmount(new BigDecimal((Integer)m.get("amount")));
+				} else if (m.get("amount") instanceof String) {
+					trade.setAmount(new BigDecimal((String)m.get("amount")));
 				}
 				if (m.get("profitLimit") instanceof Integer) {
 					trade.setProfitLimit(new BigDecimal((Integer)m.get("profitLimit")));

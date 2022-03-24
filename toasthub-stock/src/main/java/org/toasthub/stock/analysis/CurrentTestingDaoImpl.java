@@ -181,7 +181,7 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 				break;
 		}
 
-		String queryStr = "SELECT * FROM " + x + " WHERE ID = (SELECT max(ID) FROM " + x + " )";
+		String queryStr = "SELECT DISTINCT x" +" FROM " + x + " as x WHERE ID = (SELECT max(ID) FROM " + x + " )";
 		Query query = entityManager.createQuery(queryStr);
 		Object result = query.getSingleResult();
 

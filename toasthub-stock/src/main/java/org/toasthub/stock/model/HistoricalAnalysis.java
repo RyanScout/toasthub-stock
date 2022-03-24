@@ -46,8 +46,8 @@ public class HistoricalAnalysis extends BaseEntity {
 
 	protected String name;
 	protected String stock;
-	protected BigDecimal buyAmount;
-	protected BigDecimal sellAmount;
+	private String orderType;
+	protected BigDecimal amount;
 	protected String algorithm;
 	protected BigDecimal trailingStopPercent;
 	protected BigDecimal profitLimit;
@@ -55,7 +55,7 @@ public class HistoricalAnalysis extends BaseEntity {
 	private BigDecimal totalValue;
 	private long startTime;
 	private long endTime;
-	private String type;
+	private String historicalAnalysisType;
 	private String stringedStartTime;
 	private String stringedEndTime;
 	private Set<HistoricalDetail> historicalDetails;
@@ -70,6 +70,23 @@ public class HistoricalAnalysis extends BaseEntity {
 		this.setIdentifier("HistoricalAnalysis");
 	}
 
+	@Column(name = "historical_analysis_type")
+	public String getHistoricalAnalysisType() {
+		return historicalAnalysisType;
+	}
+
+	public void setHistoricalAnalysisType(String historicalAnalysisType) {
+		this.historicalAnalysisType = historicalAnalysisType;
+	}
+	@Column(name = "order_type")
+	public String getOrderType() {
+		return orderType;
+	}
+
+	public void setOrderType(String orderType) {
+		this.orderType = orderType;
+	}
+
 	public HistoricalAnalysis(String code, Boolean defaultLang, String dir) {
 		this.setActive(true);
 		this.setArchive(false);
@@ -80,9 +97,9 @@ public class HistoricalAnalysis extends BaseEntity {
 	public HistoricalAnalysis(Map<String, ?> map){
 		setStock((String) map.get("stock"));
 		setAlgorithm((String) map.get("algorithm"));
-		setType((String)map.get("type"));
-        setBuyAmount(new BigDecimal((Integer) map.get("buyAmount")));
-        setSellAmount(new BigDecimal((Integer) map.get("sellAmount")));
+		setOrderType((String) map.get("orderType"));
+		setHistoricalAnalysisType((String)map.get("type"));
+        setAmount(new BigDecimal((Integer) map.get("amount")));
         setTrailingStopPercent(new BigDecimal((Double) map.get("trailingStopPercent")));
         setProfitLimit(new BigDecimal((Double) map.get("profitLimit")));
         setName((String) map.get("name"));
@@ -105,19 +122,12 @@ public class HistoricalAnalysis extends BaseEntity {
 	public void setStock(String stock) {
 		this.stock = stock;
 	}
-	@Column(name = "buy_amount")
-	public BigDecimal getBuyAmount() {
-		return buyAmount;
+	@Column(name = "amount")
+	public BigDecimal getAmount() {
+		return amount;
 	}
-	public void setBuyAmount(BigDecimal buyAmount) {
-		this.buyAmount = buyAmount;
-	}
-	@Column(name = "sell_amount")
-	public BigDecimal getSellAmount() {
-		return sellAmount;
-	}
-	public void setSellAmount(BigDecimal sellAmount) {
-		this.sellAmount = sellAmount;
+	public void setAmount(BigDecimal amount) {
+		this.amount = amount;
 	}
 	@Column(name = "algorithm")
 	public String getAlgorithm() {
@@ -169,13 +179,6 @@ public class HistoricalAnalysis extends BaseEntity {
 	public void setStartTime(long startTime) {
 		this.startTime = startTime;
 		setStringedStartTime(startTime);
-	}
-	@Column(name="type")
-	public String getType() {
-		return type;
-	}
-	public void setType(String type) {
-		this.type = type;
 	}
 	@Transient
     public String getStringedStartTime() {
