@@ -1,5 +1,7 @@
 package org.toasthub.stock.analysis;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -25,6 +27,7 @@ import org.toasthub.utils.Response;
 
 import net.jacobpeterson.alpaca.AlpacaAPI;
 import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderSide;
+import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderTimeInForce;
 
 @Service("CurrentTestingSvc")
 public class CurrentTestingSvcImpl {
@@ -36,10 +39,10 @@ public class CurrentTestingSvcImpl {
     protected TradeDao tradeDao;
 
     @Autowired
-    protected CurrentBuySignals currentBuySignals;
+    protected CurrentOrderSignals currentOrderSignals;
 
     @Autowired
-    protected CurrentTestingDao CurrentTestingDao;
+    protected CurrentTestingDao currentTestingDao;
 
     @Autowired
     protected TradeSignalCache tradeSignalCache;
@@ -67,49 +70,50 @@ public class CurrentTestingSvcImpl {
 
         } else {
             tradeAnalysisJobRunning.set(true);
-            setTradeSignalCacheGlobals();
+            updateTradeSignalCache();
             checkTrades();
             tradeAnalysisJobRunning.set(false);
         }
     }
 
-    public void setTradeSignalCacheGlobals() {
+    public void updateTradeSignalCache() {
         Request request = new Request();
         Response response = new Response();
-        setTradeSignalCacheClosingPrice(request, response);
-        setTradeSignalGoldenCrossCache(request, response);
-        setTradeSignalLowerBollingerBandCache(request, response);
+        updateRecentStockDayStats(request, response);
+        updateGoldenCrossCacheGlobals(request, response);
+        updateLowerBollingerBandCacheGlobals(request, response);
     }
 
-    public void setTradeSignalCacheClosingPrice(Request request, Response response) {
+    public void updateRecentStockDayStats(Request request, Response response) {
         try {
-            request.addParam(GlobalConstant.IDENTIFIER, "StockDay");
+            currentTestingDao.getRecentStockDay(request, response);
 
-            CurrentTestingDao.getFinalRow(request, response);
+            StockDay recentStockDay = (StockDay) response.getParam(GlobalConstant.ITEM);
 
-            StockDay stockDay = (StockDay) response.getParam(GlobalConstant.ITEM);
+            tradeSignalCache.setRecentClosingPrice(recentStockDay.getClose());
+            tradeSignalCache.setRecentEpochSeconds(recentStockDay.getEpochSeconds());
 
-            tradeSignalCache.setClosingPrice(stockDay.getClose());
         } catch (Exception e) {
+            System.out.println("Error at Closing Price Cache");
             e.printStackTrace();
         }
     }
 
-    public void setTradeSignalGoldenCrossCache(Request request, Response response) {
+    public void updateGoldenCrossCacheGlobals(Request request, Response response) {
         try {
 
-            request.addParam(GlobalConstant.EPOCHSECONDS, now);
+            request.addParam(GlobalConstant.EPOCHSECONDS, tradeSignalCache.getRecentEpochSeconds());
             request.addParam(GlobalConstant.STOCK, "SPY");
 
             GoldenCross globalGoldenCross = new GoldenCross();
             request.addParam(GlobalConstant.IDENTIFIER, "SMA");
 
             request.addParam(GlobalConstant.TYPE, globalGoldenCross.getShortSMAType());
-            CurrentTestingDao.item(request, response);
+            currentTestingDao.item(request, response);
             SMA shortSMA = (SMA) response.getParam(GlobalConstant.ITEM);
 
             request.addParam(GlobalConstant.TYPE, globalGoldenCross.getLongSMAType());
-            CurrentTestingDao.item(request, response);
+            currentTestingDao.item(request, response);
             SMA longSMA = (SMA) response.getParam(GlobalConstant.ITEM);
 
             if (shortSMA.getValue().compareTo(longSMA.getValue()) > 0)
@@ -117,65 +121,40 @@ public class CurrentTestingSvcImpl {
             else
                 globalGoldenCross.setBuyIndicator(false);
 
-            tradeSignalCache.getGoldenCrossMap().put("GLOBAL" , globalGoldenCross);
+            tradeSignalCache.getGoldenCrossMap().put("GLOBAL", globalGoldenCross);
 
         } catch (Exception e) {
+            System.out.println("Error at Golden Cross Cache");
             e.printStackTrace();
         }
     }
 
-    public void setTradeSignalLowerBollingerBandCache(Request request, Response response) {
+    public void updateLowerBollingerBandCacheGlobals(Request request, Response response) {
         try {
-
-            request.addParam(GlobalConstant.EPOCHSECONDS, now);
+            request.addParam(GlobalConstant.EPOCHSECONDS, tradeSignalCache.getRecentEpochSeconds());
             request.addParam(GlobalConstant.STOCK, "SPY");
 
             LowerBollingerBand lowerBollingerBand = new LowerBollingerBand();
             request.addParam(GlobalConstant.IDENTIFIER, "LBB");
 
             request.addParam(GlobalConstant.TYPE, lowerBollingerBand.getLBBType());
-            CurrentTestingDao.item(request, response);
+            currentTestingDao.item(request, response);
             LBB lbb = (LBB) response.getParam(GlobalConstant.ITEM);
 
-            if (lbb.getValue().compareTo(tradeSignalCache.getClosingPrice()) < 0)
+            if (lbb.getValue().compareTo(tradeSignalCache.getRecentClosingPrice()) < 0)
                 lowerBollingerBand.setBuyIndicator(true);
             else
                 lowerBollingerBand.setBuyIndicator(false);
 
-            Map<String, LowerBollingerBand> clone = tradeSignalCache.getLowerBollingerBandMap();
-            clone.put("GLOBAL", lowerBollingerBand);
-            tradeSignalCache.setLowerBollingerBandMap(clone);
-
+            tradeSignalCache.getLowerBollingerBandMap().put("GLOBAL", lowerBollingerBand);
         } catch (Exception e) {
+            System.out.println("Error at LowerBollingerBand Cache");
             e.printStackTrace();
         }
     }
 
-    public void setTradeSignalSignalLineCrossCache(Request request, Response response) {
-        try {
+    public void updateSignalLineCrossGlobals(Request request, Response response) {
 
-            request.addParam(GlobalConstant.EPOCHSECONDS, now);
-            request.addParam(GlobalConstant.STOCK, "SPY");
-
-            LowerBollingerBand lowerBollingerBand = new LowerBollingerBand();
-            request.addParam(GlobalConstant.IDENTIFIER, "LBB");
-
-            request.addParam(GlobalConstant.TYPE, lowerBollingerBand.getLBBType());
-            CurrentTestingDao.item(request, response);
-            LBB lbb = (LBB) response.getParam(GlobalConstant.ITEM);
-
-            if (lbb.getValue().compareTo(tradeSignalCache.getClosingPrice()) < 0)
-                lowerBollingerBand.setBuyIndicator(true);
-            else
-                lowerBollingerBand.setBuyIndicator(false);
-
-            Map<String, LowerBollingerBand> clone = tradeSignalCache.getLowerBollingerBandMap();
-            clone.put("GLOBAL", lowerBollingerBand);
-            tradeSignalCache.setLowerBollingerBandMap(clone);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     private void checkTrades() {
@@ -186,7 +165,19 @@ public class CurrentTestingSvcImpl {
             if (trades != null && trades.size() > 0) {
                 for (Trade trade : trades) {
                     System.out.println("Checking trade name:" + trade.getName());
-                    currentTest(trade);
+                    switch (trade.getOrderSide()) {
+                        case "Buy":
+                            currentBuyTest(trade);
+                            break;
+                        case "Sell":
+                            currentSellTest(trade);
+                            break;
+                        case "Bot":
+                            currentBotTest(trade);
+                            break;
+                        default:
+                            return;
+                    }
                 }
             } else {
                 System.out.println("No trades to run");
@@ -208,39 +199,139 @@ public class CurrentTestingSvcImpl {
         return result;
     }
 
-    public void currentTest(Trade trade) {
-        String algorithm = trade.getAlgorithm();
-        String alg1 = algorithm;
+    public void currentBuyTest(Trade trade) {
+
+        int truncatedSharesAmount = 0;
+        switch (trade.getCurrencyType()) {
+            case "Dollars":
+                truncatedSharesAmount = trade.getCurrencyAmount()
+                        .divide(tradeSignalCache.getRecentClosingPrice(), MathContext.DECIMAL32).intValue();
+                break;
+            case "Shares":
+                truncatedSharesAmount = trade.getCurrencyAmount().intValue();
+                break;
+            default:
+                return;
+        }
+
+        double trailingStopPrice = 0;
+        double profitLimitPrice = 0;
+        String buyCondition = trade.getBuyCondition();
+        String alg1 = buyCondition;
         String operand = "";
         String alg2 = "";
-        if (algorithm.contains(" ")) {
-            alg1 = algorithm.substring(0, algorithm.indexOf(" "));
-            operand = algorithm.substring(algorithm.indexOf(" ") + 1,
-                    algorithm.indexOf((" "), algorithm.indexOf(" ") + 1));
-            alg2 = algorithm.substring(algorithm.indexOf((" "), algorithm.indexOf(" ") + 1) + 1,
-                    algorithm.length());
+
+        if (buyCondition.contains(" ")) {
+            alg1 = buyCondition.substring(0, buyCondition.indexOf(" "));
+            operand = buyCondition.substring(buyCondition.indexOf(" ") + 1,
+                    buyCondition.indexOf((" "), buyCondition.indexOf(" ") + 1));
+            alg2 = buyCondition.substring(buyCondition.indexOf((" "), buyCondition.indexOf(" ") + 1) + 1,
+                    buyCondition.length());
         }
-        if (evaluate(currentBuySignals.process(alg1),
-                currentBuySignals.process(alg2),
-                operand)) {
 
+        if (true
+            // evaluate(currentOrderSignals.process(alg1),
+            //     currentOrderSignals.process(alg2),
+            //     operand)
+            ) {
             try {
-                if (trade.getOrderType().equals("buy")) {
-                    alpacaAPI.orders().requestNotionalMarketOrder(trade.getStock(), trade.getAmount().doubleValue(),
-                            OrderSide.BUY);
-                    System.out.print("Trade Executed!");
-                }
-                if (trade.getOrderType().equals("sell")) {
-                    alpacaAPI.orders().requestNotionalMarketOrder(trade.getStock(), trade.getAmount().doubleValue(),
-                            OrderSide.SELL);
-                    System.out.print("Trade Executed!");
-                }
+                switch (trade.getOrderType()) {
+                    case "Market":
 
+                        switch (trade.getCurrencyType()) {
+
+                            case "Dollars":
+                                alpacaAPI.orders().requestNotionalMarketOrder(trade.getStock(),
+                                        trade.getCurrencyAmount().doubleValue(), OrderSide.BUY);
+                                break;
+                            case "Shares":
+                                alpacaAPI.orders().requestFractionalMarketOrder(trade.getStock(),
+                                        trade.getCurrencyAmount().doubleValue(), OrderSide.BUY);
+                                break;
+                            default:
+                                return;
+                        }
+
+                    case "Trailing Stop":
+                        switch (trade.getTrailingStopType()) {
+                            case "Trailing Stop Price":
+                                trailingStopPrice = trade.getTrailingStopAmount().doubleValue();
+                                break;
+                            case "Trailing Stop Percent":
+                                trailingStopPrice = trade.getTrailingStopAmount()
+                                        .multiply(tradeSignalCache.getRecentClosingPrice())
+                                        .doubleValue();
+                                break;
+                        }
+
+                        alpacaAPI.orders().requestTrailingStopPriceOrder(trade.getStock(),
+                                truncatedSharesAmount, OrderSide.BUY,
+                                OrderTimeInForce.FILL_OR_KILL, trailingStopPrice,
+                                true);
+                        break;
+
+                    case "Profit Limit":
+
+                        switch (trade.getTrailingStopType()) {
+                            case "Profit Limit Price":
+                                profitLimitPrice = trade.getProfitLimitAmount().doubleValue();
+                                break;
+                            case "Profit Limit Percent":
+                                profitLimitPrice = trade.getProfitLimitAmount()
+                                        .multiply(tradeSignalCache.getRecentClosingPrice())
+                                        .doubleValue();
+                                break;
+                        }
+
+                        alpacaAPI.orders().requestOTOMarketOrder(trade.getStock(), truncatedSharesAmount,
+                                OrderSide.BUY, OrderTimeInForce.FILL_OR_KILL,
+                                profitLimitPrice, null, null);
+                        break;
+
+                    case "Trailing Stop & Profit Limit":
+                        switch (trade.getTrailingStopType()) {
+                            case "Trailing Stop Price":
+                                trailingStopPrice = trade.getTrailingStopAmount().doubleValue();
+                            case "Trailing Stop Percent":
+                                trailingStopPrice = trade.getTrailingStopAmount()
+                                        .multiply(tradeSignalCache.getRecentClosingPrice())
+                                        .doubleValue();
+                        }
+
+                        switch (trade.getTrailingStopType()) {
+                            case "Profit Limit Price":
+                                profitLimitPrice = trade.getProfitLimitAmount().doubleValue();
+                                break;
+                            case "Profit Limit Percent":
+                                profitLimitPrice = trade.getProfitLimitAmount()
+                                        .multiply(tradeSignalCache.getRecentClosingPrice())
+                                        .doubleValue();
+                                break;
+                        }
+
+                        alpacaAPI.orders().requestOTOMarketOrder(trade.getStock(), truncatedSharesAmount,
+                                OrderSide.BUY, OrderTimeInForce.FILL_OR_KILL,
+                                profitLimitPrice, trailingStopPrice,
+                                null);
+                        break;
+
+                    default:
+                        System.out.println("Case Not found!");
+                    
+                }
+                System.out.println("Order Placed!");
             } catch (Exception e) {
                 System.out.println("Not Executed!");
                 System.out.println(e.getMessage());
             }
         } else
             System.out.println("Buy Condition not met");
+    }
+
+    public void currentSellTest(Trade trade) {
+
+    }
+
+    public void currentBotTest(Trade trade) {
     }
 }

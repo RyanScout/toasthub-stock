@@ -24,6 +24,7 @@ import javax.persistence.Query;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import org.toasthub.analysis.model.StockDay;
 import org.toasthub.stock.model.HistoricalAnalysis;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
@@ -159,30 +160,8 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 		response.addParam(GlobalConstant.ITEM , result);
 	}
 
-	public void getFinalRow(Request request, Response response){
-		String x = "";
-		switch ((String) request.getParam(GlobalConstant.IDENTIFIER)) {
-			case "SMA":
-				x = "SMA";
-				break;
-			case "EMA":
-				x= "EMA";
-				break;
-			case "LBB":
-				x = "LBB";
-				break;
-			case "MACD":
-				x = "MACD";
-				break;
-			case "SL":
-				x = "SL";
-				break;
-			default:
-				break;
-		}
-
-		String queryStr = "SELECT DISTINCT x" +" FROM " + x + " as x WHERE ID = (SELECT max(ID) FROM " + x + " )";
-		Query query = entityManager.createQuery(queryStr);
+	public void getRecentStockDay(Request request, Response response){
+		Query query = entityManager.createNativeQuery("SELECT * FROM stockanalyzer_main.sa_stock_day ORDER BY id DESC LIMIT 0, 1;" , StockDay.class);
 		Object result = query.getSingleResult();
 
 		response.addParam(GlobalConstant.ITEM , result);

@@ -64,70 +64,70 @@ public class HistoricalAnalysisSvcImpl implements HistoricalAnalysisSvc {
 	@Override
 	@SuppressWarnings("unchecked")
 	public void save(Request request, Response response) {
-		try {
-			Trade trade =  null;
-			if (request.containsParam(GlobalConstant.ITEM)) {
-				Map<String,Object> m = (Map<String,Object>) request.getParam(GlobalConstant.ITEM);
+		// try {
+		// 	Trade trade =  null;
+		// 	if (request.containsParam(GlobalConstant.ITEM)) {
+		// 		Map<String,Object> m = (Map<String,Object>) request.getParam(GlobalConstant.ITEM);
 				
-				if (m.containsKey("id") && !"".equals(m.get("id")) ) {
-					request.addParam(GlobalConstant.ITEMID, m.get("id"));
-					historicalAnalysisDao.item(request, response);
-					trade = (Trade) response.getParam("item");
-					response.getParams().remove("item");
-				} else {
-					trade = new Trade();
-				}
-				if (m.containsKey("name")) {
-					trade.setName((String) m.get("name"));
-				} else {
-					trade.setName("Test");
-				}
+		// 		if (m.containsKey("id") && !"".equals(m.get("id")) ) {
+		// 			request.addParam(GlobalConstant.ITEMID, m.get("id"));
+		// 			historicalAnalysisDao.item(request, response);
+		// 			trade = (Trade) response.getParam("item");
+		// 			response.getParams().remove("item");
+		// 		} else {
+		// 			trade = new Trade();
+		// 		}
+		// 		if (m.containsKey("name")) {
+		// 			trade.setName((String) m.get("name"));
+		// 		} else {
+		// 			trade.setName("Test");
+		// 		}
 
-				trade.setName((String) m.get("orderType"));
+		// 		trade.setName((String) m.get("orderType"));
 
-				trade.setStock((String) m.get("stock"));
+		// 		trade.setStock((String) m.get("stock"));
 
-				if (m.containsKey("status")) {
-					trade.setRunStatus((String) m.get("status"));
-				} else {
-					trade.setRunStatus("No");
-				}
-				if (m.get("amount") instanceof Integer) {
-					trade.setAmount(new BigDecimal((Integer)m.get("amount")));
-				} else if (m.get("amount") instanceof String) {
-					trade.setAmount(new BigDecimal((String)m.get("amount")));
-				}
-				if (m.get("profitLimit") instanceof Integer) {
-					trade.setProfitLimit(new BigDecimal((Integer)m.get("profitLimit")));
-				} else if (m.get("profitLimit") instanceof String) {
-					trade.setProfitLimit((new BigDecimal((String)m.get("profitLimit"))));
-				}
-				if (m.get("trailingStopPercent") instanceof Integer) {
-					trade.setTrailingStopPercent(new BigDecimal((Integer)m.get("trailingStopPercent")));
-				} else if (m.get("trailingStopPercent") instanceof String) {
-					trade.setTrailingStopPercent(new BigDecimal((String)m.get("trailingStopPercent")));
-				}
-				if (m.containsKey("Algorithm")) {
-					trade.setAlgorithm((String)m.get("Algorithm"));
-				}else
-				trade.setAlgorithm("touchesLBB");
-				String Algorithm2 ="";
-				if(m.containsKey("Algorithm2"))
-				Algorithm2 = " "+(String)m.get("Algorithm2");
-				else
-				Algorithm2 = " touchesLBB";
-				if(m.containsKey("operand")){
-					trade.setAlgorithm(trade.getAlgorithm() + " "+ m.get("operand") + Algorithm2);
-				}
-			}
-			request.addParam("item", trade);
+		// 		if (m.containsKey("status")) {
+		// 			trade.setRunStatus((String) m.get("status"));
+		// 		} else {
+		// 			trade.setRunStatus("No");
+		// 		}
+		// 		if (m.get("amount") instanceof Integer) {
+		// 			trade.setAmount(new BigDecimal((Integer)m.get("amount")));
+		// 		} else if (m.get("amount") instanceof String) {
+		// 			trade.setAmount(new BigDecimal((String)m.get("amount")));
+		// 		}
+		// 		if (m.get("profitLimit") instanceof Integer) {
+		// 			trade.setProfitLimit(new BigDecimal((Integer)m.get("profitLimit")));
+		// 		} else if (m.get("profitLimit") instanceof String) {
+		// 			trade.setProfitLimit((new BigDecimal((String)m.get("profitLimit"))));
+		// 		}
+		// 		if (m.get("trailingStopPercent") instanceof Integer) {
+		// 			trade.setTrailingStopPercent(new BigDecimal((Integer)m.get("trailingStopPercent")));
+		// 		} else if (m.get("trailingStopPercent") instanceof String) {
+		// 			trade.setTrailingStopPercent(new BigDecimal((String)m.get("trailingStopPercent")));
+		// 		}
+		// 		if (m.containsKey("Algorithm")) {
+		// 			trade.setAlgorithm((String)m.get("Algorithm"));
+		// 		}else
+		// 		trade.setAlgorithm("touchesLBB");
+		// 		String Algorithm2 ="";
+		// 		if(m.containsKey("Algorithm2"))
+		// 		Algorithm2 = " "+(String)m.get("Algorithm2");
+		// 		else
+		// 		Algorithm2 = " touchesLBB";
+		// 		if(m.containsKey("operand")){
+		// 			trade.setAlgorithm(trade.getAlgorithm() + " "+ m.get("operand") + Algorithm2);
+		// 		}
+		// 	}
+		// 	request.addParam("item", trade);
 			
-			historicalAnalysisDao.save(request, response);
-			response.setStatus(Response.SUCCESS);
-		} catch (Exception e) {
-			response.setStatus(Response.ACTIONFAILED);
-			e.printStackTrace();
-		}
+		// 	historicalAnalysisDao.save(request, response);
+		// 	response.setStatus(Response.SUCCESS);
+		// } catch (Exception e) {
+		// 	response.setStatus(Response.ACTIONFAILED);
+		// 	e.printStackTrace();
+		// }
 		
 	}
 

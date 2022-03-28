@@ -83,6 +83,8 @@ public class TradeSvcImpl implements TradeSvc {
 					trade.setName("Test");
 				}
 
+				trade.setOrderSide((String)m.get("orderSide"));
+
 				trade.setOrderType((String) m.get("orderType"));
 
 				trade.setFrequency((String)m.get("frequency"));
@@ -94,32 +96,31 @@ public class TradeSvcImpl implements TradeSvc {
 				} else {
 					trade.setRunStatus("No");
 				}
-				if (m.get("amount") instanceof Integer) {
-					trade.setAmount(new BigDecimal((Integer)m.get("amount")));
-				} else if (m.get("amount") instanceof String) {
-					trade.setAmount(new BigDecimal((String)m.get("amount")));
-				}
-				if (m.get("profitLimit") instanceof Integer) {
-					trade.setProfitLimit(new BigDecimal((Integer)m.get("profitLimit")));
-				} else if (m.get("profitLimit") instanceof String) {
-					trade.setProfitLimit((new BigDecimal((String)m.get("profitLimit"))));
-				}
-				if (m.get("trailingStopPercent") instanceof Integer) {
-					trade.setTrailingStopPercent(new BigDecimal((Integer)m.get("trailingStopPercent")));
-				} else if (m.get("trailingStopPercent") instanceof String) {
-					trade.setTrailingStopPercent(new BigDecimal((String)m.get("trailingStopPercent")));
+
+				trade.setCurrencyType((String)m.get("currencyType"));
+				if (m.get("currencyAmount") instanceof Integer) {
+					trade.setCurrencyAmount(new BigDecimal((Integer)m.get("currencyAmount")));
+				} else if (m.get("currencyAmount") instanceof String) {
+					trade.setCurrencyAmount(new BigDecimal((String)m.get("currencyAmount")));
 				}
 
-				if (m.containsKey("algorithm")) {
-					trade.setAlgorithm((String)m.get("algorithm"));
+				trade.setProfitLimitType((String)m.get("profitLimitType"));
+				if (m.get("profitLimitAmount") instanceof Integer) {
+					trade.setProfitLimitAmount(new BigDecimal((Integer)m.get("profitLimitAmount")));
+				} else if (m.get("profitLimitAmount") instanceof String) {
+					trade.setProfitLimitAmount((new BigDecimal((String)m.get("profitLimitAmount"))));
 				}
-				String algorithm2 ="";
-				if(m.containsKey("algorithm2"))
-				algorithm2 = " "+(String)m.get("algorithm2");
 
-				if(m.containsKey("operand")){
-					trade.setAlgorithm(trade.getAlgorithm() + " "+ m.get("operand") + algorithm2);
+				trade.setTrailingStopType((String)m.get("trailingStopType"));
+				if (m.get("trailingStopAmount") instanceof Integer) {
+					trade.setTrailingStopAmount(new BigDecimal((Integer)m.get("trailingStopAmount")));
+				} else if (m.get("trailingStopAmount") instanceof String) {
+					trade.setTrailingStopAmount(new BigDecimal((String)m.get("trailingStopAmount")));
 				}
+
+				trade.setBuyCondition((String)m.get("buyCondition"));
+
+				trade.setSellCondition((String)m.get("sellCondition"));
 			}
 			request.addParam("item", trade);
 			

@@ -38,11 +38,16 @@ public class Trade extends BaseEntity{
 	protected String name;
 	protected String stock;
 	protected String orderType;
-	protected BigDecimal amount;
-	protected String algorithm;
+	private String orderSide;
+	private String currencyType;
+	private BigDecimal currencyAmount;
+	private String buyCondition;
+	private String sellCondition;
 	protected String runStatus;
-	protected BigDecimal trailingStopPercent;
-	protected BigDecimal profitLimit;
+	private String trailingStopType;
+	private String profitLimitType;
+	private BigDecimal trailingStopAmount;
+	private BigDecimal profitLimitAmount;
 	private String frequency;
 	private int frequencyExecuted;
 
@@ -57,6 +62,78 @@ public class Trade extends BaseEntity{
 		this.setIdentifier("Trade");
 	}
 	
+	public BigDecimal getProfitLimitAmount() {
+		return profitLimitAmount;
+	}
+
+	public void setProfitLimitAmount(BigDecimal profitLimitAmount) {
+		this.profitLimitAmount = profitLimitAmount;
+	}
+
+	public BigDecimal getTrailingStopAmount() {
+		return trailingStopAmount;
+	}
+
+	public void setTrailingStopAmount(BigDecimal trailingStopAmount) {
+		this.trailingStopAmount = trailingStopAmount;
+	}
+
+	public String getProfitLimitType() {
+		return profitLimitType;
+	}
+
+	public void setProfitLimitType(String profitLimitType) {
+		this.profitLimitType = profitLimitType;
+	}
+
+	public String getTrailingStopType() {
+		return trailingStopType;
+	}
+
+	public void setTrailingStopType(String trailingStopType) {
+		this.trailingStopType = trailingStopType;
+	}
+
+	public String getCurrencyType() {
+		return currencyType;
+	}
+
+	public void setCurrencyType(String currencyType) {
+		this.currencyType = currencyType;
+	}
+
+	public String getSellCondition() {
+		return sellCondition;
+	}
+
+	public void setSellCondition(String sellCondition) {
+		this.sellCondition = sellCondition;
+	}
+
+	public String getBuyCondition() {
+		return buyCondition;
+	}
+
+	public void setBuyCondition(String buyCondition) {
+		this.buyCondition = buyCondition;
+	}
+
+	public BigDecimal getCurrencyAmount() {
+		return currencyAmount;
+	}
+
+	public void setCurrencyAmount(BigDecimal currencyAmount) {
+		this.currencyAmount = currencyAmount;
+	}
+
+	public String getOrderSide() {
+		return orderSide;
+	}
+
+	public void setOrderSide(String orderSide) {
+		this.orderSide = orderSide;
+	}
+
 	@Column(name = "frequency_executed")
 	public int getFrequencyExecuted() {
 		return frequencyExecuted;
@@ -111,41 +188,11 @@ public class Trade extends BaseEntity{
 		this.orderType = orderType;
 	}
 
-	@Column(name = "amount")
-	public BigDecimal getAmount() {
-		return amount;
-	}
-	public void setAmount(BigDecimal amount) {
-		this.amount = amount;
-	}
-
-	@Column(name = "algorithm")
-	public String getAlgorithm() {
-		return algorithm;
-	}
-	public void setAlgorithm(String algorithm) {
-		this.algorithm = algorithm;
-	}
-
 	@Column(name = "run_status")
 	public String getRunStatus() {
 		return runStatus;
 	}
 	public void setRunStatus(String runStatus) {
 		this.runStatus = runStatus;
-	}
-	@Column(name = "trailing_stop_percent")
-	public BigDecimal getTrailingStopPercent(){
-		return trailingStopPercent;
-	}
-	public void setTrailingStopPercent(BigDecimal trailingStopPercent){
-		this.trailingStopPercent = trailingStopPercent;
-	}
-	@Column(name = "profit_limit")
-	public BigDecimal getProfitLimit(){
-		return profitLimit;
-	}
-	public void setProfitLimit(BigDecimal profitLimit){
-		this.profitLimit = profitLimit;
 	}
 }

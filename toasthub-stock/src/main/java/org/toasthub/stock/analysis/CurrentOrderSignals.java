@@ -4,8 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.toasthub.stock.model.cache.TradeSignalCache;
 
-@Service("CurrentBuySignals")
-public class CurrentBuySignals {
+@Service("CurrentOrderSignals")
+public class CurrentOrderSignals {
 
     @Autowired
     protected TradeSignalCache tradeSignalCache;

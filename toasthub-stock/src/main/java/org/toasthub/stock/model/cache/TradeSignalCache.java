@@ -1,6 +1,7 @@
 package org.toasthub.stock.model.cache;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -17,15 +18,24 @@ public class TradeSignalCache {
     private Map<String,SignalLineCross> signalLineCrossMap = new ConcurrentHashMap<String,SignalLineCross>();
 
 
-    private BigDecimal closingPrice;
+    private BigDecimal recentClosingPrice;
+    private long recentEpochSeconds;
 
 
-    public BigDecimal getClosingPrice() {
-        return closingPrice;
+    public BigDecimal getRecentClosingPrice() {
+        return recentClosingPrice;
     }
 
-    public void setClosingPrice(BigDecimal closingPrice) {
-        this.closingPrice = closingPrice;
+    public long getRecentEpochSeconds() {
+        return recentEpochSeconds;
+    }
+
+    public void setRecentEpochSeconds(long recentEpochSeconds) {
+        this.recentEpochSeconds = recentEpochSeconds;
+    }
+
+    public void setRecentClosingPrice(BigDecimal recentClosingPrice) {
+        this.recentClosingPrice = recentClosingPrice;
     }
 
     public Map<String,GoldenCross> getGoldenCrossMap() {
