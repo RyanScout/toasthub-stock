@@ -89,7 +89,7 @@ public class HistoricalAnalyzingDaoImpl implements HistoricalAnalyzingDao {
 			queryStr += "x.epochSeconds =:epochSeconds ";
 			and = true;
 		}
-		if (request.containsParam(GlobalConstant.STOCK)) {
+		if (request.containsParam(GlobalConstant.SYMBOL)) {
 			if (!and)
 				queryStr += " WHERE ";
 			else
@@ -116,8 +116,8 @@ public class HistoricalAnalyzingDaoImpl implements HistoricalAnalyzingDao {
 		if (request.containsParam(GlobalConstant.TYPE)) {
 			query.setParameter("type", (String) request.getParam(GlobalConstant.TYPE));
 		}
-		if (request.containsParam(GlobalConstant.STOCK)) {
-			query.setParameter("stock", (String) request.getParam(GlobalConstant.STOCK));
+		if (request.containsParam(GlobalConstant.SYMBOL)) {
+			query.setParameter("stock", (String) request.getParam(GlobalConstant.SYMBOL));
 		}
 
 		Long count = (Long) query.getSingleResult();
@@ -159,7 +159,7 @@ public class HistoricalAnalyzingDaoImpl implements HistoricalAnalyzingDao {
 		Query query = entityManager.createQuery(queryStr);
 		query.setParameter("epochSeconds", request.getParam(GlobalConstant.EPOCHSECONDS));
 		query.setParameter("type", request.getParam(GlobalConstant.TYPE));
-		query.setParameter("stock", request.getParam(GlobalConstant.STOCK));
+		query.setParameter("stock", request.getParam(GlobalConstant.SYMBOL));
 		Object result = query.getSingleResult();
 
 		response.addParam(GlobalConstant.ITEM , result);

@@ -24,7 +24,7 @@ import javax.persistence.Query;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import org.toasthub.analysis.model.StockDay;
+import org.toasthub.analysis.model.AssetDay;
 import org.toasthub.stock.model.HistoricalAnalysis;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
@@ -84,7 +84,7 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 			queryStr += "x.epochSeconds =:epochSeconds ";
 			and = true;
 		}
-		if (request.containsParam(GlobalConstant.STOCK)) {
+		if (request.containsParam(GlobalConstant.SYMBOL)) {
 			if (!and)
 				queryStr += " WHERE ";
 			else
@@ -111,8 +111,8 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 		if (request.containsParam(GlobalConstant.TYPE)) {
 			query.setParameter("type", (String) request.getParam(GlobalConstant.TYPE));
 		}
-		if (request.containsParam(GlobalConstant.STOCK)) {
-			query.setParameter("stock", (String) request.getParam(GlobalConstant.STOCK));
+		if (request.containsParam(GlobalConstant.SYMBOL)) {
+			query.setParameter("stock", (String) request.getParam(GlobalConstant.SYMBOL));
 		}
 
 		Long count = (Long) query.getSingleResult();
@@ -154,14 +154,14 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 		Query query = entityManager.createQuery(queryStr);
 		query.setParameter("epochSeconds", request.getParam(GlobalConstant.EPOCHSECONDS));
 		query.setParameter("type", request.getParam(GlobalConstant.TYPE));
-		query.setParameter("stock", request.getParam(GlobalConstant.STOCK));
+		query.setParameter("stock", request.getParam(GlobalConstant.SYMBOL));
 		Object result = query.getSingleResult();
 
 		response.addParam(GlobalConstant.ITEM , result);
 	}
 
 	public void getRecentStockDay(Request request, Response response){
-		Query query = entityManager.createNativeQuery("SELECT * FROM stockanalyzer_main.sa_stock_day ORDER BY id DESC LIMIT 0, 1;" , StockDay.class);
+		Query query = entityManager.createNativeQuery("SELECT * FROM stockanalyzer_main.sa_stock_day ORDER BY id DESC LIMIT 0, 1;" , AssetDay.class);
 		Object result = query.getSingleResult();
 
 		response.addParam(GlobalConstant.ITEM , result);

@@ -15,7 +15,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.toasthub.analysis.model.LBB;
 import org.toasthub.analysis.model.SMA;
-import org.toasthub.analysis.model.StockDay;
+import org.toasthub.analysis.model.AssetDay;
 import org.toasthub.stock.model.Trade;
 import org.toasthub.stock.model.cache.GoldenCross;
 import org.toasthub.stock.model.cache.LowerBollingerBand;
@@ -88,7 +88,7 @@ public class CurrentTestingSvcImpl {
         try {
             currentTestingDao.getRecentStockDay(request, response);
 
-            StockDay recentStockDay = (StockDay) response.getParam(GlobalConstant.ITEM);
+            AssetDay recentStockDay = (AssetDay) response.getParam(GlobalConstant.ITEM);
 
             tradeSignalCache.setRecentClosingPrice(recentStockDay.getClose());
             tradeSignalCache.setRecentEpochSeconds(recentStockDay.getEpochSeconds());
@@ -103,7 +103,7 @@ public class CurrentTestingSvcImpl {
         try {
 
             request.addParam(GlobalConstant.EPOCHSECONDS, tradeSignalCache.getRecentEpochSeconds());
-            request.addParam(GlobalConstant.STOCK, "SPY");
+            request.addParam(GlobalConstant.SYMBOL, "SPY");
 
             GoldenCross globalGoldenCross = new GoldenCross();
             request.addParam(GlobalConstant.IDENTIFIER, "SMA");
@@ -132,7 +132,7 @@ public class CurrentTestingSvcImpl {
     public void updateLowerBollingerBandCacheGlobals(Request request, Response response) {
         try {
             request.addParam(GlobalConstant.EPOCHSECONDS, tradeSignalCache.getRecentEpochSeconds());
-            request.addParam(GlobalConstant.STOCK, "SPY");
+            request.addParam(GlobalConstant.SYMBOL, "SPY");
 
             LowerBollingerBand lowerBollingerBand = new LowerBollingerBand();
             request.addParam(GlobalConstant.IDENTIFIER, "LBB");

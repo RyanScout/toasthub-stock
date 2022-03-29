@@ -14,7 +14,7 @@ import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.toasthub.analysis.model.StockDay;
+import org.toasthub.analysis.model.AssetDay;
 import org.toasthub.stock.historicalanalysis.HistoricalAnalysisDao;
 import org.toasthub.stock.model.HistoricalAnalysis;
 import org.toasthub.stock.model.HistoricalDetail;
@@ -113,7 +113,7 @@ public class HistoricalAnalyzingSvcImpl implements HistoricalAnalyzingSvc {
 
             request.addParam(GlobalConstant.IDENTIFIER, "StockDay");
             historicalAnalyzingDao.items(request, response);
-            List<StockDay> stockDays = (List<StockDay>) response.getParam(GlobalConstant.ITEMS);
+            List<AssetDay> stockDays = (List<AssetDay>) response.getParam(GlobalConstant.ITEMS);
             int startIndex = 0;
             int endIndex = 0;
             for (int i = 0; i < stockDays.size(); i++) {
@@ -131,7 +131,7 @@ public class HistoricalAnalyzingSvcImpl implements HistoricalAnalyzingSvc {
             BigDecimal stockPrice = BigDecimal.ZERO;
             long currentTime;
             List<Order> orders = new ArrayList<Order>();
-            request.addParam(GlobalConstant.STOCK, historicalAnalysis.getStock());
+            request.addParam(GlobalConstant.SYMBOL, historicalAnalysis.getStock());
 
             int frequencyExecuted = 0;
 
