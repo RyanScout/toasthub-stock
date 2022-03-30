@@ -16,30 +16,24 @@ public class TradeSignalCache {
     private Map<String,GoldenCross> goldenCrossMap = new ConcurrentHashMap<String, GoldenCross>();
     private Map<String,LowerBollingerBand> lowerBollingerBandMap = new ConcurrentHashMap<String, LowerBollingerBand>();
     private Map<String,SignalLineCross> signalLineCrossMap = new ConcurrentHashMap<String,SignalLineCross>();
+    private Map<String,BigDecimal> recentClosingPriceMap = new ConcurrentHashMap<String, BigDecimal>();
+    private Map<String, Long> recentEpochSecondsMap = new ConcurrentHashMap<String, Long>();
 
-
-    private BigDecimal recentClosingPrice;
-    private long recentEpochSeconds;
-
-
-    public BigDecimal getRecentClosingPrice() {
-        return recentClosingPrice;
-    }
-
-    public long getRecentEpochSeconds() {
-        return recentEpochSeconds;
-    }
-
-    public void setRecentEpochSeconds(long recentEpochSeconds) {
-        this.recentEpochSeconds = recentEpochSeconds;
-    }
-
-    public void setRecentClosingPrice(BigDecimal recentClosingPrice) {
-        this.recentClosingPrice = recentClosingPrice;
-    }
 
     public Map<String,GoldenCross> getGoldenCrossMap() {
         return goldenCrossMap;
+    }
+    public Map<String, Long> getRecentEpochSecondsMap() {
+        return recentEpochSecondsMap;
+    }
+    public void setRecentEpochSecondsMap(Map<String, Long> recentEpochSecondsMap) {
+        this.recentEpochSecondsMap = recentEpochSecondsMap;
+    }
+    public Map<String,BigDecimal> getRecentClosingPriceMap() {
+        return recentClosingPriceMap;
+    }
+    public void setRecentClosingPriceMap(Map<String,BigDecimal> recentClosingPriceMap) {
+        this.recentClosingPriceMap = recentClosingPriceMap;
     }
     public Map<String,SignalLineCross> getSignalLineCrossMap() {
         return signalLineCrossMap;

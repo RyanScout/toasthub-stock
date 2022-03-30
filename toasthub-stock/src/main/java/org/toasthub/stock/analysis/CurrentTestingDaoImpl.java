@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import org.toasthub.analysis.model.AssetDay;
+import org.toasthub.analysis.model.AssetMinute;
 import org.toasthub.stock.model.HistoricalAnalysis;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
@@ -38,10 +39,11 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 	protected EntityManager entityManager;
 
 	@Override
-	public void delete(Request request, Response response){
+	public void delete(Request request, Response response) {
 		if (request.containsParam(GlobalConstant.ITEMID) && !"".equals(request.getParam(GlobalConstant.ITEMID))) {
 
-			HistoricalAnalysis historicalAnalysis = (HistoricalAnalysis) entityManager.getReference(HistoricalAnalysis.class,
+			HistoricalAnalysis historicalAnalysis = (HistoricalAnalysis) entityManager.getReference(
+					HistoricalAnalysis.class,
 					new Long((Integer) request.getParam(GlobalConstant.ITEMID)));
 			entityManager.remove(historicalAnalysis);
 
@@ -53,14 +55,14 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 
 	@Override
 	public void save(Request request, Response response) throws Exception {
-		entityManager.merge( (Object) response.getParam(GlobalConstant.ITEM));
+		entityManager.merge((Object) response.getParam(GlobalConstant.ITEM));
 	}
 
 	@Override
 	public void items(Request request, Response response) throws Exception {
 		String queryStr = "SELECT DISTINCT x FROM "
-		+request.getParam(GlobalConstant.IDENTIFIER)
-		+" AS x ";
+				+ request.getParam(GlobalConstant.IDENTIFIER)
+				+ " AS x ";
 
 		Query query = entityManager.createQuery(queryStr);
 		List<?> items = query.getResultList();
@@ -71,8 +73,8 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 	@Override
 	public void itemCount(Request request, Response response) throws Exception {
 		String queryStr = "SELECT COUNT(DISTINCT x) FROM "
-		+request.getParam(GlobalConstant.IDENTIFIER)
-		+" as x ";
+				+ request.getParam(GlobalConstant.IDENTIFIER)
+				+ " as x ";
 
 		boolean and = false;
 		if (request.containsParam(GlobalConstant.EPOCHSECONDS)) {
@@ -90,7 +92,7 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 			else
 				queryStr += " AND ";
 
-			queryStr += "x.stock =:stock ";
+			queryStr += "x.symbol =:symbol ";
 			and = true;
 		}
 		if (request.containsParam(GlobalConstant.TYPE)) {
@@ -106,13 +108,13 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 		Query query = entityManager.createQuery(queryStr);
 
 		if (request.containsParam(GlobalConstant.EPOCHSECONDS)) {
-			query.setParameter("epochSeconds", (long)request.getParam(GlobalConstant.EPOCHSECONDS));
+			query.setParameter("epochSeconds", (long) request.getParam(GlobalConstant.EPOCHSECONDS));
 		}
 		if (request.containsParam(GlobalConstant.TYPE)) {
 			query.setParameter("type", (String) request.getParam(GlobalConstant.TYPE));
 		}
 		if (request.containsParam(GlobalConstant.SYMBOL)) {
-			query.setParameter("stock", (String) request.getParam(GlobalConstant.SYMBOL));
+			query.setParameter("symbol", (String) request.getParam(GlobalConstant.SYMBOL));
 		}
 
 		Long count = (Long) query.getSingleResult();
@@ -130,7 +132,7 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 				x = "SMA";
 				break;
 			case "EMA":
-				x= "EMA";
+				x = "EMA";
 				break;
 			case "LBB":
 				x = "LBB";
@@ -146,26 +148,63 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 		}
 
 		String queryStr = "SELECT DISTINCT x FROM "
-		+ x
-		+" AS x"
-		+ " WHERE x.epochSeconds =:epochSeconds"
-		+ " AND x.type =: type AND x.stock =:stock";
+				+ x
+				+ " AS x"
+				+ " WHERE x.epochSeconds =:epochSeconds"
+				+ " AND x.type =: type AND x.symbol =:symbol";
 
 		Query query = entityManager.createQuery(queryStr);
 		query.setParameter("epochSeconds", request.getParam(GlobalConstant.EPOCHSECONDS));
 		query.setParameter("type", request.getParam(GlobalConstant.TYPE));
-		query.setParameter("stock", request.getParam(GlobalConstant.SYMBOL));
+		query.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
 		Object result = query.getSingleResult();
 
-		response.addParam(GlobalConstant.ITEM , result);
+		response.addParam(GlobalConstant.ITEM, result);
 	}
 
-	public void getRecentStockDay(Request request, Response response){
-		Query query = entityManager.createNativeQuery("SELECT * FROM stockanalyzer_main.sa_stock_day ORDER BY id DESC LIMIT 0, 1;" , AssetDay.class);
+	public void getRecentAssetDay(Request request, Response response) {
+		String x = "";
+		switch ((String) request.getParam(GlobalConstant.SYMBOL)) {
+			case "SPY":
+				x = "SPY";
+				break;
+			case "BTCUSD":
+				x = "BTCUSD";
+				break;
+			default:
+				break;
+		}
+		String queryStr = "SELECT * FROM tradeanalyzer_main.ta_asset_day WHERE symbol = \""
+				+ x
+				+ "\" ORDER BY id DESC LIMIT 0, 1;";
+
+		Query query = entityManager.createNativeQuery(queryStr, AssetDay.class);
 		Object result = query.getSingleResult();
 
-		response.addParam(GlobalConstant.ITEM , result);
+		response.addParam(GlobalConstant.ITEM, result);
 	}
 
-	
+	@Override
+	public void getRecentAssetMinute(Request request, Response response) {
+		String x = "";
+		switch ((String) request.getParam(GlobalConstant.SYMBOL)) {
+			case "SPY":
+				x = "SPY";
+				break;
+			case "BTCUSD":
+				x = "BTCUSD";
+				break;
+			default:
+				break;
+		}
+		String queryStr = "SELECT * FROM tradeanalyzer_main.ta_asset_minute WHERE symbol = \""
+				+ x
+				+ "\" ORDER BY id DESC LIMIT 0, 1;";
+
+		Query query = entityManager.createNativeQuery(queryStr, AssetMinute.class);
+		Object result = query.getSingleResult();
+
+		response.addParam(GlobalConstant.ITEM, result);
+		
+	}
 }

@@ -21,5 +21,6 @@ import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
 
 public interface CurrentTestingDao extends BaseDao {
-	public void getRecentStockDay(Request request, Response response);
+	public void getRecentAssetDay(Request request, Response response);
+	public void getRecentAssetMinute(Request request, Response response);
 }

@@ -89,7 +89,7 @@ public class TradeSvcImpl implements TradeSvc {
 
 				trade.setFrequency((String)m.get("frequency"));
 
-				trade.setStock((String) m.get("stock"));
+				trade.setSymbol((String) m.get("symbol"));
 				
 				if (m.containsKey("status")) {
 					trade.setRunStatus((String) m.get("status"));

@@ -30,13 +30,13 @@ import javax.persistence.Table;
 import org.toasthub.common.BaseEntity;
 
 @Entity
-@Table(name = "sa_trade")
+@Table(name = "ta_trade")
 public class Trade extends BaseEntity{
 
 	private static final long serialVersionUID = 1L;
 	
 	protected String name;
-	protected String stock;
+	private String symbol;
 	protected String orderType;
 	private String orderSide;
 	private String currencyType;
@@ -62,6 +62,14 @@ public class Trade extends BaseEntity{
 		this.setIdentifier("Trade");
 	}
 	
+	public String getSymbol() {
+		return symbol;
+	}
+
+	public void setSymbol(String symbol) {
+		this.symbol = symbol;
+	}
+
 	public BigDecimal getProfitLimitAmount() {
 		return profitLimitAmount;
 	}
@@ -169,14 +177,6 @@ public class Trade extends BaseEntity{
 
 	public void setName(String name) {
 		this.name = name;
-	}
-
-	@Column(name = "stock")
-	public String getStock() {
-		return stock;
-	}
-	public void setStock(String stock) {
-		this.stock = stock;
 	}
 
 	@Column(name = "order_type")

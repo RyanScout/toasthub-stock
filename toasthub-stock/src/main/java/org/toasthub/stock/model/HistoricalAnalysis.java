@@ -39,13 +39,13 @@ import org.toasthub.common.BaseEntity;
 
 
 @Entity
-@Table(name = "sa_historical_analysis")
+@Table(name = "ta_historical_analysis")
 public class HistoricalAnalysis extends BaseEntity {
 
 	private static final long serialVersionUID = 1L;
 
 	protected String name;
-	protected String stock;
+	private String symbol;
 	private String orderType;
 	protected BigDecimal amount;
 	protected String algorithm;
@@ -68,6 +68,14 @@ public class HistoricalAnalysis extends BaseEntity {
 		this.setLocked(false);
 		this.setCreated(Instant.now());
 		this.setIdentifier("HistoricalAnalysis");
+	}
+
+	public String getSymbol() {
+		return symbol;
+	}
+
+	public void setSymbol(String symbol) {
+		this.symbol = symbol;
 	}
 
 	@Column(name = "historical_analysis_type")
@@ -95,7 +103,7 @@ public class HistoricalAnalysis extends BaseEntity {
 		this.setIdentifier("HistoricalAnalysis");
 	}
 	public HistoricalAnalysis(Map<String, ?> map){
-		setStock((String) map.get("stock"));
+		setSymbol((String) map.get("symbol"));
 		setAlgorithm((String) map.get("algorithm"));
 		setOrderType((String) map.get("orderType"));
 		setHistoricalAnalysisType((String)map.get("type"));
@@ -115,13 +123,7 @@ public class HistoricalAnalysis extends BaseEntity {
 	public void setName(String name) {
 		this.name = name;
 	}
-	@Column(name = "stock")
-	public String getStock() {
-		return stock;
-	}
-	public void setStock(String stock) {
-		this.stock = stock;
-	}
+	
 	@Column(name = "amount")
 	public BigDecimal getAmount() {
 		return amount;
