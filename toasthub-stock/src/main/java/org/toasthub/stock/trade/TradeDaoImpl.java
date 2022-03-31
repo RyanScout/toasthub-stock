@@ -52,7 +52,7 @@ public class TradeDaoImpl implements TradeDao {
 
 	@Override
 	public void save(Request request, Response response) throws Exception {
-		Trade trade = (Trade) request.getParam("item");
+		Trade trade = (Trade) request.getParam(GlobalConstant.ITEM);
 		entityManager.merge(trade);
 	}
 	
@@ -144,12 +144,11 @@ public class TradeDaoImpl implements TradeDao {
 		}
 	}
 	@Override
-	public List<Trade> getAutomatedTrades(String runStatus) {
-		String queryStr = "SELECT DISTINCT x FROM Trade AS x WHERE x.active =:active AND x.runStatus =:runStatus";
+	public List<Trade> getRunningTrades() {
+		String queryStr = "SELECT DISTINCT x FROM Trade AS x WHERE x.status =:status";
 
 		Query query = entityManager.createQuery(queryStr);
-		query.setParameter("active", true);
-		query.setParameter("runStatus", "Yes");
+		query.setParameter("status", "Running");
 
 		@SuppressWarnings("unchecked")
 		List<Trade> trades = query.getResultList();

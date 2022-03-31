@@ -4,9 +4,7 @@ package org.toasthub.stock.trade;
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.toasthub.stock.model.Trade;
 import org.toasthub.utils.GlobalConstant;
@@ -92,9 +90,9 @@ public class TradeSvcImpl implements TradeSvc {
 				trade.setSymbol((String) m.get("symbol"));
 				
 				if (m.containsKey("status")) {
-					trade.setRunStatus((String) m.get("status"));
+					trade.setStatus((String) m.get("status"));
 				} else {
-					trade.setRunStatus("No");
+					trade.setStatus("Not Running");
 				}
 
 				trade.setCurrencyType((String)m.get("currencyType"));
@@ -122,7 +120,7 @@ public class TradeSvcImpl implements TradeSvc {
 
 				trade.setSellCondition((String)m.get("sellCondition"));
 			}
-			request.addParam("item", trade);
+			request.addParam(GlobalConstant.ITEM, trade);
 			
 			tradeDao.save(request, response);
 			response.setStatus(Response.SUCCESS);
@@ -179,41 +177,4 @@ public class TradeSvcImpl implements TradeSvc {
 		}
 		
 	}
-	
-	@Scheduled(cron="0 * * * * ?")
-	public void tradeAnalysisTask() {
-		
-		// if (tradeAnalysisJobRunning.get()) {
-		// 	System.out.println("Trade analysis is currently running skipping this time");
-		// 	return;
-
-		// } else {
-		// 	new Thread(()->{
-		// 		tradeAnalysisJobRunning.set(true);
-		// 		algorithmCruncherSvc.load();
-		// 		checkTrades();
-		// 		tradeAnalysisJobRunning.set(false);
-		// 	}).start();
-		// }
-	}
-	
-//	private void checkTrades() {
-//		try {
-//			System.out.println("Running trade analysis job");
-//			List<Trade> trades = tradeDao.getAutomatedTrades("Yes");
-//			
-//			if (trades != null && trades.size() > 0) {
-//				for(Trade trade : trades) {
-//					System.out.println("Checking trade name:" + trade.getName());
-//				}
-//			} else {
-//				System.out.println("No trades to run");
-//			}
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//	}
-
-
-	
 }

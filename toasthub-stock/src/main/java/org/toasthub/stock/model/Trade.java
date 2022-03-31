@@ -43,7 +43,7 @@ public class Trade extends BaseEntity{
 	private BigDecimal currencyAmount;
 	private String buyCondition;
 	private String sellCondition;
-	protected String runStatus;
+	private String status;
 	private String trailingStopType;
 	private String profitLimitType;
 	private BigDecimal trailingStopAmount;
@@ -62,6 +62,14 @@ public class Trade extends BaseEntity{
 		this.setIdentifier("Trade");
 	}
 	
+	public String getStatus() {
+		return status;
+	}
+
+	public void setStatus(String status) {
+		this.status = status;
+	}
+
 	public String getSymbol() {
 		return symbol;
 	}
@@ -186,13 +194,5 @@ public class Trade extends BaseEntity{
 
 	public void setOrderType(String orderType){
 		this.orderType = orderType;
-	}
-
-	@Column(name = "run_status")
-	public String getRunStatus() {
-		return runStatus;
-	}
-	public void setRunStatus(String runStatus) {
-		this.runStatus = runStatus;
 	}
 }
