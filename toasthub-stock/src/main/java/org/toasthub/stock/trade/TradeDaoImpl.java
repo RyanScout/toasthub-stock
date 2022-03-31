@@ -136,7 +136,7 @@ public class TradeDaoImpl implements TradeDao {
 			query.setParameter("id", new Long((Integer) request.getParam(GlobalConstant.ITEMID)));
 			Trade trade = (Trade) query.getSingleResult();
 
-			response.addParam("item", trade);
+			response.addParam(GlobalConstant.ITEM, trade);
 		} else {
 			// utilSvc.addStatus(RestResponse.ERROR, RestResponse.EXECUTIONFAILED,
 			// prefCacheUtil.getPrefText("GLOBAL_SERVICE",

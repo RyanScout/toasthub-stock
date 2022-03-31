@@ -50,6 +50,11 @@ public class Trade extends BaseEntity{
 	private BigDecimal profitLimitAmount;
 	private String frequency;
 	private int frequencyExecuted;
+	private BigDecimal budget;
+	private BigDecimal availableBudget;
+	private BigDecimal sharesHeld;
+	private String recentBuyOrderID;
+	private String recentSellOrderID;
 
 
 	//Constructors
@@ -62,6 +67,52 @@ public class Trade extends BaseEntity{
 		this.setIdentifier("Trade");
 	}
 	
+	@Column(name = "recent_sell_order_id")
+	public String getRecentSellOrderID() {
+		return recentSellOrderID;
+	}
+
+	public void setRecentSellOrderID(String recentSellOrderID) {
+		this.recentSellOrderID = recentSellOrderID;
+	}
+
+	@Column(name = "recent_buy_order_id")
+	public String getRecentBuyOrderID() {
+		return recentBuyOrderID;
+	}
+
+	public void setRecentBuyOrderID(String recentBuyOrderID) {
+		this.recentBuyOrderID = recentBuyOrderID;
+	}
+
+	public BigDecimal getSharesHeld() {
+		return sharesHeld;
+	}
+
+	public void setSharesHeld(BigDecimal sharesHeld) {
+		this.sharesHeld = sharesHeld;
+	}
+
+	public BigDecimal getBudget() {
+		return budget;
+	}
+
+	public void setBudget(BigDecimal budget) {
+		this.budget = budget;
+		if(availableBudget == null)
+		this.availableBudget = budget;
+		if(sharesHeld == null)
+		this.sharesHeld = BigDecimal.ZERO;
+	}
+
+	public BigDecimal getAvailableBudget() {
+		return availableBudget;
+	}
+
+	public void setAvailableBudget(BigDecimal availableBudget) {
+		this.availableBudget = availableBudget;
+	}
+
 	public String getStatus() {
 		return status;
 	}

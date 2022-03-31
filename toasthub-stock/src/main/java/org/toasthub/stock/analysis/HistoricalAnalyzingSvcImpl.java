@@ -131,7 +131,7 @@ public class HistoricalAnalyzingSvcImpl implements HistoricalAnalyzingSvc {
             BigDecimal stockPrice = BigDecimal.ZERO;
             long currentTime;
             List<Order> orders = new ArrayList<Order>();
-            request.addParam(GlobalConstant.SYMBOL, historicalAnalysis.getStock());
+            request.addParam(GlobalConstant.SYMBOL, historicalAnalysis.getSymbol());
 
             int frequencyExecuted = 0;
 
