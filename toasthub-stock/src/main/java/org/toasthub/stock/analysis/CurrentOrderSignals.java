@@ -9,22 +9,25 @@ public class CurrentOrderSignals {
 
     @Autowired
     protected TradeSignalCache tradeSignalCache;
-    
 
-    public Boolean process(String alg) {
+    public Boolean process(String alg, String symbol) {
         Boolean result = false;
         switch (alg) {
 
             case "goldenCross":
-                result = currentGoldenCross();
+                result = currentGoldenCross(symbol);
                 break;
 
             case "touchesLBB":
-                result = currentTouchesLBB();
+                result = currentTouchesLBB(symbol);
+                break;
+
+            case "touchesUBB":
+                result = currentTouchesUBB(symbol);
                 break;
 
             case "signalLineCross":
-                result = currentSignalLineCross();
+                result = currentSignalLineCross(symbol);
                 break;
 
             default:
@@ -33,15 +36,19 @@ public class CurrentOrderSignals {
         return result;
     }
 
-    public Boolean currentSignalLineCross() {
+    public Boolean currentSignalLineCross(String symbol) {
         return false;
     }
 
-    public Boolean currentTouchesLBB() {
-        return false;
+    public Boolean currentTouchesLBB(String symbol) {
+        return tradeSignalCache.getLowerBollingerBandMap().get("GLOBAL::" + symbol).isBuyIndicator();
     }
 
-    public Boolean currentGoldenCross() {
-        return tradeSignalCache.getGoldenCrossMap().get("GLOBAL").isBuyIndicator();
+    public Boolean currentTouchesUBB(String symbol) {
+        return tradeSignalCache.getUpperBollingerBandMap().get("GLOBAL::" + symbol).isSellIndicator();
+    }
+
+    public Boolean currentGoldenCross(String symbol) {
+        return tradeSignalCache.getGoldenCrossMap().get("GLOBAL::" + symbol).isBuyIndicator();
     }
 }

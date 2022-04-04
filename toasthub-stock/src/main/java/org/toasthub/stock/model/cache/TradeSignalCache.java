@@ -14,6 +14,7 @@ public class TradeSignalCache {
 
     private Map<String,GoldenCross> goldenCrossMap = new ConcurrentHashMap<String, GoldenCross>();
     private Map<String,LowerBollingerBand> lowerBollingerBandMap = new ConcurrentHashMap<String, LowerBollingerBand>();
+    private Map<String,UpperBollingerBand> upperBollingerBandMap = new ConcurrentHashMap<String, UpperBollingerBand>();
     private Map<String,SignalLineCross> signalLineCrossMap = new ConcurrentHashMap<String,SignalLineCross>();
     private Map<String,BigDecimal> recentClosingPriceMap = new ConcurrentHashMap<String, BigDecimal>();
     private Map<String, Long> recentEpochSecondsMap = new ConcurrentHashMap<String, Long>();
@@ -21,6 +22,12 @@ public class TradeSignalCache {
 
     public Map<String,GoldenCross> getGoldenCrossMap() {
         return goldenCrossMap;
+    }
+    public Map<String,UpperBollingerBand> getUpperBollingerBandMap() {
+        return upperBollingerBandMap;
+    }
+    public void setUpperBollingerBandMap(Map<String,UpperBollingerBand> upperBollingerBandMap) {
+        this.upperBollingerBandMap = upperBollingerBandMap;
     }
     public Map<String, Long> getRecentEpochSecondsMap() {
         return recentEpochSecondsMap;

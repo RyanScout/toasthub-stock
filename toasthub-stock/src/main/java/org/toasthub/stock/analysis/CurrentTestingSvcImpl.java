@@ -15,12 +15,14 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.toasthub.analysis.model.LBB;
 import org.toasthub.analysis.model.SMA;
+import org.toasthub.analysis.model.UBB;
 import org.toasthub.analysis.model.AssetDay;
 import org.toasthub.analysis.model.AssetMinute;
 import org.toasthub.stock.model.Trade;
 import org.toasthub.stock.model.cache.GoldenCross;
 import org.toasthub.stock.model.cache.LowerBollingerBand;
 import org.toasthub.stock.model.cache.TradeSignalCache;
+import org.toasthub.stock.model.cache.UpperBollingerBand;
 import org.toasthub.stock.trade.TradeDao;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.common.Symbol;
@@ -62,7 +64,7 @@ public class CurrentTestingSvcImpl {
         super.finalize();
     }
 
-    @Scheduled(cron = "30 * * * * ?")
+    // @Scheduled(cron = "30 * * * * ?")
     public void tradeAnalysisTask() {
 
         if (tradeAnalysisJobRunning.get()) {
@@ -85,6 +87,7 @@ public class CurrentTestingSvcImpl {
         updateRecentAssetStats(request, response);
         updateGoldenCrossCacheGlobals(request, response);
         updateLowerBollingerBandCacheGlobals(request, response);
+        updateUpperBollingerBandCacheGlobals(request, response);
     }
 
     public void updateRecentAssetStats(Request request, Response response) {
@@ -95,8 +98,16 @@ public class CurrentTestingSvcImpl {
 
                 AssetDay recentAssetDay = (AssetDay) response.getParam(GlobalConstant.ITEM);
 
-                tradeSignalCache.getRecentClosingPriceMap().put(symbol, recentAssetDay.getClose());
-                tradeSignalCache.getRecentEpochSecondsMap().put(symbol, recentAssetDay.getEpochSeconds());
+                tradeSignalCache.getRecentClosingPriceMap().put("DAY::"+symbol, recentAssetDay.getClose());
+                tradeSignalCache.getRecentEpochSecondsMap().put("DAY::"+symbol, recentAssetDay.getEpochSeconds());
+
+                request.addParam(GlobalConstant.SYMBOL, symbol);
+                currentTestingDao.getRecentAssetMinute(request, response);
+
+                AssetMinute recentAssetMinute = (AssetMinute) response.getParam(GlobalConstant.ITEM);
+
+                tradeSignalCache.getRecentClosingPriceMap().put("MINUTE::"+symbol, recentAssetMinute.getValue());
+                tradeSignalCache.getRecentEpochSecondsMap().put("MINUTE::"+symbol, recentAssetMinute.getEpochSeconds());
             }
         } catch (Exception e) {
             System.out.println("Error at Recent Assets Cache");
@@ -107,7 +118,8 @@ public class CurrentTestingSvcImpl {
     public void updateGoldenCrossCacheGlobals(Request request, Response response) {
         try {
             for (String symbol : Symbol.SYMBOLS) {
-                request.addParam(GlobalConstant.EPOCHSECONDS, tradeSignalCache.getRecentEpochSecondsMap().get(symbol));
+                //updating day stats
+                request.addParam(GlobalConstant.EPOCHSECONDS, tradeSignalCache.getRecentEpochSecondsMap().get("DAY::"+symbol));
                 request.addParam(GlobalConstant.SYMBOL, symbol);
 
                 GoldenCross globalGoldenCross = new GoldenCross();
@@ -126,7 +138,29 @@ public class CurrentTestingSvcImpl {
                 else
                     globalGoldenCross.setBuyIndicator(false);
 
-                tradeSignalCache.getGoldenCrossMap().put("GLOBAL::" + symbol, globalGoldenCross);
+                tradeSignalCache.getGoldenCrossMap().put("GLOBAL::DAY::" + symbol, globalGoldenCross);
+
+                //updating minute stats
+                request.addParam(GlobalConstant.EPOCHSECONDS, tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::"+symbol));
+                request.addParam(GlobalConstant.SYMBOL, symbol);
+
+                GoldenCross globalGoldenCross2 = new GoldenCross();
+                request.addParam(GlobalConstant.IDENTIFIER, "SMA");
+
+                request.addParam(GlobalConstant.TYPE, globalGoldenCross2.getShortSMAType());
+                currentTestingDao.item(request, response);
+                SMA shortSMA2 = (SMA) response.getParam(GlobalConstant.ITEM);
+
+                request.addParam(GlobalConstant.TYPE, globalGoldenCross2.getLongSMAType());
+                currentTestingDao.item(request, response);
+                SMA longSMA2 = (SMA) response.getParam(GlobalConstant.ITEM);
+
+                if (shortSMA2.getValue().compareTo(longSMA2.getValue()) > 0)
+                    globalGoldenCross2.setBuyIndicator(true);
+                else
+                    globalGoldenCross2.setBuyIndicator(false);
+
+                tradeSignalCache.getGoldenCrossMap().put("GLOBAL::MINUTE::" + symbol, globalGoldenCross2);
             }
         } catch (Exception e) {
             System.out.println("Error at Golden Cross Cache");
@@ -137,8 +171,9 @@ public class CurrentTestingSvcImpl {
     public void updateLowerBollingerBandCacheGlobals(Request request, Response response) {
         try {
             for (String symbol : Symbol.SYMBOLS) {
+                //updating day stats
                 request.addParam(GlobalConstant.SYMBOL, symbol);
-                request.addParam(GlobalConstant.EPOCHSECONDS, tradeSignalCache.getRecentEpochSecondsMap().get(symbol));
+                request.addParam(GlobalConstant.EPOCHSECONDS, tradeSignalCache.getRecentEpochSecondsMap().get("DAY::"+symbol));
 
                 LowerBollingerBand lowerBollingerBand = new LowerBollingerBand();
                 request.addParam(GlobalConstant.IDENTIFIER, "LBB");
@@ -147,15 +182,80 @@ public class CurrentTestingSvcImpl {
                 currentTestingDao.item(request, response);
                 LBB lbb = (LBB) response.getParam(GlobalConstant.ITEM);
 
-                if (lbb.getValue().compareTo(tradeSignalCache.getRecentClosingPriceMap().get(symbol)) < 0)
+                if (tradeSignalCache.getRecentClosingPriceMap().get("DAY::"+symbol).compareTo(lbb.getValue()) < 0)
                     lowerBollingerBand.setBuyIndicator(true);
                 else
                     lowerBollingerBand.setBuyIndicator(false);
 
-                tradeSignalCache.getLowerBollingerBandMap().put("GLOBAL::" + symbol, lowerBollingerBand);
+                tradeSignalCache.getLowerBollingerBandMap().put("GLOBAL::DAY" + symbol, lowerBollingerBand);
+
+
+                //updating minute stats
+                request.addParam(GlobalConstant.SYMBOL, symbol);
+                request.addParam(GlobalConstant.EPOCHSECONDS, tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::"+symbol));
+
+                LowerBollingerBand lowerBollingerBand2 = new LowerBollingerBand();
+                request.addParam(GlobalConstant.IDENTIFIER, "LBB");
+
+                request.addParam(GlobalConstant.TYPE, lowerBollingerBand2.getLBBType());
+                currentTestingDao.item(request, response);
+                LBB lbb2 = (LBB) response.getParam(GlobalConstant.ITEM);
+
+                if (tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::"+symbol).compareTo(lbb2.getValue()) < 0)
+                    lowerBollingerBand2.setBuyIndicator(true);
+                else
+                    lowerBollingerBand2.setBuyIndicator(false);
+
+                tradeSignalCache.getLowerBollingerBandMap().put("GLOBAL::MINUTE" + symbol, lowerBollingerBand2);
             }
         } catch (Exception e) {
             System.out.println("Error at Lower Bollinger Band Cache");
+            e.printStackTrace();
+        }
+    }
+
+    public void updateUpperBollingerBandCacheGlobals(Request request, Response response) {
+        try {
+            for (String symbol : Symbol.SYMBOLS) {
+                //updating day stats
+                request.addParam(GlobalConstant.SYMBOL, symbol);
+                request.addParam(GlobalConstant.EPOCHSECONDS, tradeSignalCache.getRecentEpochSecondsMap().get("DAY::"+symbol));
+
+                UpperBollingerBand upperBollingerBand = new UpperBollingerBand();
+                request.addParam(GlobalConstant.IDENTIFIER, "UBB");
+
+                request.addParam(GlobalConstant.TYPE, upperBollingerBand.getUBBType());
+                currentTestingDao.item(request, response);
+                UBB ubb = (UBB) response.getParam(GlobalConstant.ITEM);
+
+                if (tradeSignalCache.getRecentClosingPriceMap().get("DAY::"+symbol).compareTo(ubb.getValue()) > 0)
+                    upperBollingerBand.setSellIndicator(true);
+                else
+                    upperBollingerBand.setSellIndicator(false);
+
+                tradeSignalCache.getUpperBollingerBandMap().put("GLOBAL::DAY::" + symbol, upperBollingerBand);
+
+
+                //updating minute stats
+                request.addParam(GlobalConstant.SYMBOL, symbol);
+                request.addParam(GlobalConstant.EPOCHSECONDS, tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::"+symbol));
+
+                UpperBollingerBand upperBollingerBand2 = new UpperBollingerBand();
+                request.addParam(GlobalConstant.IDENTIFIER, "UBB");
+
+                request.addParam(GlobalConstant.TYPE, upperBollingerBand2.getUBBType());
+                currentTestingDao.item(request, response);
+                UBB ubb2 = (UBB) response.getParam(GlobalConstant.ITEM);
+
+                if (tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::"+symbol).compareTo(ubb2.getValue()) > 0)
+                    upperBollingerBand2.setSellIndicator(true);
+                else
+                    upperBollingerBand2.setSellIndicator(false);
+
+                tradeSignalCache.getUpperBollingerBandMap().put("GLOBAL::MINUTE::" + symbol, upperBollingerBand);
+            }
+        } catch (Exception e) {
+            System.out.println("Error at Upper Bollinger Band Cache");
             e.printStackTrace();
         }
     }
@@ -225,11 +325,9 @@ public class CurrentTestingSvcImpl {
                             buyCondition.length());
                 }
 
-                if (true
-                // evaluate(currentOrderSignals.process(alg1),
-                // currentOrderSignals.process(alg2),
-                // operand)
-                ) {
+                if (evaluate(currentOrderSignals.process(alg1, trade.getSymbol()),
+                        currentOrderSignals.process(alg2, trade.getSymbol()),
+                        operand)) {
                     Order sellOrder = new Order();
                     Order buyOrder = new Order();
                     int truncatedSharesAmount = 0;
@@ -238,7 +336,7 @@ public class CurrentTestingSvcImpl {
                     switch (trade.getCurrencyType()) {
                         case "Dollars":
                             truncatedSharesAmount = trade.getCurrencyAmount()
-                                    .divide(tradeSignalCache.getRecentClosingPriceMap().get(trade.getSymbol()),
+                                    .divide(tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::"+trade.getSymbol()),
                                             MathContext.DECIMAL32)
                                     .intValue();
                             break;
@@ -292,13 +390,13 @@ public class CurrentTestingSvcImpl {
                             switch (trade.getProfitLimitType()) {
                                 case "Profit Limit Price":
                                     profitLimitPrice = trade.getProfitLimitAmount()
-                                            .add(tradeSignalCache.getRecentClosingPriceMap().get(trade.getSymbol()))
+                                            .add(tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::"+trade.getSymbol()))
                                             .doubleValue();
                                     break;
                                 case "Profit Limit Percent":
                                     profitLimitPrice = trade.getProfitLimitAmount().movePointLeft(2).add(BigDecimal.ONE)
                                             .multiply(
-                                                    tradeSignalCache.getRecentClosingPriceMap().get(trade.getSymbol()))
+                                                    tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::"+trade.getSymbol()))
                                             .doubleValue();
                                     break;
                                 default:
@@ -335,13 +433,13 @@ public class CurrentTestingSvcImpl {
                             switch (trade.getProfitLimitType()) {
                                 case "Profit Limit Price":
                                     profitLimitPrice = trade.getProfitLimitAmount()
-                                            .add(tradeSignalCache.getRecentClosingPriceMap().get(trade.getSymbol()))
+                                            .add(tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::"+trade.getSymbol()))
                                             .doubleValue();
                                     break;
                                 case "Profit Limit Percent":
                                     profitLimitPrice = trade.getProfitLimitAmount().movePointLeft(2).add(BigDecimal.ONE)
                                             .multiply(
-                                                    tradeSignalCache.getRecentClosingPriceMap().get(trade.getSymbol()))
+                                                    tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::"+trade.getSymbol()))
                                             .doubleValue();
                                     break;
                                 default:
@@ -407,11 +505,9 @@ public class CurrentTestingSvcImpl {
                             sellCondition.length());
                 }
 
-                if (true
-                // evaluate(currentOrderSignals.process(alg1),
-                // currentOrderSignals.process(alg2),
-                // operand)
-                ) {
+                if (evaluate(currentOrderSignals.process(alg1, trade.getSymbol()),
+                        currentOrderSignals.process(alg2, trade.getSymbol()),
+                        operand)) {
                     Order sellOrder = new Order();
                     int truncatedSharesAmount = 0;
                     double trailingStopPrice = 0;
@@ -419,7 +515,7 @@ public class CurrentTestingSvcImpl {
                     switch (trade.getCurrencyType()) {
                         case "Dollars":
                             truncatedSharesAmount = trade.getCurrencyAmount()
-                                    .divide(tradeSignalCache.getRecentClosingPriceMap().get(trade.getSymbol()),
+                                    .divide(tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::"+trade.getSymbol()),
                                             MathContext.DECIMAL32)
                                     .intValue();
                             break;
@@ -514,7 +610,7 @@ public class CurrentTestingSvcImpl {
                     break;
                 case "Shares":
                     orderAmount = trade.getCurrencyAmount()
-                            .multiply(tradeSignalCache.getRecentClosingPriceMap().get(trade.getSymbol()));
+                            .multiply(tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::"+trade.getSymbol()));
                     break;
                 default:
                     System.out.println("Invalid currency type at current bot test");
@@ -529,7 +625,7 @@ public class CurrentTestingSvcImpl {
             }
             if (request.getParam("BUYORDER") == null
                     && trade.getSharesHeld().multiply(BigDecimal.ONE.movePointLeft(1)).compareTo(orderAmount
-                            .divide(tradeSignalCache.getRecentClosingPriceMap().get(trade.getSymbol()),
+                            .divide(tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::"+trade.getSymbol()),
                                     MathContext.DECIMAL32)) > 0) {
                 currentSellTest(request, response);
                 if (request.getParam("SELLORDER") != null) {

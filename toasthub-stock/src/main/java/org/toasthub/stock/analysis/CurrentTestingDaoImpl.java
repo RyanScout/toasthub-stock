@@ -137,6 +137,9 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 			case "LBB":
 				x = "LBB";
 				break;
+			case "UBB":
+				x = "UBB";
+				break;
 			case "MACD":
 				x = "MACD";
 				break;
@@ -205,6 +208,6 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 		Object result = query.getSingleResult();
 
 		response.addParam(GlobalConstant.ITEM, result);
-		
+
 	}
 }
