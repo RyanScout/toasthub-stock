@@ -680,6 +680,7 @@ public class CurrentTestingSvcImpl {
             if (trade.getFrequency().equals("unlimited")
                     || trade.getFrequencyExecuted() < Integer.parseInt(trade.getFrequency())) {
                 String sellCondition = trade.getSellCondition();
+                String sellOrderCondition = "";
                 String alg1 = sellCondition;
                 String operand = "";
                 String alg2 = "";
@@ -691,11 +692,28 @@ public class CurrentTestingSvcImpl {
                     alg2 = sellCondition.substring(sellCondition.indexOf((" "), sellCondition.indexOf(" ") + 1) + 1,
                             sellCondition.length());
                 }
+                
+                boolean bool1 =currentOrderSignals.process(alg1, trade.getSymbol(), trade.getEvaluationPeriod());
+                boolean bool2 =currentOrderSignals.process(alg2, trade.getSymbol(), trade.getEvaluationPeriod());
 
-                if (evaluate(currentOrderSignals.process(alg1, trade.getSymbol(), trade.getEvaluationPeriod()),
-                        currentOrderSignals.process(alg2, trade.getSymbol(), trade.getEvaluationPeriod()),
-                        operand)) {
-                    Order sellOrder = new Order();
+                if(bool1){
+                    if (sellOrderCondition.equals("")){
+                        sellOrderCondition= sellOrderCondition +alg1;
+                    }else{
+                        sellOrderCondition = sellOrderCondition+"&"+alg1;
+                    }
+                }
+
+                if(bool2){
+                    if (sellOrderCondition.equals("")){
+                        sellOrderCondition= sellOrderCondition +alg2;
+                    }else{
+                        sellOrderCondition = sellOrderCondition+"&"+alg2;
+                    }
+                }
+
+                if (evaluate(bool1,bool2,operand) || sellCondition.equals("") || sellCondition.equals("null")) {
+                    Order sellOrder = null;
                     int truncatedSharesAmount = 0;
                     double trailingStopPrice = 0;
                     double profitLimitPrice = 0;
@@ -743,6 +761,17 @@ public class CurrentTestingSvcImpl {
                         if (!trade.getFrequency().equals("unlimited")) {
                             if (trade.getFrequencyExecuted() >= Integer.parseInt(trade.getFrequency()))
                                 trade.setStatus("Not Running");
+                        }
+                    
+                        if (sellOrder != null) {
+                            TradeDetail tradeDetail = new TradeDetail();
+                            tradeDetail.setPlacedAt(Instant.now().getEpochSecond());
+                            tradeDetail.setOrderID(sellOrder.getClientOrderId());
+                            tradeDetail.setStatus(sellOrder.getStatus().name());
+                            tradeDetail.setOrderSide("SELL");
+                            tradeDetail.setOrderCondition(sellOrderCondition);
+                            tradeDetail.setTrade(trade);
+                            trade.getTradeDetails().add(tradeDetail);
                         }
 
                     }
