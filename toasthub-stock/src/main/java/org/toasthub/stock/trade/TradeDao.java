@@ -22,5 +22,7 @@ import org.toasthub.common.BaseDao;
 import org.toasthub.stock.model.Trade;
 
 public interface TradeDao extends BaseDao {
-    public List<Trade> getRunningTrades();
+    public List<Trade> getRunningMinuteTrades();
+    public List<Trade> getAllRunningTrades();
+    public List<Trade> getRunningDayTrades();
 }

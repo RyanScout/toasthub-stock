@@ -10,24 +10,25 @@ public class CurrentOrderSignals {
     @Autowired
     protected TradeSignalCache tradeSignalCache;
 
-    public Boolean process(String alg, String symbol) {
+    public Boolean process(String alg, String symbol, String evaluationPeriod) {
         Boolean result = false;
+        evaluationPeriod = evaluationPeriod.toUpperCase();
         switch (alg) {
 
             case "goldenCross":
-                result = currentGoldenCross(symbol);
+                result = currentGoldenCross(symbol, evaluationPeriod);
                 break;
 
             case "touchesLBB":
-                result = currentTouchesLBB(symbol);
+                result = currentTouchesLBB(symbol, evaluationPeriod);
                 break;
 
             case "touchesUBB":
-                result = currentTouchesUBB(symbol);
+                result = currentTouchesUBB(symbol, evaluationPeriod);
                 break;
 
             case "signalLineCross":
-                result = currentSignalLineCross(symbol);
+                result = currentSignalLineCross(symbol, evaluationPeriod);
                 break;
 
             default:
@@ -36,19 +37,21 @@ public class CurrentOrderSignals {
         return result;
     }
 
-    public Boolean currentSignalLineCross(String symbol) {
+    public Boolean currentSignalLineCross(String symbol, String evaluationPeriod) {
         return false;
     }
 
-    public Boolean currentTouchesLBB(String symbol) {
-        return tradeSignalCache.getLowerBollingerBandMap().get("GLOBAL::" + symbol).isBuyIndicator();
+    public Boolean currentTouchesLBB(String symbol, String evaluationPeriod) {
+        return tradeSignalCache.getLowerBollingerBandMap().get("GLOBAL::" + evaluationPeriod + "::" + symbol)
+                .isBuyIndicator();
     }
 
-    public Boolean currentTouchesUBB(String symbol) {
-        return tradeSignalCache.getUpperBollingerBandMap().get("GLOBAL::" + symbol).isSellIndicator();
+    public Boolean currentTouchesUBB(String symbol, String evaluationPeriod) {
+        return tradeSignalCache.getUpperBollingerBandMap().get("GLOBAL::" + evaluationPeriod + "::" + symbol)
+                .isSellIndicator();
     }
 
-    public Boolean currentGoldenCross(String symbol) {
-        return tradeSignalCache.getGoldenCrossMap().get("GLOBAL::" + symbol).isBuyIndicator();
+    public Boolean currentGoldenCross(String symbol, String evaluationPeriod) {
+        return tradeSignalCache.getGoldenCrossMap().get("GLOBAL::" + evaluationPeriod + "::" + symbol).isBuyIndicator();
     }
 }

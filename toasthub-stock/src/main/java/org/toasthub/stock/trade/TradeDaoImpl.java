@@ -21,6 +21,7 @@ import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -144,16 +145,35 @@ public class TradeDaoImpl implements TradeDao {
 		}
 	}
 	@Override
-	public List<Trade> getRunningTrades() {
-		String queryStr = "SELECT DISTINCT x FROM Trade AS x WHERE x.status =:status";
+	@SuppressWarnings("unchecked")
+	public List<Trade> getRunningMinuteTrades() {
+		String queryStr = "SELECT DISTINCT x FROM Trade AS x WHERE x.status =:status AND x.evaluationPeriod =:evaluationPeriod";
 
 		Query query = entityManager.createQuery(queryStr);
 		query.setParameter("status", "Running");
-
-		@SuppressWarnings("unchecked")
+		query.setParameter("evaluationPeriod", "Minute");
 		List<Trade> trades = query.getResultList();
-
+		for(Trade trade : trades)
+		Hibernate.initialize(trade.getTradeDetails());
 		return trades;
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public List<Trade> getAllRunningTrades() {
+		String queryStr = "SELECT DISTINCT x FROM Trade AS x WHERE x.status =:status";
+		Query query = entityManager.createQuery(queryStr);
+		query.setParameter("status", "Running");
+		List<Trade> trades = query.getResultList();
+		for(Trade trade : trades)
+		Hibernate.initialize(trade.getTradeDetails());
+		return trades;
+	}
+
+	@Override
+	public List<Trade> getRunningDayTrades() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

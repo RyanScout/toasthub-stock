@@ -20,7 +20,7 @@ import org.toasthub.common.BaseEntity;
 
 
 @Entity
-@Table(name = "sa_historical_detail")
+@Table(name = "ta_historical_detail")
 public class HistoricalDetail extends BaseEntity {
 
 	private static final long serialVersionUID = 1L;

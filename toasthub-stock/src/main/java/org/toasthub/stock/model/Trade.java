@@ -22,9 +22,12 @@ package org.toasthub.stock.model;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Set;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
 import org.toasthub.common.BaseEntity;
@@ -55,6 +58,8 @@ public class Trade extends BaseEntity{
 	private BigDecimal sharesHeld;
 	private String recentBuyOrderID;
 	private String recentSellOrderID;
+	private String evaluationPeriod;
+	private Set<TradeDetail> tradeDetails;
 
 
 	//Constructors
@@ -67,6 +72,23 @@ public class Trade extends BaseEntity{
 		this.setIdentifier("Trade");
 	}
 	
+	@OneToMany(mappedBy = "trade" , cascade = CascadeType.ALL)
+	public Set<TradeDetail> getTradeDetails() {
+		return tradeDetails;
+	}
+
+	public void setTradeDetails(Set<TradeDetail> tradeDetails) {
+		this.tradeDetails = tradeDetails;
+	}
+
+	public String getEvaluationPeriod() {
+		return evaluationPeriod;
+	}
+
+	public void setEvaluationPeriod(String evaluationPeriod) {
+		this.evaluationPeriod = evaluationPeriod;
+	}
+
 	@Column(name = "recent_sell_order_id")
 	public String getRecentSellOrderID() {
 		return recentSellOrderID;
