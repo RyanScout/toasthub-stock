@@ -32,6 +32,7 @@ public class CurrentOrderSignals {
                 break;
 
             default:
+                System.out.println("invalid order condition");
                 break;
         }
         return result;
@@ -42,16 +43,28 @@ public class CurrentOrderSignals {
     }
 
     public Boolean currentTouchesLBB(String symbol, String evaluationPeriod) {
+        if (tradeSignalCache.getLowerBollingerBandMap().get("GLOBAL::" + evaluationPeriod + "::" + symbol) == null) {
+            System.out.println("Cache has not been initialized");
+            return false;
+        }
         return tradeSignalCache.getLowerBollingerBandMap().get("GLOBAL::" + evaluationPeriod + "::" + symbol)
                 .isBuyIndicator();
     }
 
     public Boolean currentTouchesUBB(String symbol, String evaluationPeriod) {
+        if (tradeSignalCache.getUpperBollingerBandMap().get("GLOBAL::" + evaluationPeriod + "::" + symbol) == null) {
+            System.out.println("Cache has not been initialized");
+            return false;
+        }
         return tradeSignalCache.getUpperBollingerBandMap().get("GLOBAL::" + evaluationPeriod + "::" + symbol)
                 .isSellIndicator();
     }
 
     public Boolean currentGoldenCross(String symbol, String evaluationPeriod) {
+        if (tradeSignalCache.getGoldenCrossMap().get("GLOBAL::" + evaluationPeriod + "::" + symbol) == null) {
+            System.out.println("Cache has not been initialized");
+            return false;
+        }
         return tradeSignalCache.getGoldenCrossMap().get("GLOBAL::" + evaluationPeriod + "::" + symbol).isBuyIndicator();
     }
 }

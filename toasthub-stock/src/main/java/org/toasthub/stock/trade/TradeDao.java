@@ -20,9 +20,15 @@ import java.util.List;
 
 import org.toasthub.common.BaseDao;
 import org.toasthub.stock.model.Trade;
+import org.toasthub.utils.Request;
+import org.toasthub.utils.Response;
 
 public interface TradeDao extends BaseDao {
     public List<Trade> getRunningMinuteTrades();
+
     public List<Trade> getAllRunningTrades();
+
     public List<Trade> getRunningDayTrades();
+
+    public void resetTrade(Request request, Response response);
 }

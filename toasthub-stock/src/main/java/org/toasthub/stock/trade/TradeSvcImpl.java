@@ -49,6 +49,8 @@ public class TradeSvcImpl implements TradeSvc {
 			case "DELETE":
 				delete(request, response);
 				break;
+			case "RESET":
+				reset(request, response);
 			default:
 				break;
 		}
@@ -82,7 +84,7 @@ public class TradeSvcImpl implements TradeSvc {
 
 				trade.setFrequency((String) m.get("frequency"));
 
-				trade.setEvaluationPeriod((String)m.get("evaluationPeriod"));
+				trade.setEvaluationPeriod((String) m.get("evaluationPeriod"));
 
 				trade.setSymbol((String) m.get("symbol"));
 
@@ -143,6 +145,21 @@ public class TradeSvcImpl implements TradeSvc {
 	public void delete(Request request, Response response) {
 		try {
 			tradeDao.delete(request, response);
+			tradeDao.itemCount(request, response);
+			if ((Long) response.getParam(GlobalConstant.ITEMCOUNT) > 0) {
+				tradeDao.items(request, response);
+			}
+			response.setStatus(Response.SUCCESS);
+		} catch (Exception e) {
+			response.setStatus(Response.ACTIONFAILED);
+			e.printStackTrace();
+		}
+
+	}
+
+	public void reset(Request request, Response response) {
+		try {
+			tradeDao.resetTrade(request, response);
 			tradeDao.itemCount(request, response);
 			if ((Long) response.getParam(GlobalConstant.ITEMCOUNT) > 0) {
 				tradeDao.items(request, response);

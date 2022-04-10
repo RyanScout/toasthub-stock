@@ -16,6 +16,7 @@
 
 package org.toasthub.stock.analysis;
 
+import java.util.Arrays;
 import java.util.List;
 
 import javax.persistence.EntityManager;
@@ -26,6 +27,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import org.toasthub.analysis.model.AssetDay;
 import org.toasthub.analysis.model.AssetMinute;
+import org.toasthub.common.Symbol;
 import org.toasthub.stock.model.HistoricalAnalysis;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
@@ -166,48 +168,37 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 	}
 
 	public void getRecentAssetDay(Request request, Response response) {
-		String x = "";
-		switch ((String) request.getParam(GlobalConstant.SYMBOL)) {
-			case "SPY":
-				x = "SPY";
-				break;
-			case "BTCUSD":
-				x = "BTCUSD";
-				break;
-			default:
-				break;
-		}
-		String queryStr = "SELECT * FROM tradeanalyzer_main.ta_asset_day WHERE symbol = \""
-				+ x
-				+ "\" ORDER BY id DESC LIMIT 0, 1;";
+		String x = (String) request.getParam(GlobalConstant.SYMBOL);
 
-		Query query = entityManager.createNativeQuery(queryStr, AssetDay.class);
-		Object result = query.getSingleResult();
+		if (Arrays.asList(Symbol.SYMBOLS).contains(x)) {
+			String queryStr = "SELECT * FROM tradeanalyzer_main.ta_asset_day WHERE symbol = \""
+					+ x
+					+ "\" ORDER BY id DESC LIMIT 0, 1;";
 
-		response.addParam(GlobalConstant.ITEM, result);
+			Query query = entityManager.createNativeQuery(queryStr, AssetDay.class);
+			Object result = query.getSingleResult();
+
+			response.addParam(GlobalConstant.ITEM, result);
+		} else
+			System.out.println("Symbol does not match symbols");
 	}
 
 	@Override
 	public void getRecentAssetMinute(Request request, Response response) {
-		String x = "";
-		switch ((String) request.getParam(GlobalConstant.SYMBOL)) {
-			case "SPY":
-				x = "SPY";
-				break;
-			case "BTCUSD":
-				x = "BTCUSD";
-				break;
-			default:
-				break;
-		}
-		String queryStr = "SELECT * FROM tradeanalyzer_main.ta_asset_minute WHERE symbol = \""
-				+ x
-				+ "\" ORDER BY id DESC LIMIT 0, 1;";
+		String x = (String) request.getParam(GlobalConstant.SYMBOL);
 
-		Query query = entityManager.createNativeQuery(queryStr, AssetMinute.class);
-		Object result = query.getSingleResult();
+		if (Arrays.asList(Symbol.SYMBOLS).contains(x)) {
 
-		response.addParam(GlobalConstant.ITEM, result);
+			String queryStr = "SELECT * FROM tradeanalyzer_main.ta_asset_minute WHERE symbol = \""
+					+ x
+					+ "\" ORDER BY id DESC LIMIT 0, 1;";
+
+			Query query = entityManager.createNativeQuery(queryStr, AssetMinute.class);
+			Object result = query.getSingleResult();
+
+			response.addParam(GlobalConstant.ITEM, result);
+		} else
+			System.out.println("Symbol does not match symbols");
 
 	}
 }

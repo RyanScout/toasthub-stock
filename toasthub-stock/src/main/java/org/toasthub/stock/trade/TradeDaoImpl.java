@@ -16,6 +16,7 @@
 
 package org.toasthub.stock.trade;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import javax.persistence.EntityManager;
@@ -56,7 +57,7 @@ public class TradeDaoImpl implements TradeDao {
 		Trade trade = (Trade) request.getParam(GlobalConstant.ITEM);
 		entityManager.merge(trade);
 	}
-	
+
 	@Override
 	public void items(Request request, Response response) throws Exception {
 		String queryStr = "SELECT DISTINCT x FROM Trade AS x ";
@@ -144,6 +145,7 @@ public class TradeDaoImpl implements TradeDao {
 			// "GLOBAL_SERVICE_MISSING_ID",prefCacheUtil.getLang(request)), response);
 		}
 	}
+
 	@Override
 	@SuppressWarnings("unchecked")
 	public List<Trade> getRunningMinuteTrades() {
@@ -153,8 +155,8 @@ public class TradeDaoImpl implements TradeDao {
 		query.setParameter("status", "Running");
 		query.setParameter("evaluationPeriod", "Minute");
 		List<Trade> trades = query.getResultList();
-		for(Trade trade : trades)
-		Hibernate.initialize(trade.getTradeDetails());
+		for (Trade trade : trades)
+			Hibernate.initialize(trade.getTradeDetails());
 		return trades;
 	}
 
@@ -164,10 +166,28 @@ public class TradeDaoImpl implements TradeDao {
 		String queryStr = "SELECT DISTINCT x FROM Trade AS x WHERE x.status =:status";
 		Query query = entityManager.createQuery(queryStr);
 		query.setParameter("status", "Running");
-		List<Trade> trades = query.getResultList();
-		for(Trade trade : trades)
-		Hibernate.initialize(trade.getTradeDetails());
+		List<Trade> trades = (List<Trade>) query.getResultList();
+		for (Trade trade : trades)
+			Hibernate.initialize(trade.getTradeDetails());
 		return trades;
+	}
+
+	public void resetTrade(Request request, Response response) {
+
+		if (request.containsParam(GlobalConstant.ITEMID) && !"".equals(request.getParam(GlobalConstant.ITEMID))) {
+
+			Trade trade = (Trade) entityManager.getReference(Trade.class,
+					new Long((Integer) request.getParam(GlobalConstant.ITEMID)));
+			trade.getTradeDetails().stream().forEach(t -> {
+				entityManager.remove(t);
+			});
+			trade.setTradeDetails(null);
+			trade.setAvailableBudget(trade.getBudget());
+			trade.setTotalValue(trade.getBudget());
+			trade.setSharesHeld(BigDecimal.ZERO);
+			trade.setFrequencyExecuted(0);
+			entityManager.merge(trade);
+		}
 	}
 
 	@Override

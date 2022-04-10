@@ -34,10 +34,10 @@ import org.toasthub.common.BaseEntity;
 
 @Entity
 @Table(name = "ta_trade")
-public class Trade extends BaseEntity{
+public class Trade extends BaseEntity {
 
 	private static final long serialVersionUID = 1L;
-	
+
 	protected String name;
 	private String symbol;
 	protected String orderType;
@@ -56,13 +56,13 @@ public class Trade extends BaseEntity{
 	private BigDecimal budget;
 	private BigDecimal availableBudget;
 	private BigDecimal sharesHeld;
+	private BigDecimal totalValue;
 	private String recentBuyOrderID;
 	private String recentSellOrderID;
 	private String evaluationPeriod;
 	private Set<TradeDetail> tradeDetails;
 
-
-	//Constructors
+	// Constructors
 	public Trade() {
 		super();
 		this.setActive(true);
@@ -71,8 +71,16 @@ public class Trade extends BaseEntity{
 		this.setCreated(Instant.now());
 		this.setIdentifier("Trade");
 	}
-	
-	@OneToMany(mappedBy = "trade" , cascade = CascadeType.ALL)
+
+	public BigDecimal getTotalValue() {
+		return totalValue;
+	}
+
+	public void setTotalValue(BigDecimal totalValue) {
+		this.totalValue = totalValue;
+	}
+
+	@OneToMany(mappedBy = "trade", cascade = CascadeType.ALL)
 	public Set<TradeDetail> getTradeDetails() {
 		return tradeDetails;
 	}
@@ -121,10 +129,12 @@ public class Trade extends BaseEntity{
 
 	public void setBudget(BigDecimal budget) {
 		this.budget = budget;
-		if(availableBudget == null)
-		this.availableBudget = budget;
-		if(sharesHeld == null)
-		this.sharesHeld = BigDecimal.ZERO;
+		if (availableBudget == null) {
+			this.availableBudget = budget;
+			this.totalValue = budget;
+		}
+		if (sharesHeld == null)
+			this.sharesHeld = BigDecimal.ZERO;
 	}
 
 	public BigDecimal getAvailableBudget() {
@@ -241,7 +251,7 @@ public class Trade extends BaseEntity{
 		this.frequency = frequency;
 	}
 
-	public Trade(String code, Boolean defaultLang, String dir){
+	public Trade(String code, Boolean defaultLang, String dir) {
 		super();
 		this.setActive(true);
 		this.setArchive(false);
@@ -252,7 +262,7 @@ public class Trade extends BaseEntity{
 
 	// Methods
 	@Column(name = "name")
-	public String getName(){
+	public String getName() {
 		return name;
 	}
 
@@ -261,11 +271,11 @@ public class Trade extends BaseEntity{
 	}
 
 	@Column(name = "order_type")
-	public String getOrderType(){
+	public String getOrderType() {
 		return orderType;
 	}
 
-	public void setOrderType(String orderType){
+	public void setOrderType(String orderType) {
 		this.orderType = orderType;
 	}
 }
