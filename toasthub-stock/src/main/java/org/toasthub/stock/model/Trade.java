@@ -65,6 +65,7 @@ public class Trade extends BaseEntity {
 	// Constructors
 	public Trade() {
 		super();
+		this.setAvailableBudget(BigDecimal.ZERO);
 		this.setActive(true);
 		this.setArchive(false);
 		this.setLocked(false);

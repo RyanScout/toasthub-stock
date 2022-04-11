@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+import org.toasthub.common.Symbol;
 
 @Component
 @Scope("singleton")
@@ -18,6 +19,20 @@ public class TradeSignalCache {
     private Map<String, BigDecimal> recentClosingPriceMap = new ConcurrentHashMap<String, BigDecimal>();
     private Map<String, Long> recentEpochSecondsMap = new ConcurrentHashMap<String, Long>();
     private Map<String, Object> algorithmStatisticsMap = new ConcurrentHashMap<String, Object>();
+
+    private TradeSignalCache() {
+        for (String symbol : Symbol.SYMBOLS) {
+            algorithmStatisticsMap.put("MINUTE::CHECKED::" + symbol, 0);
+            algorithmStatisticsMap.put("DAY::CHECKED::" + symbol, 0);
+
+            algorithmStatisticsMap.put("DAY::GOLDENCROSS::FLASHED::" + symbol, 0);
+            algorithmStatisticsMap.put("MINUTE::GOLDENCROSS::FLASHED::" + symbol, 0);
+            algorithmStatisticsMap.put("DAY::LOWERBOLLINGERBAND::FLASHED::" + symbol, 0);
+            algorithmStatisticsMap.put("MINUTE::LOWERBOLLINGERBAND::FLASHED::" + symbol, 0);
+            algorithmStatisticsMap.put("DAY::UPPERBOLLINGERBAND::FLASHED::" + symbol, 0);
+            algorithmStatisticsMap.put("MINUTE::UPPERBOLLINGERBAND::FLASHED::" + symbol, 0);
+        }
+    }
 
     public Map<String, GoldenCross> getGoldenCrossMap() {
         return goldenCrossMap;
