@@ -62,8 +62,40 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 
 	@Override
 	public void items(Request request, Response response) throws Exception {
+		String x = "";
+		switch ((String) request.getParam(GlobalConstant.IDENTIFIER)) {
+			case "SMA":
+				x = "SMA";
+				break;
+			case "EMA":
+				x = "EMA";
+				break;
+			case "LBB":
+				x = "LBB";
+				break;
+			case "UBB":
+				x = "UBB";
+				break;
+			case "MACD":
+				x = "MACD";
+				break;
+			case "SL":
+				x = "SL";
+				break;
+			case "GoldenCross":
+				x = "GoldenCross";
+				break;
+			case "LowerBollingerBand":
+				x = "LowerBollingerBand";
+				break;
+			case "UpperBollingerBand":
+				x = "UpperBollingerBand";
+				break;
+			default:
+				break;
+		}
 		String queryStr = "SELECT DISTINCT x FROM "
-				+ request.getParam(GlobalConstant.IDENTIFIER)
+				+ x
 				+ " AS x ";
 
 		Query query = entityManager.createQuery(queryStr);
@@ -74,8 +106,41 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 
 	@Override
 	public void itemCount(Request request, Response response) throws Exception {
+		String x = "";
+
+		switch ((String) request.getParam(GlobalConstant.IDENTIFIER)) {
+			case "SMA":
+				x = "SMA";
+				break;
+			case "EMA":
+				x = "EMA";
+				break;
+			case "LBB":
+				x = "LBB";
+				break;
+			case "UBB":
+				x = "UBB";
+				break;
+			case "MACD":
+				x = "MACD";
+				break;
+			case "SL":
+				x = "SL";
+				break;
+			case "GoldenCross":
+				x = "GoldenCross";
+				break;
+			case "LowerBollingerBand":
+				x = "LowerBollingerBand";
+				break;
+			case "UpperBollingerBand":
+				x = "UpperBollingerBand";
+				break;
+			default:
+				break;
+		}
 		String queryStr = "SELECT COUNT(DISTINCT x) FROM "
-				+ request.getParam(GlobalConstant.IDENTIFIER)
+				+ x
 				+ " as x ";
 
 		boolean and = false;
