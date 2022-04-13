@@ -21,17 +21,6 @@ public class TradeSignalCache {
     private Map<String, Object> algorithmStatisticsMap = new ConcurrentHashMap<String, Object>();
 
     private TradeSignalCache() {
-        for (String symbol : Symbol.SYMBOLS) {
-            algorithmStatisticsMap.put("MINUTE::CHECKED::" + symbol, 0);
-            algorithmStatisticsMap.put("DAY::CHECKED::" + symbol, 0);
-
-            algorithmStatisticsMap.put("DAY::GOLDENCROSS::FLASHED::" + symbol, 0);
-            algorithmStatisticsMap.put("MINUTE::GOLDENCROSS::FLASHED::" + symbol, 0);
-            algorithmStatisticsMap.put("DAY::LOWERBOLLINGERBAND::FLASHED::" + symbol, 0);
-            algorithmStatisticsMap.put("MINUTE::LOWERBOLLINGERBAND::FLASHED::" + symbol, 0);
-            algorithmStatisticsMap.put("DAY::UPPERBOLLINGERBAND::FLASHED::" + symbol, 0);
-            algorithmStatisticsMap.put("MINUTE::UPPERBOLLINGERBAND::FLASHED::" + symbol, 0);
-        }
     }
 
     public Map<String, GoldenCross> getGoldenCrossMap() {

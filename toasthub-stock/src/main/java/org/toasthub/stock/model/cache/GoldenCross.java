@@ -33,6 +33,8 @@ public class GoldenCross extends BaseEntity {
 		this.setCreated(Instant.now());
         setChecked(0);
         setFlashed(0);
+        setLastCheck(0);
+        setLastFlash(0);
         setIdentifier("GoldenCross");
     }
 

@@ -3,7 +3,6 @@ package org.toasthub.stock.analysis;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -30,7 +29,6 @@ import org.toasthub.common.Symbol;
 import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
 
-import net.bytebuddy.agent.builder.AgentBuilder.CircularityLock.Global;
 import net.jacobpeterson.alpaca.AlpacaAPI;
 import net.jacobpeterson.alpaca.model.endpoint.orders.Order;
 import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderSide;
@@ -83,33 +81,16 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
     }
 
     public void items(Request request, Response response) {
-        response.addParam("SYMBOLS", Symbol.SYMBOLS);
-
-        String[] evaluationPeriod = {
-                "GLOBAL::DAY::", "GLOBAL::MINUTE::"
-        };
-
-        List<Object> goldenCrosses = new ArrayList<Object>();
-        List<Object> lowerBollingerBands = new ArrayList<Object>();
-        List<Object> upperBollingerBands = new ArrayList<Object>();
-
-        for (String symbol : Symbol.SYMBOLS) {
-            List<Object> tempGC = new ArrayList<Object>();
-            List<Object> tempLBB = new ArrayList<Object>();
-            List<Object> tempUBB = new ArrayList<Object>();
-            for (String temp : evaluationPeriod) {
-                tempGC.add(tradeSignalCache.getGoldenCrossMap().get(temp + symbol));
-                tempLBB.add(tradeSignalCache.getLowerBollingerBandMap().get(temp + symbol));
-                tempUBB.add(tradeSignalCache.getUpperBollingerBandMap().get(temp + symbol));
-            }
-            goldenCrosses.add(tempGC);
-            lowerBollingerBands.add(tempLBB);
-            upperBollingerBands.add(tempUBB);
-        }
-
-        response.addParam("GOLDENCROSS", goldenCrosses);
-        response.addParam("LOWERBOLLINGERBAND", lowerBollingerBands);
-        response.addParam("UPPERBOLLINGERBAND", upperBollingerBands);
+        response.addParam("GOLDEN_CROSS_DAY", tradeSignalCache.getGoldenCrossMap().get("GLOBAL::DAY::GENERAL"));
+        response.addParam("LOWER_BOLLINGER_BAND_DAY",
+                tradeSignalCache.getLowerBollingerBandMap().get("GLOBAL::DAY::GENERAL"));
+        response.addParam("UPPER_BOLLINGER_BAND_DAY",
+                tradeSignalCache.getUpperBollingerBandMap().get("GLOBAL::DAY::GENERAL"));
+        response.addParam("GOLDEN_CROSS_MINUTE", tradeSignalCache.getGoldenCrossMap().get("GLOBAL::MINUTE::GENERAL"));
+        response.addParam("LOWER_BOLLINGER_BAND_MINUTE",
+                tradeSignalCache.getLowerBollingerBandMap().get("GLOBAL::MINUTE::GENERAL"));
+        response.addParam("UPPER_BOLLINGER_BAND_MINUTE",
+                tradeSignalCache.getUpperBollingerBandMap().get("GLOBAL::MINUTE::GENERAL"));
     }
 
     @Scheduled(cron = "30 * * * * ?")
@@ -124,9 +105,22 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                 tradeAnalysisJobRunning.set(true);
                 Request request = new Request();
                 Response response = new Response();
+                request.addParam("DAY_CACHE_UPDATED", false);
+                request.addParam("MINUTE_CACHE_UPDATED", false);
+                request.addParam("DAY_CACHE_CHECKED", false);
+                request.addParam("MINUTE_CACHE_CHECKED", false);
                 updateTradeSignalCache(request, response);
                 updateTrades(request, response);
-                checkMinuteTrades(request, response);
+                if ((boolean) request.getParam("DAY_CACHE_UPDATED")) {
+                    updateGeneralGlobalsDay(request, response);
+                    if ((boolean) request.getParam("DAY_CACHE_CHECKED"))
+                        checkDayTrades(request, response);
+                }
+                if ((boolean) request.getParam("MINUTE_CACHE_UPDATED")) {
+                    updateGeneralGlobalsMinute(request, response);
+                    if ((boolean) request.getParam("MINUTE_CACHE_CHECKED"))
+                        checkMinuteTrades(request, response);
+                }
                 tradeAnalysisJobRunning.set(false);
             }).start();
         }
@@ -141,7 +135,10 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
 
                 AssetDay recentAssetDay = (AssetDay) response.getParam(GlobalConstant.ITEM);
 
-                if (tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol) == null
+                boolean cacheIsInitialized = (tradeSignalCache.getRecentEpochSecondsMap()
+                        .get("DAY::" + symbol) != null);
+
+                if (!cacheIsInitialized
                         || tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol) < recentAssetDay
                                 .getEpochSeconds()) {
                     tradeSignalCache.getRecentClosingPriceMap().put("DAY::" + symbol, recentAssetDay.getClose());
@@ -149,13 +146,16 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                     updateGoldenCrossCacheGlobalDay(request, response);
                     updateLowerBollingerBandCacheGlobalDay(request, response);
                     updateUpperBollingerBandCacheGlobalDay(request, response);
+                    request.addParam("DAY_CACHE_UPDATED", true);
                 }
 
                 currentTestingDao.getRecentAssetMinute(request, response);
 
                 AssetMinute recentAssetMinute = (AssetMinute) response.getParam(GlobalConstant.ITEM);
 
-                if (tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol) == null
+                cacheIsInitialized = (tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol) != null);
+
+                if (!cacheIsInitialized
                         || tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol) < recentAssetMinute
                                 .getEpochSeconds()) {
                     tradeSignalCache.getRecentClosingPriceMap().put("MINUTE::" + symbol, recentAssetMinute.getValue());
@@ -164,10 +164,11 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                     updateGoldenCrossCacheGlobalMinute(request, response);
                     updateLowerBollingerBandCacheGlobalMinute(request, response);
                     updateUpperBollingerBandCacheGlobalMinute(request, response);
+                    request.addParam("MINUTE_CACHE_UPDATED", true);
                 }
             }
         } catch (Exception e) {
-            System.out.println("Error at Recent Assets Cache");
+            System.out.println("Error at Update Trade Signal  Cache");
             e.printStackTrace();
         }
     }
@@ -206,15 +207,20 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
             currentTestingDao.item(request, response);
             SMA longSMA = (SMA) response.getParam(GlobalConstant.ITEM);
 
-            if (shortSMA.getValue().compareTo(longSMA.getValue()) > 0) {
-                globalGoldenCross.setFlashing(true);
-                globalGoldenCross.setLastFlash(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
-                globalGoldenCross.setFlashed(globalGoldenCross.getFlashed() + 1);
-            } else
-                globalGoldenCross.setFlashing(false);
+            if (globalGoldenCross.getLastCheck() != tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol)) {
+                if (shortSMA.getValue().compareTo(longSMA.getValue()) > 0) {
+                    globalGoldenCross.setFlashing(true);
+                    globalGoldenCross.setLastFlash(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
+                    globalGoldenCross.setFlashed(globalGoldenCross.getFlashed() + 1);
+                } else
+                    globalGoldenCross.setFlashing(false);
 
-            globalGoldenCross.setChecked(globalGoldenCross.getChecked() + 1);
-            globalGoldenCross.setLastCheck(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
+                globalGoldenCross.setChecked(globalGoldenCross.getChecked() + 1);
+
+                globalGoldenCross.setLastCheck(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
+
+                request.addParam("DAY_CACHE_CHECKED", true);
+            }
 
             tradeSignalCache.getGoldenCrossMap().put("GLOBAL::DAY::" + symbol, globalGoldenCross);
 
@@ -261,16 +267,21 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
             currentTestingDao.item(request, response);
             SMA longSMA = (SMA) response.getParam(GlobalConstant.ITEM);
 
-            if (shortSMA.getValue().compareTo(longSMA.getValue()) > 0) {
-                globalGoldenCross.setFlashing(true);
-                globalGoldenCross.setLastFlash(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
-                globalGoldenCross.setFlashed(globalGoldenCross.getFlashed() + 1);
-            } else
-                globalGoldenCross.setFlashing(false);
+            if (globalGoldenCross.getLastCheck() != tradeSignalCache.getRecentEpochSecondsMap()
+                    .get("MINUTE::" + symbol)) {
+                if (shortSMA.getValue().compareTo(longSMA.getValue()) > 0) {
+                    globalGoldenCross.setFlashing(true);
+                    globalGoldenCross
+                            .setLastFlash(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
+                    globalGoldenCross.setFlashed(globalGoldenCross.getFlashed() + 1);
+                } else
+                    globalGoldenCross.setFlashing(false);
 
-            globalGoldenCross.setChecked(globalGoldenCross.getChecked() + 1);
-            globalGoldenCross.setLastCheck(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
+                globalGoldenCross.setChecked(globalGoldenCross.getChecked() + 1);
+                globalGoldenCross.setLastCheck(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
 
+                request.addParam("MINUTE_CACHE_CHECKED", true);
+            }
             tradeSignalCache.getGoldenCrossMap().put("GLOBAL::MINUTE::" + symbol, globalGoldenCross);
 
             request.addParam(GlobalConstant.ITEM, globalGoldenCross);
@@ -312,16 +323,20 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
             currentTestingDao.item(request, response);
             LBB lbb = (LBB) response.getParam(GlobalConstant.ITEM);
 
-            if (tradeSignalCache.getRecentClosingPriceMap().get("DAY::" + symbol).compareTo(lbb.getValue()) < 0) {
-                lowerBollingerBand.setFlashing(true);
-                lowerBollingerBand.setFlashed(lowerBollingerBand.getFlashed() + 1);
-                lowerBollingerBand.setLastFlash(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
-            } else
-                lowerBollingerBand.setFlashing(false);
+            if (lowerBollingerBand.getLastCheck() != tradeSignalCache.getRecentEpochSecondsMap()
+                    .get("DAY::" + symbol)) {
+                if (tradeSignalCache.getRecentClosingPriceMap().get("DAY::" + symbol).compareTo(lbb.getValue()) < 0) {
+                    lowerBollingerBand.setFlashing(true);
+                    lowerBollingerBand.setFlashed(lowerBollingerBand.getFlashed() + 1);
+                    lowerBollingerBand.setLastFlash(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
+                } else
+                    lowerBollingerBand.setFlashing(false);
 
-            lowerBollingerBand.setChecked(lowerBollingerBand.getChecked() + 1);
-            lowerBollingerBand.setLastCheck(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
+                lowerBollingerBand.setChecked(lowerBollingerBand.getChecked() + 1);
+                lowerBollingerBand.setLastCheck(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
 
+                request.addParam("DAY_CACHE_CHECKED", true);
+            }
             tradeSignalCache.getLowerBollingerBandMap().put("GLOBAL::DAY::" + symbol, lowerBollingerBand);
 
             request.addParam(GlobalConstant.ITEM, lowerBollingerBand);
@@ -362,16 +377,22 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
             currentTestingDao.item(request, response);
             LBB lbb = (LBB) response.getParam(GlobalConstant.ITEM);
 
-            if (tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol).compareTo(lbb.getValue()) < 0) {
-                lowerBollingerBand.setFlashing(true);
-                lowerBollingerBand.setFlashed(lowerBollingerBand.getFlashed() + 1);
-                lowerBollingerBand.setLastFlash(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
-            } else
-                lowerBollingerBand.setFlashing(false);
+            if (lowerBollingerBand.getLastCheck() != tradeSignalCache.getRecentEpochSecondsMap()
+                    .get("MINUTE::" + symbol)) {
+                if (tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol)
+                        .compareTo(lbb.getValue()) < 0) {
+                    lowerBollingerBand.setFlashing(true);
+                    lowerBollingerBand.setFlashed(lowerBollingerBand.getFlashed() + 1);
+                    lowerBollingerBand
+                            .setLastFlash(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
+                } else
+                    lowerBollingerBand.setFlashing(false);
 
-            lowerBollingerBand.setChecked(lowerBollingerBand.getChecked() + 1);
-            lowerBollingerBand.setLastCheck(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
+                lowerBollingerBand.setChecked(lowerBollingerBand.getChecked() + 1);
+                lowerBollingerBand.setLastCheck(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
 
+                request.addParam("MINUTE_CACHE_CHECKED", true);
+            }
             tradeSignalCache.getLowerBollingerBandMap().put("GLOBAL::MINUTE::" + symbol, lowerBollingerBand);
 
             request.addParam(GlobalConstant.ITEM, lowerBollingerBand);
@@ -412,16 +433,20 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
             currentTestingDao.item(request, response);
             UBB ubb = (UBB) response.getParam(GlobalConstant.ITEM);
 
-            if (tradeSignalCache.getRecentClosingPriceMap().get("DAY::" + symbol).compareTo(ubb.getValue()) > 0) {
-                upperBollingerBand.setFlashing(true);
-                upperBollingerBand.setFlashed(upperBollingerBand.getFlashed() + 1);
-                upperBollingerBand.setLastFlash(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
-            } else
-                upperBollingerBand.setFlashing(false);
+            if (upperBollingerBand.getLastCheck() != tradeSignalCache.getRecentEpochSecondsMap()
+                    .get("DAY::" + symbol)) {
+                if (tradeSignalCache.getRecentClosingPriceMap().get("DAY::" + symbol).compareTo(ubb.getValue()) > 0) {
+                    upperBollingerBand.setFlashing(true);
+                    upperBollingerBand.setFlashed(upperBollingerBand.getFlashed() + 1);
+                    upperBollingerBand.setLastFlash(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
+                } else
+                    upperBollingerBand.setFlashing(false);
 
-            upperBollingerBand.setChecked(upperBollingerBand.getChecked() + 1);
-            upperBollingerBand.setLastCheck(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
+                upperBollingerBand.setChecked(upperBollingerBand.getChecked() + 1);
+                upperBollingerBand.setLastCheck(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
 
+                request.addParam("DAY_CACHE_CHECKED", true);
+            }
             tradeSignalCache.getUpperBollingerBandMap().put("GLOBAL::DAY::" + symbol, upperBollingerBand);
 
             request.addParam(GlobalConstant.ITEM, upperBollingerBand);
@@ -462,16 +487,23 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
             currentTestingDao.item(request, response);
             UBB ubb = (UBB) response.getParam(GlobalConstant.ITEM);
 
-            if (tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol).compareTo(ubb.getValue()) > 0) {
-                upperBollingerBand.setFlashing(true);
-                upperBollingerBand.setFlashed(upperBollingerBand.getFlashed() + 1);
-                upperBollingerBand.setLastFlash(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
-            } else
-                upperBollingerBand.setFlashing(false);
+            if (upperBollingerBand.getLastCheck() != tradeSignalCache.getRecentEpochSecondsMap()
+                    .get("MINUTE::" + symbol)) {
+                if (tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol)
+                        .compareTo(ubb.getValue()) > 0) {
+                    upperBollingerBand.setFlashing(true);
+                    upperBollingerBand.setFlashed(upperBollingerBand.getFlashed() + 1);
+                    upperBollingerBand
+                            .setLastFlash(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
+                } else
+                    upperBollingerBand.setFlashing(false);
 
-            upperBollingerBand.setChecked(upperBollingerBand.getChecked() + 1);
-            upperBollingerBand.setLastCheck(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
+                upperBollingerBand.setChecked(upperBollingerBand.getChecked() + 1);
+                upperBollingerBand.setLastCheck(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
 
+                request.addParam("MINUTE_CACHE_CHECKED", true);
+
+            }
             tradeSignalCache.getUpperBollingerBandMap().put("GLOBAL::MINUTE::" + symbol, upperBollingerBand);
 
             request.addParam(GlobalConstant.ITEM, upperBollingerBand);
@@ -482,12 +514,85 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
         }
     }
 
+    public void updateGeneralGlobalsDay(Request request, Response response) {
+        GoldenCross generalGoldenCross = new GoldenCross();
+        LowerBollingerBand generalLowerBollingerBand = new LowerBollingerBand();
+        UpperBollingerBand generalUpperBollingerBand = new UpperBollingerBand();
+        GoldenCross tempGoldenCross = new GoldenCross();
+        LowerBollingerBand tempLowerBollingerBand = new LowerBollingerBand();
+        UpperBollingerBand tempUpperBollingerBand = new UpperBollingerBand();
+
+        for (String symbol : Symbol.SYMBOLS) {
+            tempGoldenCross = tradeSignalCache.getGoldenCrossMap().get("GLOBAL::DAY::" + symbol);
+            generalGoldenCross.setChecked(generalGoldenCross.getChecked() + tempGoldenCross.getChecked());
+            generalGoldenCross.setFlashed(generalGoldenCross.getFlashed() + tempGoldenCross.getFlashed());
+            generalGoldenCross.setShortSMAType(tempGoldenCross.getShortSMAType());
+            generalGoldenCross.setLongSMAType(tempGoldenCross.getLongSMAType());
+
+            tempLowerBollingerBand = tradeSignalCache.getLowerBollingerBandMap().get("GLOBAL::DAY::" + symbol);
+            generalLowerBollingerBand
+                    .setChecked(generalLowerBollingerBand.getChecked() + tempLowerBollingerBand.getChecked());
+            generalLowerBollingerBand
+                    .setFlashed(generalLowerBollingerBand.getFlashed() + tempLowerBollingerBand.getFlashed());
+            generalLowerBollingerBand.setLBBType(tempLowerBollingerBand.getLBBType());
+            generalLowerBollingerBand.setStandardDeviationValue(tempLowerBollingerBand.getStandardDeviationValue());
+
+            tempUpperBollingerBand = tradeSignalCache.getUpperBollingerBandMap().get("GLOBAL::DAY::" + symbol);
+            generalUpperBollingerBand
+                    .setChecked(generalUpperBollingerBand.getChecked() + tempUpperBollingerBand.getChecked());
+            generalUpperBollingerBand
+                    .setFlashed(generalUpperBollingerBand.getFlashed() + tempUpperBollingerBand.getFlashed());
+            generalUpperBollingerBand.setUBBType(tempUpperBollingerBand.getUBBType());
+            generalUpperBollingerBand.setStandardDeviationValue(tempUpperBollingerBand.getStandardDeviationValue());
+        }
+
+        tradeSignalCache.getGoldenCrossMap().put("GLOBAL::DAY::GENERAL", generalGoldenCross);
+        tradeSignalCache.getLowerBollingerBandMap().put("GLOBAL::DAY::GENERAL", generalLowerBollingerBand);
+        tradeSignalCache.getUpperBollingerBandMap().put("GLOBAL::DAY::GENERAL", generalUpperBollingerBand);
+    }
+
+    public void updateGeneralGlobalsMinute(Request request, Response response) {
+        GoldenCross generalGoldenCross = new GoldenCross();
+        LowerBollingerBand generalLowerBollingerBand = new LowerBollingerBand();
+        UpperBollingerBand generalUpperBollingerBand = new UpperBollingerBand();
+        GoldenCross tempGoldenCross;
+        LowerBollingerBand tempLowerBollingerBand;
+        UpperBollingerBand tempUpperBollingerBand;
+
+        for (String symbol : Symbol.SYMBOLS) {
+            tempGoldenCross = tradeSignalCache.getGoldenCrossMap().get("GLOBAL::MINUTE::" + symbol);
+            generalGoldenCross.setChecked(generalGoldenCross.getChecked() + tempGoldenCross.getChecked());
+            generalGoldenCross.setFlashed(generalGoldenCross.getFlashed() + tempGoldenCross.getFlashed());
+            generalGoldenCross.setShortSMAType(tempGoldenCross.getShortSMAType());
+            generalGoldenCross.setLongSMAType(tempGoldenCross.getLongSMAType());
+
+            tempLowerBollingerBand = tradeSignalCache.getLowerBollingerBandMap().get("GLOBAL::MINUTE::" + symbol);
+            generalLowerBollingerBand
+                    .setChecked(generalLowerBollingerBand.getChecked() + tempLowerBollingerBand.getChecked());
+            generalLowerBollingerBand
+                    .setFlashed(generalLowerBollingerBand.getFlashed() + tempLowerBollingerBand.getFlashed());
+            generalLowerBollingerBand.setLBBType(tempLowerBollingerBand.getLBBType());
+            generalLowerBollingerBand.setStandardDeviationValue(tempLowerBollingerBand.getStandardDeviationValue());
+
+            tempUpperBollingerBand = tradeSignalCache.getUpperBollingerBandMap().get("GLOBAL::MINUTE::" + symbol);
+            generalUpperBollingerBand
+                    .setChecked(generalUpperBollingerBand.getChecked() + tempUpperBollingerBand.getChecked());
+            generalUpperBollingerBand
+                    .setFlashed(generalUpperBollingerBand.getFlashed() + tempUpperBollingerBand.getFlashed());
+            generalUpperBollingerBand.setUBBType(tempUpperBollingerBand.getUBBType());
+            generalUpperBollingerBand.setStandardDeviationValue(tempUpperBollingerBand.getStandardDeviationValue());
+        }
+
+        tradeSignalCache.getGoldenCrossMap().put("GLOBAL::MINUTE::GENERAL", generalGoldenCross);
+        tradeSignalCache.getLowerBollingerBandMap().put("GLOBAL::MINUTE::GENERAL", generalLowerBollingerBand);
+        tradeSignalCache.getUpperBollingerBandMap().put("GLOBAL::MINUTE::GENERAL", generalUpperBollingerBand);
+    }
+
     public void updateSignalLineCrossGlobal(Request request, Response response) {
 
     }
 
     private void updateTrades(Request request, Response response) {
-        System.out.println("Updating Trades");
         List<Trade> trades = tradeDao.getAllRunningTrades();
         if (trades != null && trades.size() > 0) {
             for (Trade trade : trades) {
@@ -616,13 +721,12 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
 
     private void checkMinuteTrades(Request request, Response response) {
         try {
-            System.out.println("Running trade analysis job");
             List<Trade> trades = tradeDao.getRunningMinuteTrades();
             if (trades != null && trades.size() > 0) {
                 for (Trade trade : trades) {
 
                     request.addParam(GlobalConstant.TRADE, trade);
-                    System.out.println("Checking trade name: " + trade.getName());
+                    System.out.println("Checking minute trade: " + trade.getName());
                     switch (trade.getOrderSide()) {
                         case "Buy":
                             currentBuyTest(request, response);
@@ -641,7 +745,40 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                     tradeDao.save(request, response);
                 }
             } else {
-                System.out.println("No trades to run");
+                System.out.println("No Minute trades to run");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void checkDayTrades(Request request, Response response) {
+        try {
+            List<Trade> trades = tradeDao.getRunningDayTrades();
+            if (trades != null && trades.size() > 0) {
+                for (Trade trade : trades) {
+
+                    request.addParam(GlobalConstant.TRADE, trade);
+                    System.out.println("Checking day trade: " + trade.getName());
+                    switch (trade.getOrderSide()) {
+                        case "Buy":
+                            currentBuyTest(request, response);
+                            break;
+                        case "Sell":
+                            currentSellTest(request, response);
+                            break;
+                        case "Bot":
+                            currentBotTest(request, response);
+                            break;
+                        default:
+                            return;
+                    }
+
+                    request.addParam(GlobalConstant.ITEM, trade);
+                    tradeDao.save(request, response);
+                }
+            } else {
+                System.out.println("No Day trades to run");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -864,10 +1001,10 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                         trade.getTradeDetails().add(tradeDetail);
                     }
 
-                    System.out.println("Buy Order Placed!");
+                    System.out.println(trade.getName() + ":Buy Order Placed!");
 
                 } else
-                    System.out.println("Buy Condition not met");
+                    System.out.println(trade.getName() + ":Buy Condition not met");
 
             } else {
                 System.out.println("Trade frequency met - changing status to not running");
@@ -975,7 +1112,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                     System.out.println("Sell Order Placed!");
 
                 } else
-                    System.out.println("Sell Condition not met");
+                    System.out.println(trade.getName() + ":Sell Condition not met");
 
             } else {
                 System.out.println("Trade frequency met - changing status to not running");
