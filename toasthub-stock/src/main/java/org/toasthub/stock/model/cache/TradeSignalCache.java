@@ -6,7 +6,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
-import org.toasthub.common.Symbol;
 
 @Component
 @Scope("singleton")
@@ -17,10 +16,28 @@ public class TradeSignalCache {
     private Map<String, UpperBollingerBand> upperBollingerBandMap = new ConcurrentHashMap<String, UpperBollingerBand>();
     private Map<String, SignalLineCross> signalLineCrossMap = new ConcurrentHashMap<String, SignalLineCross>();
     private Map<String, BigDecimal> recentClosingPriceMap = new ConcurrentHashMap<String, BigDecimal>();
+    private Map<String, Long> recentVolumeMap = new ConcurrentHashMap<String, Long>();
+    private Map<String, BigDecimal> recentVwapMap = new ConcurrentHashMap<String, BigDecimal>();
     private Map<String, Long> recentEpochSecondsMap = new ConcurrentHashMap<String, Long>();
     private Map<String, Object> algorithmStatisticsMap = new ConcurrentHashMap<String, Object>();
 
     private TradeSignalCache() {
+    }
+
+    public Map<String, Long> getRecentVolumeMap() {
+        return recentVolumeMap;
+    }
+
+    public void setRecentVolumeMap(Map<String, Long> recentVolumeMap) {
+        this.recentVolumeMap = recentVolumeMap;
+    }
+
+    public Map<String, BigDecimal> getRecentVwapMap() {
+        return recentVwapMap;
+    }
+
+    public void setRecentVwapMap(Map<String, BigDecimal> recentVwapMap) {
+        this.recentVwapMap = recentVwapMap;
     }
 
     public Map<String, GoldenCross> getGoldenCrossMap() {

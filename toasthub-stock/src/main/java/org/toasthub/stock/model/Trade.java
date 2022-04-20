@@ -51,8 +51,8 @@ public class Trade extends BaseEntity {
 	private String profitLimitType;
 	private BigDecimal trailingStopAmount;
 	private BigDecimal profitLimitAmount;
-	private String frequency;
-	private int frequencyExecuted;
+	private String iterations;
+	private int iterationsExecuted;
 	private BigDecimal budget;
 	private BigDecimal availableBudget;
 	private BigDecimal sharesHeld;
@@ -60,17 +60,42 @@ public class Trade extends BaseEntity {
 	private String recentBuyOrderID;
 	private String recentSellOrderID;
 	private String evaluationPeriod;
+	private long firstBuy;
 	private Set<TradeDetail> tradeDetails;
 
 	// Constructors
 	public Trade() {
 		super();
-		this.setAvailableBudget(BigDecimal.ZERO);
+		this.setFirstBuy(0);
 		this.setActive(true);
 		this.setArchive(false);
 		this.setLocked(false);
 		this.setCreated(Instant.now());
 		this.setIdentifier("Trade");
+	}
+
+	public int getIterationsExecuted() {
+		return iterationsExecuted;
+	}
+
+	public void setIterationsExecuted(int iterationsExecuted) {
+		this.iterationsExecuted = iterationsExecuted;
+	}
+
+	public String getIterations() {
+		return iterations;
+	}
+
+	public void setIterations(String iterations) {
+		this.iterations = iterations;
+	}
+
+	public long getFirstBuy() {
+		return firstBuy;
+	}
+
+	public void setFirstBuy(long firstBuy) {
+		this.firstBuy = firstBuy;
 	}
 
 	public BigDecimal getTotalValue() {
@@ -232,24 +257,6 @@ public class Trade extends BaseEntity {
 
 	public void setOrderSide(String orderSide) {
 		this.orderSide = orderSide;
-	}
-
-	@Column(name = "frequency_executed")
-	public int getFrequencyExecuted() {
-		return frequencyExecuted;
-	}
-
-	public void setFrequencyExecuted(int frequencyExecuted) {
-		this.frequencyExecuted = frequencyExecuted;
-	}
-
-	@Column(name = "frequency")
-	public String getFrequency() {
-		return frequency;
-	}
-
-	public void setFrequency(String frequency) {
-		this.frequency = frequency;
 	}
 
 	public Trade(String code, Boolean defaultLang, String dir) {

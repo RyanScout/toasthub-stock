@@ -163,12 +163,11 @@ public class TradeDaoImpl implements TradeDao {
 	@Override
 	@SuppressWarnings("unchecked")
 	public List<Trade> getAllRunningTrades() {
-		String queryStr = "SELECT DISTINCT x FROM Trade AS x WHERE x.status =:status";
+		String queryStr = "SELECT DISTINCT x FROM Trade AS x JOIN FETCH x.tradeDetails AS d WHERE x.status =:status AND d.status !=:detailStatus";
 		Query query = entityManager.createQuery(queryStr);
 		query.setParameter("status", "Running");
+		query.setParameter("detailStatus", "FILLED");
 		List<Trade> trades = (List<Trade>) query.getResultList();
-		for (Trade trade : trades)
-			Hibernate.initialize(trade.getTradeDetails());
 		return trades;
 	}
 
@@ -185,7 +184,7 @@ public class TradeDaoImpl implements TradeDao {
 			trade.setAvailableBudget(trade.getBudget());
 			trade.setTotalValue(trade.getBudget());
 			trade.setSharesHeld(BigDecimal.ZERO);
-			trade.setFrequencyExecuted(0);
+			trade.setIterationsExecuted(0);
 			entityManager.merge(trade);
 		}
 	}

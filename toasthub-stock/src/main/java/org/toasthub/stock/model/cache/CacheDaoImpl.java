@@ -5,6 +5,7 @@ import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +28,11 @@ public class CacheDaoImpl implements CacheDao {
     @Override
     public void save(Request request, Response response) throws Exception {
         entityManager.merge((Object) request.getParam(GlobalConstant.ITEM));
+    }
+
+    public void saveGoldenCross(Request request, Response response) throws Exception {
+        GoldenCross goldenCross = (GoldenCross)request.getParam(GlobalConstant.ITEM);
+        entityManager.merge(goldenCross);
     }
 
     @Override
@@ -258,7 +264,8 @@ public class CacheDaoImpl implements CacheDao {
         query.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
         query.setParameter("shortSMAType", request.getParam("SHORT_SMA_TYPE"));
         query.setParameter("longSMAType", request.getParam("LONG_SMA_TYPE"));
-        Object result = query.getSingleResult();
+        GoldenCross result = (GoldenCross)query.getSingleResult();
+        Hibernate.initialize(result.getGoldenCrossDetails());
 
         response.addParam(GlobalConstant.ITEM, result);
     }
@@ -283,5 +290,18 @@ public class CacheDaoImpl implements CacheDao {
         Object result = query.getSingleResult();
 
         response.addParam(GlobalConstant.ITEM, result);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void getUnfilledGoldenCrossDetails(Request request, Response response){
+        GoldenCross goldenCross = (GoldenCross)request.getParam(GlobalConstant.ITEM);
+        String queryStr = "SELECT DISTINCT x FROM GoldenCrossDetail AS x WHERE x.goldenCross =:goldenCross AND x.success =:success AND x.checked <=:checked";
+		Query query = entityManager.createQuery(queryStr);
+		query.setParameter("goldenCross", goldenCross);
+        query.setParameter("success", false);
+		query.setParameter("checked", 20);
+		List<GoldenCrossDetail> goldenCrossDetails = (List<GoldenCrossDetail>) query.getResultList();
+		response.addParam(GlobalConstant.ITEMS, goldenCrossDetails);
     }
 }

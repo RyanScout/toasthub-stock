@@ -1,9 +1,13 @@
 package org.toasthub.stock.model.cache;
 
 import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
 import org.toasthub.common.BaseEntity;
@@ -20,6 +24,7 @@ public class GoldenCross extends BaseEntity {
     private long firstCheck;
     private long lastCheck;
     private long lastFlash;
+    private Set<GoldenCrossDetail> goldenCrossDetails;
     public static final String DEFAULT_SHORT_SMA_TYPE_DAY = "15-day";
     public static final String DEFAULT_LONG_SMA_TYPE_DAY = "50-day";
     public static final String DEFAULT_SHORT_SMA_TYPE_MINUTE = "15-minute";
@@ -36,6 +41,15 @@ public class GoldenCross extends BaseEntity {
         setLastCheck(0);
         setLastFlash(0);
         setIdentifier("GoldenCross");
+    }
+
+    @OneToMany(mappedBy = "goldenCross", cascade = CascadeType.ALL)
+    public Set<GoldenCrossDetail> getGoldenCrossDetails() {
+        return goldenCrossDetails;
+    }
+
+    public void setGoldenCrossDetails(Set<GoldenCrossDetail> goldenCrossDetails) {
+        this.goldenCrossDetails = goldenCrossDetails;
     }
 
     public boolean isFlashing() {

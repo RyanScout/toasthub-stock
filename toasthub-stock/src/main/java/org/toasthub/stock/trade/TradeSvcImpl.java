@@ -82,7 +82,7 @@ public class TradeSvcImpl implements TradeSvc {
 
 				trade.setOrderType((String) m.get("orderType"));
 
-				trade.setFrequency((String) m.get("frequency"));
+				trade.setIterations((String) m.get("frequency"));
 
 				trade.setEvaluationPeriod((String) m.get("evaluationPeriod"));
 
@@ -126,7 +126,7 @@ public class TradeSvcImpl implements TradeSvc {
 				}
 
 				if (trade.getOrderSide().equals("Bot")) {
-					trade.setFrequency("unlimited");
+					trade.setIterations("unlimited");
 				}
 
 			}

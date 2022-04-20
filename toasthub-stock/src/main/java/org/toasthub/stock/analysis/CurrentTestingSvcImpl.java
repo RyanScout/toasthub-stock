@@ -6,6 +6,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.xml.bind.annotation.XmlElementDecl.GLOBAL;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -20,6 +22,7 @@ import org.toasthub.stock.model.Trade;
 import org.toasthub.stock.model.TradeDetail;
 import org.toasthub.stock.model.cache.CacheDao;
 import org.toasthub.stock.model.cache.GoldenCross;
+import org.toasthub.stock.model.cache.GoldenCrossDetail;
 import org.toasthub.stock.model.cache.LowerBollingerBand;
 import org.toasthub.stock.model.cache.TradeSignalCache;
 import org.toasthub.stock.model.cache.UpperBollingerBand;
@@ -29,6 +32,7 @@ import org.toasthub.common.Symbol;
 import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
 
+import net.bytebuddy.agent.builder.AgentBuilder.CircularityLock.Global;
 import net.jacobpeterson.alpaca.AlpacaAPI;
 import net.jacobpeterson.alpaca.model.endpoint.orders.Order;
 import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderSide;
@@ -143,6 +147,8 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                                 .getEpochSeconds()) {
                     tradeSignalCache.getRecentClosingPriceMap().put("DAY::" + symbol, recentAssetDay.getClose());
                     tradeSignalCache.getRecentEpochSecondsMap().put("DAY::" + symbol, recentAssetDay.getEpochSeconds());
+                    tradeSignalCache.getRecentVolumeMap().put("DAY::" + symbol, recentAssetDay.getVolume());
+                    tradeSignalCache.getRecentVwapMap().put("DAY::" + symbol, recentAssetDay.getVwap());
                     updateGoldenCrossCacheGlobalDay(request, response);
                     updateLowerBollingerBandCacheGlobalDay(request, response);
                     updateUpperBollingerBandCacheGlobalDay(request, response);
@@ -161,6 +167,8 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                     tradeSignalCache.getRecentClosingPriceMap().put("MINUTE::" + symbol, recentAssetMinute.getValue());
                     tradeSignalCache.getRecentEpochSecondsMap().put("MINUTE::" + symbol,
                             recentAssetMinute.getEpochSeconds());
+                    tradeSignalCache.getRecentVolumeMap().put("MINUTE::" + symbol, recentAssetMinute.getVolume());
+                    tradeSignalCache.getRecentVwapMap().put("MINUTE::" + symbol, recentAssetMinute.getVwap());
                     updateGoldenCrossCacheGlobalMinute(request, response);
                     updateLowerBollingerBandCacheGlobalMinute(request, response);
                     updateUpperBollingerBandCacheGlobalMinute(request, response);
@@ -173,6 +181,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
         }
     }
 
+    @SuppressWarnings("unchecked")
     public void updateGoldenCrossCacheGlobalDay(Request request, Response response) {
         try {
             GoldenCross globalGoldenCross = new GoldenCross();
@@ -187,6 +196,18 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
             if ((long) response.getParam(GlobalConstant.ITEMCOUNT) == 1) {
                 cacheDao.item(request, response);
                 globalGoldenCross = (GoldenCross) response.getParam(GlobalConstant.ITEM);
+
+                request.addParam(GlobalConstant.ITEM, globalGoldenCross);
+                cacheDao.getUnfilledGoldenCrossDetails(request, response);
+
+                List<GoldenCrossDetail> goldenCrossDetails = (List<GoldenCrossDetail>) response
+                        .getParam(GlobalConstant.ITEMS);
+
+                for (GoldenCrossDetail goldenCrossDetail : goldenCrossDetails) {
+                    goldenCrossDetail.setChecked(goldenCrossDetail.getChecked() + 1);
+                    goldenCrossDetail.setGoldenCross(globalGoldenCross);
+                }
+
             } else {
                 globalGoldenCross.setSymbol(symbol);
                 globalGoldenCross.setFirstCheck(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
@@ -212,6 +233,15 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                     globalGoldenCross.setFlashing(true);
                     globalGoldenCross.setLastFlash(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
                     globalGoldenCross.setFlashed(globalGoldenCross.getFlashed() + 1);
+
+                    GoldenCrossDetail goldenCrossDetail = new GoldenCrossDetail();
+                    goldenCrossDetail.setGoldenCross(globalGoldenCross);
+                    goldenCrossDetail.setFlashTime(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
+                    goldenCrossDetail.setFlashPrice(tradeSignalCache.getRecentClosingPriceMap().get("DAY::" + symbol));
+                    goldenCrossDetail.setVolume(tradeSignalCache.getRecentVolumeMap().get("DAY::" + symbol));
+                    goldenCrossDetail.setVwap(tradeSignalCache.getRecentVwapMap().get("DAY::" + symbol));
+                    globalGoldenCross.getGoldenCrossDetails().add(goldenCrossDetail);
+
                 } else
                     globalGoldenCross.setFlashing(false);
 
@@ -225,7 +255,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
             tradeSignalCache.getGoldenCrossMap().put("GLOBAL::DAY::" + symbol, globalGoldenCross);
 
             request.addParam(GlobalConstant.ITEM, globalGoldenCross);
-            cacheDao.save(request, response);
+            cacheDao.saveGoldenCross(request, response);
 
         } catch (Exception e) {
             System.out.println("Error at Golden Cross Cache Day");
@@ -233,6 +263,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
         }
     }
 
+    @SuppressWarnings("unchecked")
     public void updateGoldenCrossCacheGlobalMinute(Request request, Response response) {
         try {
             GoldenCross globalGoldenCross = new GoldenCross();
@@ -247,6 +278,18 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
             if ((long) response.getParam(GlobalConstant.ITEMCOUNT) == 1) {
                 cacheDao.item(request, response);
                 globalGoldenCross = (GoldenCross) response.getParam(GlobalConstant.ITEM);
+
+
+                globalGoldenCross.getGoldenCrossDetails().stream()
+                .filter(g->g.isSuccess()== false)
+                .filter(g->g.getChecked()<20)
+                .forEach(g->{
+                    g.setChecked(g.getChecked() + 1);
+                    if(g.getFlashPrice().compareTo(tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol))<0){
+                        g.setSuccess(true);
+                    }
+                });
+            
             } else {
                 globalGoldenCross.setSymbol(symbol);
                 globalGoldenCross.setFirstCheck(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
@@ -274,6 +317,14 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                     globalGoldenCross
                             .setLastFlash(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
                     globalGoldenCross.setFlashed(globalGoldenCross.getFlashed() + 1);
+
+                    GoldenCrossDetail goldenCrossDetail = new GoldenCrossDetail();
+                    goldenCrossDetail.setGoldenCross(globalGoldenCross);
+                    goldenCrossDetail.setFlashTime(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
+                    goldenCrossDetail.setFlashPrice(tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol));
+                    goldenCrossDetail.setVolume(tradeSignalCache.getRecentVolumeMap().get("MINUTE::" + symbol));
+                    goldenCrossDetail.setVwap(tradeSignalCache.getRecentVwapMap().get("MINUTE::" + symbol));
+                    globalGoldenCross.getGoldenCrossDetails().add(goldenCrossDetail);
                 } else
                     globalGoldenCross.setFlashing(false);
 
@@ -285,7 +336,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
             tradeSignalCache.getGoldenCrossMap().put("GLOBAL::MINUTE::" + symbol, globalGoldenCross);
 
             request.addParam(GlobalConstant.ITEM, globalGoldenCross);
-            cacheDao.save(request, response);
+            cacheDao.saveGoldenCross(request, response);
 
         } catch (Exception e) {
             System.out.println("Error at Golden Cross Cache Minute");
@@ -597,7 +648,6 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
         if (trades != null && trades.size() > 0) {
             for (Trade trade : trades) {
                 trade.getTradeDetails().stream()
-                        .filter(t -> !t.getStatus().equals("FILLED"))
                         .forEach(t -> {
                             Order order = null;
                             try {
@@ -609,10 +659,10 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                                 if (t.getOrderSide().equals("BUY")) {
                                     switch (trade.getOrderSide()) {
                                         case "Buy":
-                                            if (!trade.getFrequency().equals("unlimited")) {
-                                                trade.setFrequencyExecuted(trade.getFrequencyExecuted() + 1);
-                                                if (trade.getFrequencyExecuted() >= Integer
-                                                        .parseInt(trade.getFrequency()))
+                                            if (!trade.getIterations().equals("unlimited")) {
+                                                trade.setIterationsExecuted(trade.getIterationsExecuted() + 1);
+                                                if (trade.getIterationsExecuted() >= Integer
+                                                        .parseInt(trade.getIterations()))
                                                     trade.setStatus("Not Running");
                                             }
                                             t.setFilledAt(order.getFilledAt().toEpochSecond());
@@ -631,7 +681,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                                                             MathContext.DECIMAL32)
                                                     .setScale(2, BigDecimal.ROUND_HALF_UP));
                                             trade.setSharesHeld(trade.getSharesHeld().add(orderQuantity));
-                                            trade.setFrequencyExecuted(trade.getFrequencyExecuted() + 1);
+                                            trade.setIterationsExecuted(trade.getIterationsExecuted() + 1);
                                             trade.setTotalValue(trade.getAvailableBudget().add(trade.getSharesHeld()
                                                     .multiply(tradeSignalCache.getRecentClosingPriceMap()
                                                             .get("MINUTE::" + trade.getSymbol()))));
@@ -663,10 +713,10 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                                             t.setTrade(trade);
                                             break;
                                         case "Sell":
-                                            if (!trade.getFrequency().equals("unlimited")) {
-                                                trade.setFrequencyExecuted(trade.getFrequencyExecuted() + 1);
-                                                if (trade.getFrequencyExecuted() >= Integer
-                                                        .parseInt(trade.getFrequency()))
+                                            if (!trade.getIterations().equals("unlimited")) {
+                                                trade.setIterationsExecuted(trade.getIterationsExecuted() + 1);
+                                                if (trade.getIterationsExecuted() >= Integer
+                                                        .parseInt(trade.getIterations()))
                                                     trade.setStatus("Not Running");
                                             }
                                             t.setFilledAt(order.getFilledAt().toEpochSecond());
@@ -707,14 +757,15 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                             }
                         });
                 try {
+                    trade.setTotalValue(trade.getAvailableBudget().add(trade.getSharesHeld()
+                            .multiply(tradeSignalCache.getRecentClosingPriceMap()
+                                    .get("MINUTE::" + trade.getSymbol()))));
+
                     request.addParam(GlobalConstant.ITEM, trade);
                     tradeDao.save(request, response);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                trade.setTotalValue(trade.getAvailableBudget().add(trade.getSharesHeld()
-                        .multiply(tradeSignalCache.getRecentClosingPriceMap()
-                                .get("MINUTE::" + trade.getSymbol()))));
             }
         }
     }
@@ -788,8 +839,8 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
     public void currentBuyTest(Request request, Response response) {
         try {
             Trade trade = (Trade) request.getParam(GlobalConstant.TRADE);
-            if (trade.getFrequency().equals("unlimited")
-                    || trade.getFrequencyExecuted() < Integer.parseInt(trade.getFrequency())) {
+            if (trade.getIterations().equals("unlimited")
+                    || trade.getIterationsExecuted() < Integer.parseInt(trade.getIterations())) {
                 String buyCondition = trade.getBuyCondition();
                 String sellOrderCondition = "";
                 String buyOrderCondition = "";
@@ -988,6 +1039,8 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                         tradeDetail.setOrderCondition(buyOrderCondition);
                         tradeDetail.setTrade(trade);
                         trade.getTradeDetails().add(tradeDetail);
+                        if (trade.getFirstBuy() == 0)
+                            trade.setFirstBuy(Instant.now().getEpochSecond());
                     }
 
                     if (sellOrder != null) {
@@ -1020,8 +1073,8 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
     public void currentSellTest(Request request, Response response) {
         try {
             Trade trade = (Trade) request.getParam(GlobalConstant.TRADE);
-            if (trade.getFrequency().equals("unlimited")
-                    || trade.getFrequencyExecuted() < Integer.parseInt(trade.getFrequency())) {
+            if (trade.getIterations().equals("unlimited")
+                    || trade.getIterationsExecuted() < Integer.parseInt(trade.getIterations())) {
                 String sellCondition = trade.getSellCondition();
                 String sellOrderCondition = "";
                 String parseableSellCondition = "";
@@ -1091,10 +1144,10 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                     }
                     request.addParam("SELLORDER", sellOrder);
                     if (trade.getOrderSide().equals("Sell")) {
-                        trade.setFrequencyExecuted(trade.getFrequencyExecuted() + 1);
+                        trade.setIterationsExecuted(trade.getIterationsExecuted() + 1);
 
-                        if (!trade.getFrequency().equals("unlimited")) {
-                            if (trade.getFrequencyExecuted() >= Integer.parseInt(trade.getFrequency()))
+                        if (!trade.getIterations().equals("unlimited")) {
+                            if (trade.getIterationsExecuted() >= Integer.parseInt(trade.getIterations()))
                                 trade.setStatus("Not Running");
                         }
                     }
