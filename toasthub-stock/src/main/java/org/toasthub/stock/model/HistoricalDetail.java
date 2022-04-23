@@ -27,10 +27,8 @@ public class HistoricalDetail extends BaseEntity {
     
 	private HistoricalAnalysis historicalAnalysis;
     private long boughtAtTime;
-    private String stringedBoughtAtTime;
     private BigDecimal boughtAt;
     private long soldAtTime;
-    private String stringedSoldAtTime;
     private BigDecimal soldAt;
     private BigDecimal highPrice;
 
@@ -89,8 +87,6 @@ public class HistoricalDetail extends BaseEntity {
     }
     public void setSoldAtTime(long soldAtTime) {
         this.soldAtTime = soldAtTime;
-        if(soldAtTime != 0)
-        setStringedSoldAtTime(soldAtTime);
     }
     @Column(name = "bought_at_time")
     public long getBoughtAtTime() {
@@ -98,27 +94,6 @@ public class HistoricalDetail extends BaseEntity {
     }
     public void setBoughtAtTime(long boughtAtTime) {
         this.boughtAtTime = boughtAtTime;
-        setStringedBoughtAtTime(boughtAtTime);
     }
-    @Transient
-    public String getStringedSoldAtTime() {
-        return stringedSoldAtTime;
-    }
-    public void setStringedSoldAtTime(long soldAtTime) {
-        Date date = new Date(soldAtTime * 1000);
-        DateFormat df = new SimpleDateFormat("dd MMM yyyy");
-        this.stringedSoldAtTime = df.format(date);
-    }
-    public void setStringedSoldAtTime(String stringedSoldAtTime){
-        this.stringedSoldAtTime = stringedSoldAtTime;
-    }
-    @Transient
-    public String getStringedBoughtAtTime() {
-        return stringedBoughtAtTime;
-    }
-    public void setStringedBoughtAtTime(long boughAtTime) {
-        Date date = new Date(boughtAtTime * 1000);
-        DateFormat df = new SimpleDateFormat("dd MMM yyyy");
-        this.stringedBoughtAtTime = df.format(date);
-    }
+
 }

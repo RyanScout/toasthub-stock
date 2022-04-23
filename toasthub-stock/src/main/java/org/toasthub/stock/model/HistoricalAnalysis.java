@@ -56,8 +56,6 @@ public class HistoricalAnalysis extends BaseEntity {
 	private long startTime;
 	private long endTime;
 	private String historicalAnalysisType;
-	private String stringedStartTime;
-	private String stringedEndTime;
 	private Set<HistoricalDetail> historicalDetails;
 
 	// Constructors
@@ -172,7 +170,6 @@ public class HistoricalAnalysis extends BaseEntity {
 	}
 	public void setEndTime(long endTime) {
 		this.endTime = endTime;
-		setStringedEndTime(endTime);
 	}
 	@Column(name="start_time")
 	public long getStartTime() {
@@ -180,32 +177,7 @@ public class HistoricalAnalysis extends BaseEntity {
 	}
 	public void setStartTime(long startTime) {
 		this.startTime = startTime;
-		setStringedStartTime(startTime);
 	}
-	@Transient
-    public String getStringedStartTime() {
-        return stringedStartTime;
-    }
-    public void setStringedStartTime(long startTime) {
-        Date date = new Date(startTime * 1000);
-        DateFormat df = new SimpleDateFormat("dd MMM yyyy");
-        this.stringedStartTime = df.format(date);
-    }
-    public void setStringedStartTime(String stringedStartTime){
-        this.stringedStartTime = stringedStartTime;
-    }
-    @Transient
-    public String getStringedEndTime() {
-        return stringedEndTime;
-    }
-    public void setStringedEndTime(long endTime) {
-        Date date = new Date(endTime * 1000);
-        DateFormat df = new SimpleDateFormat("dd MMM yyyy");
-        this.stringedEndTime = df.format(date);
-    }
-	public void setStringedEndTime(String stringedEndTime){
-        this.stringedEndTime = stringedEndTime;
-    }
 	@OneToMany(mappedBy = "historicalAnalysis" , cascade = CascadeType.ALL)
 	public Set<HistoricalDetail> getHistoricalDetails() {
 		return historicalDetails;

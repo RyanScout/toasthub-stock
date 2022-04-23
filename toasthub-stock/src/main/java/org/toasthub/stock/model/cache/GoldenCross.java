@@ -19,12 +19,13 @@ public class GoldenCross extends BaseEntity {
     private String shortSMAType;
     private String longSMAType;
     private String symbol;
-    private int checked;
-    private int flashed;
-    private long firstCheck;
-    private long lastCheck;
-    private long lastFlash;
-    private Set<GoldenCrossDetail> goldenCrossDetails;
+    private int checked = 0;
+    private int flashed = 0;
+    private int successes = 0;
+    private long firstCheck = 0;
+    private long lastCheck = 0;
+    private long lastFlash = 0;
+    private Set<GoldenCrossDetail> goldenCrossDetails = new LinkedHashSet<GoldenCrossDetail>();
     public static final String DEFAULT_SHORT_SMA_TYPE_DAY = "15-day";
     public static final String DEFAULT_LONG_SMA_TYPE_DAY = "50-day";
     public static final String DEFAULT_SHORT_SMA_TYPE_MINUTE = "15-minute";
@@ -36,11 +37,15 @@ public class GoldenCross extends BaseEntity {
 		this.setArchive(false);
 		this.setLocked(false);
 		this.setCreated(Instant.now());
-        setChecked(0);
-        setFlashed(0);
-        setLastCheck(0);
-        setLastFlash(0);
         setIdentifier("GoldenCross");
+    }
+
+    public int getSuccesses() {
+        return successes;
+    }
+
+    public void setSuccesses(int successes) {
+        this.successes = successes;
     }
 
     @OneToMany(mappedBy = "goldenCross", cascade = CascadeType.ALL)

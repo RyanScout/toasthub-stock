@@ -6,8 +6,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.xml.bind.annotation.XmlElementDecl.GLOBAL;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -32,7 +30,6 @@ import org.toasthub.common.Symbol;
 import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
 
-import net.bytebuddy.agent.builder.AgentBuilder.CircularityLock.Global;
 import net.jacobpeterson.alpaca.AlpacaAPI;
 import net.jacobpeterson.alpaca.model.endpoint.orders.Order;
 import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderSide;
@@ -79,6 +76,8 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
             case "LIST":
                 items(request, response);
                 break;
+            case "GET_SYMBOL":
+                item(request, response);
             default:
                 break;
         }
@@ -95,6 +94,20 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                 tradeSignalCache.getLowerBollingerBandMap().get("GLOBAL::MINUTE::GENERAL"));
         response.addParam("UPPER_BOLLINGER_BAND_MINUTE",
                 tradeSignalCache.getUpperBollingerBandMap().get("GLOBAL::MINUTE::GENERAL"));
+    }
+
+    public void item(Request request, Response response) {
+        switch ((String) request.getParam(GlobalConstant.ITEM)) {
+            case "GOLDEN_CROSS":
+                break;
+            case "LOWER_BOLLINGER_BAND":
+                break;
+            case "UPPER_BOLLINGER_BAND":
+                break;
+            default:
+                System.out.println("INVALID REQUEST");
+                break;
+        }
     }
 
     @Scheduled(cron = "30 * * * * ?")
@@ -176,12 +189,11 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                 }
             }
         } catch (Exception e) {
-            System.out.println("Error at Update Trade Signal  Cache");
+            System.out.println("Error at Update Trade Signal Cache");
             e.printStackTrace();
         }
     }
 
-    @SuppressWarnings("unchecked")
     public void updateGoldenCrossCacheGlobalDay(Request request, Response response) {
         try {
             GoldenCross globalGoldenCross = new GoldenCross();
@@ -197,15 +209,13 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                 cacheDao.item(request, response);
                 globalGoldenCross = (GoldenCross) response.getParam(GlobalConstant.ITEM);
 
-                request.addParam(GlobalConstant.ITEM, globalGoldenCross);
-                cacheDao.getUnfilledGoldenCrossDetails(request, response);
-
-                List<GoldenCrossDetail> goldenCrossDetails = (List<GoldenCrossDetail>) response
-                        .getParam(GlobalConstant.ITEMS);
-
-                for (GoldenCrossDetail goldenCrossDetail : goldenCrossDetails) {
-                    goldenCrossDetail.setChecked(goldenCrossDetail.getChecked() + 1);
-                    goldenCrossDetail.setGoldenCross(globalGoldenCross);
+                for (GoldenCrossDetail g : globalGoldenCross.getGoldenCrossDetails()) {
+                    g.setChecked(g.getChecked() + 1);
+                    if (g.getFlashPrice().compareTo(
+                            tradeSignalCache.getRecentClosingPriceMap().get("DAY::" + symbol)) < 0) {
+                        g.setSuccess(true);
+                        globalGoldenCross.setSuccesses(globalGoldenCross.getSuccesses() + 1);
+                    }
                 }
 
             } else {
@@ -255,7 +265,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
             tradeSignalCache.getGoldenCrossMap().put("GLOBAL::DAY::" + symbol, globalGoldenCross);
 
             request.addParam(GlobalConstant.ITEM, globalGoldenCross);
-            cacheDao.saveGoldenCross(request, response);
+            cacheDao.save(request, response);
 
         } catch (Exception e) {
             System.out.println("Error at Golden Cross Cache Day");
@@ -263,7 +273,6 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
         }
     }
 
-    @SuppressWarnings("unchecked")
     public void updateGoldenCrossCacheGlobalMinute(Request request, Response response) {
         try {
             GoldenCross globalGoldenCross = new GoldenCross();
@@ -279,17 +288,15 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                 cacheDao.item(request, response);
                 globalGoldenCross = (GoldenCross) response.getParam(GlobalConstant.ITEM);
 
-
-                globalGoldenCross.getGoldenCrossDetails().stream()
-                .filter(g->g.isSuccess()== false)
-                .filter(g->g.getChecked()<20)
-                .forEach(g->{
+                for (GoldenCrossDetail g : globalGoldenCross.getGoldenCrossDetails()) {
                     g.setChecked(g.getChecked() + 1);
-                    if(g.getFlashPrice().compareTo(tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol))<0){
+                    if (g.getFlashPrice().compareTo(
+                            tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol)) < 0) {
                         g.setSuccess(true);
+                        globalGoldenCross.setSuccesses(globalGoldenCross.getSuccesses() + 1);
                     }
-                });
-            
+                }
+
             } else {
                 globalGoldenCross.setSymbol(symbol);
                 globalGoldenCross.setFirstCheck(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
@@ -320,8 +327,10 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
 
                     GoldenCrossDetail goldenCrossDetail = new GoldenCrossDetail();
                     goldenCrossDetail.setGoldenCross(globalGoldenCross);
-                    goldenCrossDetail.setFlashTime(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
-                    goldenCrossDetail.setFlashPrice(tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol));
+                    goldenCrossDetail
+                            .setFlashTime(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
+                    goldenCrossDetail
+                            .setFlashPrice(tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol));
                     goldenCrossDetail.setVolume(tradeSignalCache.getRecentVolumeMap().get("MINUTE::" + symbol));
                     goldenCrossDetail.setVwap(tradeSignalCache.getRecentVwapMap().get("MINUTE::" + symbol));
                     globalGoldenCross.getGoldenCrossDetails().add(goldenCrossDetail);
@@ -336,7 +345,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
             tradeSignalCache.getGoldenCrossMap().put("GLOBAL::MINUTE::" + symbol, globalGoldenCross);
 
             request.addParam(GlobalConstant.ITEM, globalGoldenCross);
-            cacheDao.saveGoldenCross(request, response);
+            cacheDao.save(request, response);
 
         } catch (Exception e) {
             System.out.println("Error at Golden Cross Cache Minute");
@@ -577,6 +586,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
             tempGoldenCross = tradeSignalCache.getGoldenCrossMap().get("GLOBAL::DAY::" + symbol);
             generalGoldenCross.setChecked(generalGoldenCross.getChecked() + tempGoldenCross.getChecked());
             generalGoldenCross.setFlashed(generalGoldenCross.getFlashed() + tempGoldenCross.getFlashed());
+            generalGoldenCross.setSuccesses(generalGoldenCross.getSuccesses() + tempGoldenCross.getSuccesses());
             generalGoldenCross.setShortSMAType(tempGoldenCross.getShortSMAType());
             generalGoldenCross.setLongSMAType(tempGoldenCross.getLongSMAType());
 
@@ -614,6 +624,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
             tempGoldenCross = tradeSignalCache.getGoldenCrossMap().get("GLOBAL::MINUTE::" + symbol);
             generalGoldenCross.setChecked(generalGoldenCross.getChecked() + tempGoldenCross.getChecked());
             generalGoldenCross.setFlashed(generalGoldenCross.getFlashed() + tempGoldenCross.getFlashed());
+            generalGoldenCross.setSuccesses(generalGoldenCross.getSuccesses() + tempGoldenCross.getSuccesses());
             generalGoldenCross.setShortSMAType(tempGoldenCross.getShortSMAType());
             generalGoldenCross.setLongSMAType(tempGoldenCross.getLongSMAType());
 

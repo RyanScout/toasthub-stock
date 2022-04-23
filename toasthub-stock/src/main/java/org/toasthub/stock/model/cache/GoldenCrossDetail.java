@@ -18,14 +18,12 @@ public class GoldenCrossDetail extends BaseEntity{
     private GoldenCross goldenCross;
     private long flashTime;
     private BigDecimal flashPrice;
-    private int checked;
+    private int checked = 0;
     private long volume;
     private BigDecimal vwap;
-    private boolean success;
+    private boolean success = false;
 
     public GoldenCrossDetail(){
-        this.setChecked(0);
-        this.setSuccess(false);
         this.setIdentifier("GoldenCrossDetail");
     }
 

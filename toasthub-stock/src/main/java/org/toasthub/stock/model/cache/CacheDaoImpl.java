@@ -30,11 +30,6 @@ public class CacheDaoImpl implements CacheDao {
         entityManager.merge((Object) request.getParam(GlobalConstant.ITEM));
     }
 
-    public void saveGoldenCross(Request request, Response response) throws Exception {
-        GoldenCross goldenCross = (GoldenCross)request.getParam(GlobalConstant.ITEM);
-        entityManager.merge(goldenCross);
-    }
-
     @Override
     public void items(Request request, Response response) throws Exception {
         String x = "";
@@ -258,16 +253,34 @@ public class CacheDaoImpl implements CacheDao {
         }
     }
 
+    // only children entities still needed to be checked are initialized
+    // try/catch implementation used because left join fetch throws error if there
+    // are no children entities
     public void goldenCross(Request request, Response response) {
-        String queryStr = "SELECT DISTINCT x FROM GoldenCross AS x WHERE x.symbol =:symbol AND x.shortSMAType =:shortSMAType AND x.longSMAType =: longSMAType";
-        Query query = entityManager.createQuery(queryStr);
-        query.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
-        query.setParameter("shortSMAType", request.getParam("SHORT_SMA_TYPE"));
-        query.setParameter("longSMAType", request.getParam("LONG_SMA_TYPE"));
-        GoldenCross result = (GoldenCross)query.getSingleResult();
-        Hibernate.initialize(result.getGoldenCrossDetails());
-
-        response.addParam(GlobalConstant.ITEM, result);
+        try {
+            String queryStr = "SELECT DISTINCT x FROM GoldenCross AS x LEFT JOIN FETCH x.goldenCrossDetails AS d WHERE x.symbol =:symbol AND x.shortSMAType =:shortSMAType AND x.longSMAType =: longSMAType AND d.success =:success AND d.checked <:checked";
+            Query query = entityManager.createQuery(queryStr);
+            query.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
+            query.setParameter("shortSMAType", request.getParam("SHORT_SMA_TYPE"));
+            query.setParameter("longSMAType", request.getParam("LONG_SMA_TYPE"));
+            query.setParameter("success", false);
+            query.setParameter("checked", 20);
+            GoldenCross result = (GoldenCross) query.getSingleResult();
+            response.addParam(GlobalConstant.ITEM, result);
+        } catch (Exception e) {
+            try {
+                String queryStr = "SELECT DISTINCT x FROM GoldenCross AS x WHERE x.symbol =:symbol AND x.shortSMAType =:shortSMAType AND x.longSMAType =: longSMAType";
+                Query query = entityManager.createQuery(queryStr);
+                query.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
+                query.setParameter("shortSMAType", request.getParam("SHORT_SMA_TYPE"));
+                query.setParameter("longSMAType", request.getParam("LONG_SMA_TYPE"));
+                GoldenCross result = (GoldenCross) query.getSingleResult();
+                Hibernate.initialize(result.getGoldenCrossDetails());
+                response.addParam(GlobalConstant.ITEM, result);
+            } catch (Exception f) {
+                f.printStackTrace();
+            }
+        }
     }
 
     public void lowerBollingerBand(Request request, Response response) {
@@ -290,18 +303,5 @@ public class CacheDaoImpl implements CacheDao {
         Object result = query.getSingleResult();
 
         response.addParam(GlobalConstant.ITEM, result);
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public void getUnfilledGoldenCrossDetails(Request request, Response response){
-        GoldenCross goldenCross = (GoldenCross)request.getParam(GlobalConstant.ITEM);
-        String queryStr = "SELECT DISTINCT x FROM GoldenCrossDetail AS x WHERE x.goldenCross =:goldenCross AND x.success =:success AND x.checked <=:checked";
-		Query query = entityManager.createQuery(queryStr);
-		query.setParameter("goldenCross", goldenCross);
-        query.setParameter("success", false);
-		query.setParameter("checked", 20);
-		List<GoldenCrossDetail> goldenCrossDetails = (List<GoldenCrossDetail>) query.getResultList();
-		response.addParam(GlobalConstant.ITEMS, goldenCrossDetails);
     }
 }

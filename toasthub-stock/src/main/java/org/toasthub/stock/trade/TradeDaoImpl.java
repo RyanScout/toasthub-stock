@@ -163,7 +163,7 @@ public class TradeDaoImpl implements TradeDao {
 	@Override
 	@SuppressWarnings("unchecked")
 	public List<Trade> getAllRunningTrades() {
-		String queryStr = "SELECT DISTINCT x FROM Trade AS x JOIN FETCH x.tradeDetails AS d WHERE x.status =:status AND d.status !=:detailStatus";
+		String queryStr = "SELECT DISTINCT x FROM Trade AS x LEFT JOIN FETCH x.tradeDetails AS d WHERE x.status =:status AND d.status !=:detailStatus";
 		Query query = entityManager.createQuery(queryStr);
 		query.setParameter("status", "Running");
 		query.setParameter("detailStatus", "FILLED");
