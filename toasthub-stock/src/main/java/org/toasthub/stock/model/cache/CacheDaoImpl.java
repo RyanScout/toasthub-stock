@@ -1,11 +1,12 @@
 package org.toasthub.stock.model.cache;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 
-import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -253,54 +254,71 @@ public class CacheDaoImpl implements CacheDao {
         }
     }
 
-    // only children entities still needed to be checked are initialized
-    // try/catch implementation used because left join fetch throws error if there
-    // are no children entities
+    // attach and initialize only children which are used in calculation
+    // done as two queries because join fetch not working as expected
+    @SuppressWarnings("unchecked")
     public void goldenCross(Request request, Response response) {
-        try {
-            String queryStr = "SELECT DISTINCT x FROM GoldenCross AS x LEFT JOIN FETCH x.goldenCrossDetails AS d WHERE x.symbol =:symbol AND x.shortSMAType =:shortSMAType AND x.longSMAType =: longSMAType AND d.success =:success AND d.checked <:checked";
-            Query query = entityManager.createQuery(queryStr);
-            query.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
-            query.setParameter("shortSMAType", request.getParam("SHORT_SMA_TYPE"));
-            query.setParameter("longSMAType", request.getParam("LONG_SMA_TYPE"));
-            query.setParameter("success", false);
-            query.setParameter("checked", 20);
-            GoldenCross result = (GoldenCross) query.getSingleResult();
-            response.addParam(GlobalConstant.ITEM, result);
-        } catch (Exception e) {
-            try {
-                String queryStr = "SELECT DISTINCT x FROM GoldenCross AS x WHERE x.symbol =:symbol AND x.shortSMAType =:shortSMAType AND x.longSMAType =: longSMAType";
-                Query query = entityManager.createQuery(queryStr);
-                query.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
-                query.setParameter("shortSMAType", request.getParam("SHORT_SMA_TYPE"));
-                query.setParameter("longSMAType", request.getParam("LONG_SMA_TYPE"));
-                GoldenCross result = (GoldenCross) query.getSingleResult();
-                Hibernate.initialize(result.getGoldenCrossDetails());
-                response.addParam(GlobalConstant.ITEM, result);
-            } catch (Exception f) {
-                f.printStackTrace();
-            }
-        }
+
+        String queryStr = "SELECT DISTINCT x FROM GoldenCross AS x WHERE x.symbol =:symbol AND x.shortSMAType =:shortSMAType AND x.longSMAType =: longSMAType";
+        Query query = entityManager.createQuery(queryStr);
+        query.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
+        query.setParameter("shortSMAType", request.getParam("SHORT_SMA_TYPE"));
+        query.setParameter("longSMAType", request.getParam("LONG_SMA_TYPE"));
+        GoldenCross result = (GoldenCross) query.getSingleResult();
+
+        queryStr = "SELECT DISTINCT x FROM GoldenCrossDetail AS x WHERE x.goldenCross =:goldenCross AND x.success =:success AND x.checked <: checked";
+        query = entityManager.createQuery(queryStr);
+        query.setParameter("goldenCross", result);
+        query.setParameter("success", false);
+        query.setParameter("checked", 20);
+
+        result.setGoldenCrossDetails((Set<GoldenCrossDetail>) query.getResultStream().collect(Collectors.toSet()));
+
+        response.addParam(GlobalConstant.ITEM, result);
     }
 
+    // attach and initialize only children which are used in calculation
+    // done as two queries because join fetch not working as expected
+    @SuppressWarnings("unchecked")
     public void lowerBollingerBand(Request request, Response response) {
         String queryStr = "SELECT DISTINCT x FROM LowerBollingerBand AS x WHERE x.symbol =:symbol AND x.LBBType =:LBBType AND x.standardDeviationValue =: standardDeviationValue";
         Query query = entityManager.createQuery(queryStr);
         query.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
         query.setParameter("LBBType", request.getParam("LBB_TYPE"));
         query.setParameter("standardDeviationValue", request.getParam("STANDARD_DEVIATION_VALUE"));
-        Object result = query.getSingleResult();
+        LowerBollingerBand result = (LowerBollingerBand) query.getSingleResult();
+
+        queryStr = "SELECT DISTINCT x FROM LowerBollingerBandDetail AS x WHERE x.lowerBollingerBand =:lowerBollingerBand AND x.success =:success AND x.checked <: checked";
+        query = entityManager.createQuery(queryStr);
+        query.setParameter("lowerBollingerBand", result);
+        query.setParameter("success", false);
+        query.setParameter("checked", 20);
+
+        result.setLowerBollingerBandDetails(
+                (Set<LowerBollingerBandDetail>) query.getResultStream().collect(Collectors.toSet()));
 
         response.addParam(GlobalConstant.ITEM, result);
     }
 
+    // attach and initialize only children which are used in calculation
+    // done as two queries because join fetch not working as expected
+    @SuppressWarnings("unchecked")
     public void upperBollingerBand(Request request, Response response) {
         String queryStr = "SELECT DISTINCT x FROM UpperBollingerBand AS x WHERE x.symbol =:symbol AND x.UBBType =:UBBType AND x.standardDeviationValue =: standardDeviationValue";
         Query query = entityManager.createQuery(queryStr);
         query.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
         query.setParameter("UBBType", request.getParam("UBB_TYPE"));
         query.setParameter("standardDeviationValue", request.getParam("STANDARD_DEVIATION_VALUE"));
-        Object result = query.getSingleResult();
+        UpperBollingerBand result = (UpperBollingerBand) query.getSingleResult();
+
+        queryStr = "SELECT DISTINCT x FROM UpperBollingerBandDetail AS x WHERE x.upperBollingerBand =:upperBollingerBand AND x.success =:success AND x.checked <: checked";
+        query = entityManager.createQuery(queryStr);
+        query.setParameter("upperBollingerBand", result);
+        query.setParameter("success", false);
+        query.setParameter("checked", 20);
+
+        result.setUpperBollingerBandDetails(
+                (Set<UpperBollingerBandDetail>) query.getResultStream().collect(Collectors.toSet()));
 
         response.addParam(GlobalConstant.ITEM, result);
     }
