@@ -266,11 +266,10 @@ public class CacheDaoImpl implements CacheDao {
         query.setParameter("longSMAType", request.getParam("LONG_SMA_TYPE"));
         GoldenCross result = (GoldenCross) query.getSingleResult();
 
-        queryStr = "SELECT DISTINCT x FROM GoldenCrossDetail AS x WHERE x.goldenCross =:goldenCross AND x.success =:success AND x.checked <: checked";
+        queryStr = "SELECT DISTINCT x FROM GoldenCrossDetail AS x WHERE x.goldenCross =:goldenCross AND x.checked <: checked";
         query = entityManager.createQuery(queryStr);
         query.setParameter("goldenCross", result);
-        query.setParameter("success", false);
-        query.setParameter("checked", 20);
+        query.setParameter("checked", 100);
 
         result.setGoldenCrossDetails((Set<GoldenCrossDetail>) query.getResultStream().collect(Collectors.toSet()));
 
@@ -288,11 +287,10 @@ public class CacheDaoImpl implements CacheDao {
         query.setParameter("standardDeviationValue", request.getParam("STANDARD_DEVIATION_VALUE"));
         LowerBollingerBand result = (LowerBollingerBand) query.getSingleResult();
 
-        queryStr = "SELECT DISTINCT x FROM LowerBollingerBandDetail AS x WHERE x.lowerBollingerBand =:lowerBollingerBand AND x.success =:success AND x.checked <: checked";
+        queryStr = "SELECT DISTINCT x FROM LowerBollingerBandDetail AS x WHERE x.lowerBollingerBand =:lowerBollingerBand AND x.checked <: checked";
         query = entityManager.createQuery(queryStr);
         query.setParameter("lowerBollingerBand", result);
-        query.setParameter("success", false);
-        query.setParameter("checked", 20);
+        query.setParameter("checked", 100);
 
         result.setLowerBollingerBandDetails(
                 (Set<LowerBollingerBandDetail>) query.getResultStream().collect(Collectors.toSet()));
@@ -311,11 +309,10 @@ public class CacheDaoImpl implements CacheDao {
         query.setParameter("standardDeviationValue", request.getParam("STANDARD_DEVIATION_VALUE"));
         UpperBollingerBand result = (UpperBollingerBand) query.getSingleResult();
 
-        queryStr = "SELECT DISTINCT x FROM UpperBollingerBandDetail AS x WHERE x.upperBollingerBand =:upperBollingerBand AND x.success =:success AND x.checked <: checked";
+        queryStr = "SELECT DISTINCT x FROM UpperBollingerBandDetail AS x WHERE x.upperBollingerBand =:upperBollingerBand AND x.checked <: checked";
         query = entityManager.createQuery(queryStr);
         query.setParameter("upperBollingerBand", result);
-        query.setParameter("success", false);
-        query.setParameter("checked", 20);
+        query.setParameter("checked", 100);
 
         result.setUpperBollingerBandDetails(
                 (Set<UpperBollingerBandDetail>) query.getResultStream().collect(Collectors.toSet()));

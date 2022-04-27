@@ -15,6 +15,7 @@ public abstract class BaseTradeSignalDetail extends BaseEntity{
     private long volume = 0;
     private BigDecimal vwap;
     private boolean success = false;
+    private BigDecimal successPercent;
     
     public BaseTradeSignalDetail(){
         super();
@@ -22,6 +23,14 @@ public abstract class BaseTradeSignalDetail extends BaseEntity{
 		this.setArchive(false);
 		this.setLocked(false);
 		this.setCreated(Instant.now());
+    }
+
+    public BigDecimal getSuccessPercent() {
+        return successPercent;
+    }
+
+    public void setSuccessPercent(BigDecimal successPercent) {
+        this.successPercent = successPercent;
     }
 
     public boolean isSuccess() {
