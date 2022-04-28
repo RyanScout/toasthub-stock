@@ -254,20 +254,22 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
             if (globalGoldenCross.getLastCheck() != tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol)) {
 
                 for (GoldenCrossDetail g : globalGoldenCross.getGoldenCrossDetails()) {
-                    g.setChecked(g.getChecked() + 1);
+                    if (g.getChecked() < 100) {
+                        g.setChecked(g.getChecked() + 1);
 
-                    BigDecimal tempSuccessPercent = (tradeSignalCache.getRecentClosingPriceMap()
-                            .get("DAY::" + symbol).subtract(g.getFlashPrice()))
-                            .divide(g.getFlashPrice(), MathContext.DECIMAL32).multiply(BigDecimal.valueOf(100));
+                        BigDecimal tempSuccessPercent = (tradeSignalCache.getRecentClosingPriceMap()
+                                .get("DAY::" + symbol).subtract(g.getFlashPrice()))
+                                .divide(g.getFlashPrice(), MathContext.DECIMAL32).multiply(BigDecimal.valueOf(100));
 
-                    if (g.getSuccessPercent() == null || g.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
-                        g.setSuccessPercent(tempSuccessPercent);
-                    }
-                    
-                    if (g.isSuccess() == false && g.getFlashPrice().compareTo(
-                            tradeSignalCache.getRecentClosingPriceMap().get("DAY::" + symbol)) < 0) {
-                        g.setSuccess(true);
-                        globalGoldenCross.setSuccesses(globalGoldenCross.getSuccesses() + 1);
+                        if (g.getSuccessPercent() == null || g.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
+                            g.setSuccessPercent(tempSuccessPercent);
+                        }
+
+                        if (g.isSuccess() == false && g.getFlashPrice().compareTo(
+                                tradeSignalCache.getRecentClosingPriceMap().get("DAY::" + symbol)) < 0) {
+                            g.setSuccess(true);
+                            globalGoldenCross.setSuccesses(globalGoldenCross.getSuccesses() + 1);
+                        }
                     }
                 }
 
@@ -343,20 +345,22 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                     .get("MINUTE::" + symbol)) {
 
                 for (GoldenCrossDetail g : globalGoldenCross.getGoldenCrossDetails()) {
-                    g.setChecked(g.getChecked() + 1);
+                    if (g.getChecked() < 100) {
+                        g.setChecked(g.getChecked() + 1);
 
-                    BigDecimal tempSuccessPercent = (tradeSignalCache.getRecentClosingPriceMap()
-                            .get("MINUTE::" + symbol).subtract(g.getFlashPrice()))
-                            .divide(g.getFlashPrice(), MathContext.DECIMAL32).multiply(BigDecimal.valueOf(100));
+                        BigDecimal tempSuccessPercent = (tradeSignalCache.getRecentClosingPriceMap()
+                                .get("MINUTE::" + symbol).subtract(g.getFlashPrice()))
+                                .divide(g.getFlashPrice(), MathContext.DECIMAL32).multiply(BigDecimal.valueOf(100));
 
-                    if (g.getSuccessPercent() == null || g.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
-                        g.setSuccessPercent(tempSuccessPercent);
-                    }
+                        if (g.getSuccessPercent() == null || g.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
+                            g.setSuccessPercent(tempSuccessPercent);
+                        }
 
-                    if (g.isSuccess() == false && g.getFlashPrice().compareTo(
-                            tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol)) < 0) {
-                        g.setSuccess(true);
-                        globalGoldenCross.setSuccesses(globalGoldenCross.getSuccesses() + 1);
+                        if (g.isSuccess() == false && g.getFlashPrice().compareTo(
+                                tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol)) < 0) {
+                            g.setSuccess(true);
+                            globalGoldenCross.setSuccesses(globalGoldenCross.getSuccesses() + 1);
+                        }
                     }
                 }
 
@@ -428,20 +432,22 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                     .get("DAY::" + symbol)) {
 
                 for (LowerBollingerBandDetail l : lowerBollingerBand.getLowerBollingerBandDetails()) {
-                    l.setChecked(l.getChecked() + 1);
+                    if (l.getChecked() < 100) {
+                        l.setChecked(l.getChecked() + 1);
 
-                    BigDecimal tempSuccessPercent = (tradeSignalCache.getRecentClosingPriceMap()
-                            .get("DAY::" + symbol).subtract(l.getFlashPrice()))
-                            .divide(l.getFlashPrice(), MathContext.DECIMAL32).multiply(BigDecimal.valueOf(100));
+                        BigDecimal tempSuccessPercent = (tradeSignalCache.getRecentClosingPriceMap()
+                                .get("DAY::" + symbol).subtract(l.getFlashPrice()))
+                                .divide(l.getFlashPrice(), MathContext.DECIMAL32).multiply(BigDecimal.valueOf(100));
 
-                    if (l.getSuccessPercent() == null || l.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
-                        l.setSuccessPercent(tempSuccessPercent);
-                    }
-                    
-                    if (l.isSuccess() == false && l.getFlashPrice().compareTo(
-                            tradeSignalCache.getRecentClosingPriceMap().get("DAY::" + symbol)) < 0) {
-                        l.setSuccess(true);
-                        lowerBollingerBand.setSuccesses(lowerBollingerBand.getSuccesses() + 1);
+                        if (l.getSuccessPercent() == null || l.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
+                            l.setSuccessPercent(tempSuccessPercent);
+                        }
+
+                        if (l.isSuccess() == false && l.getFlashPrice().compareTo(
+                                tradeSignalCache.getRecentClosingPriceMap().get("DAY::" + symbol)) < 0) {
+                            l.setSuccess(true);
+                            lowerBollingerBand.setSuccesses(lowerBollingerBand.getSuccesses() + 1);
+                        }
                     }
                 }
                 if (tradeSignalCache.getRecentClosingPriceMap().get("DAY::" + symbol).compareTo(lbb.getValue()) < 0) {
@@ -510,20 +516,22 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                     .get("MINUTE::" + symbol)) {
 
                 for (LowerBollingerBandDetail l : lowerBollingerBand.getLowerBollingerBandDetails()) {
-                     l.setChecked(l.getChecked() + 1);
+                    if (l.getChecked() < 100) {
+                        l.setChecked(l.getChecked() + 1);
 
-                    BigDecimal tempSuccessPercent = (tradeSignalCache.getRecentClosingPriceMap()
-                            .get("MINUTE::" + symbol).subtract(l.getFlashPrice()))
-                            .divide(l.getFlashPrice(), MathContext.DECIMAL32).multiply(BigDecimal.valueOf(100));
+                        BigDecimal tempSuccessPercent = (tradeSignalCache.getRecentClosingPriceMap()
+                                .get("MINUTE::" + symbol).subtract(l.getFlashPrice()))
+                                .divide(l.getFlashPrice(), MathContext.DECIMAL32).multiply(BigDecimal.valueOf(100));
 
-                    if (l.getSuccessPercent() == null || l.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
-                        l.setSuccessPercent(tempSuccessPercent);
-                    }
-                    
-                    if (l.isSuccess() == false && l.getFlashPrice().compareTo(
-                            tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol)) < 0) {
-                        l.setSuccess(true);
-                        lowerBollingerBand.setSuccesses(lowerBollingerBand.getSuccesses() + 1);
+                        if (l.getSuccessPercent() == null || l.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
+                            l.setSuccessPercent(tempSuccessPercent);
+                        }
+
+                        if (l.isSuccess() == false && l.getFlashPrice().compareTo(
+                                tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol)) < 0) {
+                            l.setSuccess(true);
+                            lowerBollingerBand.setSuccesses(lowerBollingerBand.getSuccesses() + 1);
+                        }
                     }
                 }
 
@@ -595,20 +603,23 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                     .get("DAY::" + symbol)) {
 
                 for (UpperBollingerBandDetail u : upperBollingerBand.getUpperBollingerBandDetails()) {
-                    u.setChecked(u.getChecked() + 1);
+                    if (u.getChecked() < 100) {
+                        u.setChecked(u.getChecked() + 1);
 
-                    BigDecimal tempSuccessPercent = (tradeSignalCache.getRecentClosingPriceMap()
-                            .get("DAY::" + symbol).subtract(u.getFlashPrice()))
-                            .divide(u.getFlashPrice(), MathContext.DECIMAL32).multiply(BigDecimal.valueOf(100)).negate();
+                        BigDecimal tempSuccessPercent = (tradeSignalCache.getRecentClosingPriceMap()
+                                .get("DAY::" + symbol).subtract(u.getFlashPrice()))
+                                .divide(u.getFlashPrice(), MathContext.DECIMAL32).multiply(BigDecimal.valueOf(100))
+                                .negate();
 
-                    if (u.getSuccessPercent() == null || u.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
-                        u.setSuccessPercent(tempSuccessPercent);
-                    }
-                    
-                    if (u.isSuccess() == false && u.getFlashPrice().compareTo(
-                            tradeSignalCache.getRecentClosingPriceMap().get("DAY::" + symbol)) > 0) {
-                        u.setSuccess(true);
-                        upperBollingerBand.setSuccesses(upperBollingerBand.getSuccesses() + 1);
+                        if (u.getSuccessPercent() == null || u.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
+                            u.setSuccessPercent(tempSuccessPercent);
+                        }
+
+                        if (u.isSuccess() == false && u.getFlashPrice().compareTo(
+                                tradeSignalCache.getRecentClosingPriceMap().get("DAY::" + symbol)) > 0) {
+                            u.setSuccess(true);
+                            upperBollingerBand.setSuccesses(upperBollingerBand.getSuccesses() + 1);
+                        }
                     }
                 }
 
@@ -677,20 +688,23 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
             if (upperBollingerBand.getLastCheck() != tradeSignalCache.getRecentEpochSecondsMap()
                     .get("MINUTE::" + symbol)) {
                 for (UpperBollingerBandDetail u : upperBollingerBand.getUpperBollingerBandDetails()) {
-                    u.setChecked(u.getChecked() + 1);
+                    if (u.getChecked() < 100) {
+                        u.setChecked(u.getChecked() + 1);
 
-                    BigDecimal tempSuccessPercent = (tradeSignalCache.getRecentClosingPriceMap()
-                            .get("MINUTE::" + symbol).subtract(u.getFlashPrice()))
-                            .divide(u.getFlashPrice(), MathContext.DECIMAL32).multiply(BigDecimal.valueOf(100)).negate();
+                        BigDecimal tempSuccessPercent = (tradeSignalCache.getRecentClosingPriceMap()
+                                .get("MINUTE::" + symbol).subtract(u.getFlashPrice()))
+                                .divide(u.getFlashPrice(), MathContext.DECIMAL32).multiply(BigDecimal.valueOf(100))
+                                .negate();
 
-                    if (u.getSuccessPercent() == null || u.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
-                        u.setSuccessPercent(tempSuccessPercent);
-                    }
-                    
-                    if (u.isSuccess() == false && u.getFlashPrice().compareTo(
-                            tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol)) > 0) {
-                        u.setSuccess(true);
-                        upperBollingerBand.setSuccesses(upperBollingerBand.getSuccesses() + 1);
+                        if (u.getSuccessPercent() == null || u.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
+                            u.setSuccessPercent(tempSuccessPercent);
+                        }
+
+                        if (u.isSuccess() == false && u.getFlashPrice().compareTo(
+                                tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol)) > 0) {
+                            u.setSuccess(true);
+                            upperBollingerBand.setSuccesses(upperBollingerBand.getSuccesses() + 1);
+                        }
                     }
                 }
                 if (tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol)
