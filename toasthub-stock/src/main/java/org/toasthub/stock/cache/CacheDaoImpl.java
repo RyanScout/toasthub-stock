@@ -1,5 +1,6 @@
-package org.toasthub.stock.model.cache;
+package org.toasthub.stock.cache;
 
+import java.util.Arrays;
 import java.util.List;
 
 import javax.persistence.EntityManager;
@@ -9,6 +10,10 @@ import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import org.toasthub.common.Symbol;
+import org.toasthub.stock.model.cache.GoldenCross;
+import org.toasthub.stock.model.cache.LowerBollingerBand;
+import org.toasthub.stock.model.cache.UpperBollingerBand;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
@@ -31,6 +36,15 @@ public class CacheDaoImpl implements CacheDao {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
+    public void saveAll(Request request, Response response) throws Exception {
+        for (Object obj : (List<Object>) request.getParam(GlobalConstant.ITEMS)) {
+            entityManager.merge(obj);
+        }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
     public void items(Request request, Response response) throws Exception {
         String x = "";
         switch ((String) request.getParam(GlobalConstant.IDENTIFIER)) {
@@ -46,12 +60,50 @@ public class CacheDaoImpl implements CacheDao {
             default:
                 break;
         }
+
         String queryStr = "SELECT DISTINCT x FROM "
                 + x
-                + " AS x ";
+                + " AS x WHERE x.symbol =:symbol AND x.evalPeriod =:evalPeriod";
 
         Query query = entityManager.createQuery(queryStr);
-        List<?> items = query.getResultList();
+
+        if (Arrays.asList(Symbol.SYMBOLS).contains((String) request.getParam(GlobalConstant.SYMBOL))) {
+            query.setParameter("symbol", (String) request.getParam(GlobalConstant.SYMBOL));
+        }
+        switch ((String) request.getParam("EVAL_PERIOD")) {
+            case "DAY":
+                query.setParameter("evalPeriod", (String) request.getParam("EVAL_PERIOD"));
+                break;
+            case "MINUTE":
+                query.setParameter("evalPeriod", (String) request.getParam("EVAL_PERIOD"));
+                break;
+            default:
+                break;
+        }
+
+        List<?> items = (List<?>) query.getResultList();
+        switch ((String) request.getParam(GlobalConstant.IDENTIFIER)) {
+            case "GoldenCross":
+                List<GoldenCross> goldenCrosses = (List<GoldenCross>) items;
+                for (GoldenCross goldenCross : goldenCrosses) {
+                    Hibernate.initialize(goldenCross.getGoldenCrossDetails());
+                }
+                break;
+            case "LowerBollingerBand":
+                List<LowerBollingerBand> lowerBollingerBands = (List<LowerBollingerBand>) items;
+                for (LowerBollingerBand lowerBollingerBand : lowerBollingerBands) {
+                    Hibernate.initialize(lowerBollingerBand.getLowerBollingerBandDetails());
+                }
+                break;
+            case "UpperBollingerBand":
+                List<UpperBollingerBand> upperBollingerBands = (List<UpperBollingerBand>) items;
+                for (UpperBollingerBand upperBollingerBand : upperBollingerBands) {
+                    Hibernate.initialize(upperBollingerBand.getUpperBollingerBandDetails());
+                }
+                break;
+            default:
+                break;
+        }
 
         response.addParam(GlobalConstant.ITEMS, items);
     }
@@ -253,7 +305,7 @@ public class CacheDaoImpl implements CacheDao {
         }
     }
 
-    //objects are fully initialized as all children are needed when stores in cache
+    // objects are fully initialized as all children are needed when stores in cache
     public void goldenCross(Request request, Response response) {
 
         String queryStr = "SELECT DISTINCT x FROM GoldenCross AS x WHERE x.symbol =:symbol AND x.shortSMAType =:shortSMAType AND x.longSMAType =: longSMAType";

@@ -16,9 +16,9 @@ import org.toasthub.analysis.model.SMA;
 import org.toasthub.analysis.model.UBB;
 import org.toasthub.analysis.model.AssetDay;
 import org.toasthub.analysis.model.AssetMinute;
+import org.toasthub.stock.cache.CacheDao;
 import org.toasthub.stock.model.Trade;
 import org.toasthub.stock.model.TradeDetail;
-import org.toasthub.stock.model.cache.CacheDao;
 import org.toasthub.stock.model.cache.GoldenCross;
 import org.toasthub.stock.model.cache.GoldenCrossDetail;
 import org.toasthub.stock.model.cache.LowerBollingerBand;
@@ -69,68 +69,6 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
     @Override
     protected void finalize() throws Throwable {
         super.finalize();
-    }
-
-    @Override
-    public void process(Request request, Response response) {
-        String action = (String) request.getParams().get("action");
-        switch (action) {
-            case "LIST":
-                items(request, response);
-                break;
-            case "GET_SYMBOL":
-                item(request, response);
-            default:
-                break;
-        }
-    }
-
-    public void items(Request request, Response response) {
-        response.addParam("GOLDEN_CROSS_DAY", tradeSignalCache.getGoldenCrossMap().get("GLOBAL::DAY::GENERAL"));
-        response.addParam("LOWER_BOLLINGER_BAND_DAY",
-                tradeSignalCache.getLowerBollingerBandMap().get("GLOBAL::DAY::GENERAL"));
-        response.addParam("UPPER_BOLLINGER_BAND_DAY",
-                tradeSignalCache.getUpperBollingerBandMap().get("GLOBAL::DAY::GENERAL"));
-        response.addParam("GOLDEN_CROSS_MINUTE", tradeSignalCache.getGoldenCrossMap().get("GLOBAL::MINUTE::GENERAL"));
-        response.addParam("LOWER_BOLLINGER_BAND_MINUTE",
-                tradeSignalCache.getLowerBollingerBandMap().get("GLOBAL::MINUTE::GENERAL"));
-        response.addParam("UPPER_BOLLINGER_BAND_MINUTE",
-                tradeSignalCache.getUpperBollingerBandMap().get("GLOBAL::MINUTE::GENERAL"));
-    }
-
-    public void item(Request request, Response response) {
-        switch ((String) request.getParam("TRADE_SIGNAL")) {
-            case "GOLDEN_CROSS_DAY":
-                response.addParam("GOLDEN_CROSS_DAY",
-                        tradeSignalCache.getGoldenCrossMap().get("GLOBAL::DAY::" + request.getParam("SYMBOL")));
-                break;
-            case "GOLDEN_CROSS_MINUTE":
-                response.addParam("GOLDEN_CROSS_MINUTE",
-                        tradeSignalCache.getGoldenCrossMap().get("GLOBAL::MINUTE::" + request.getParam("SYMBOL")));
-                break;
-            case "LOWER_BOLLINGER_BAND_DAY":
-                response.addParam("LOWER_BOLLINGER_BAND_DAY",
-                        tradeSignalCache.getLowerBollingerBandMap().get("GLOBAL::DAY::" + request.getParam("SYMBOL")));
-                break;
-            case "LOWER_BOLLINGER_BAND_MINUTE":
-                response.addParam("LOWER_BOLLINGER_BAND_MINUTE",
-                        tradeSignalCache.getLowerBollingerBandMap()
-                                .get("GLOBAL::MINUTE::" + request.getParam("SYMBOL")));
-                break;
-            case "UPPER_BOLLINGER_BAND_DAY":
-                response.addParam("UPPER_BOLLINGER_BAND_DAY",
-                        tradeSignalCache.getUpperBollingerBandMap()
-                                .get("GLOBAL::DAY::" + request.getParam("SYMBOL")));
-                break;
-            case "UPPER_BOLLINGER_BAND_MINUTE":
-                response.addParam("UPPER_BOLLINGER_BAND_MINUTE",
-                        tradeSignalCache.getUpperBollingerBandMap()
-                                .get("GLOBAL::MINUTE::" + request.getParam("SYMBOL")));
-                break;
-            default:
-                System.out.println("INVALID REQUEST");
-                break;
-        }
     }
 
     @Scheduled(cron = "30 * * * * ?")
@@ -185,9 +123,10 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                     tradeSignalCache.getRecentEpochSecondsMap().put("DAY::" + symbol, recentAssetDay.getEpochSeconds());
                     tradeSignalCache.getRecentVolumeMap().put("DAY::" + symbol, recentAssetDay.getVolume());
                     tradeSignalCache.getRecentVwapMap().put("DAY::" + symbol, recentAssetDay.getVwap());
-                    updateGoldenCrossCacheGlobalDay(request, response);
-                    updateLowerBollingerBandCacheGlobalDay(request, response);
-                    updateUpperBollingerBandCacheGlobalDay(request, response);
+                    request.addParam("EVAL_PERIOD", "DAY");
+                    updateGoldenCrossCache(request, response);
+                    updateLowerBollingerBandCache(request, response);
+                    updateUpperBollingerBandCache(request, response);
                     request.addParam("DAY_CACHE_UPDATED", true);
                 }
 
@@ -205,9 +144,10 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                             recentAssetMinute.getEpochSeconds());
                     tradeSignalCache.getRecentVolumeMap().put("MINUTE::" + symbol, recentAssetMinute.getVolume());
                     tradeSignalCache.getRecentVwapMap().put("MINUTE::" + symbol, recentAssetMinute.getVwap());
-                    updateGoldenCrossCacheGlobalMinute(request, response);
-                    updateLowerBollingerBandCacheGlobalMinute(request, response);
-                    updateUpperBollingerBandCacheGlobalMinute(request, response);
+                    request.addParam("EVAL_PERIOD", "MINUTE");
+                    updateGoldenCrossCache(request, response);
+                    updateLowerBollingerBandCache(request, response);
+                    updateUpperBollingerBandCache(request, response);
                     request.addParam("MINUTE_CACHE_UPDATED", true);
                 }
             }
@@ -217,527 +157,288 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
         }
     }
 
-    public void updateGoldenCrossCacheGlobalDay(Request request, Response response) {
+    @SuppressWarnings("unchecked")
+    public void updateGoldenCrossCache(Request request, Response response) {
         try {
-            GoldenCross globalGoldenCross = new GoldenCross();
-
             String symbol = (String) request.getParam(GlobalConstant.SYMBOL);
+            String evalPeriod = (String) request.getParam("EVAL_PERIOD");
 
             request.addParam(GlobalConstant.IDENTIFIER, "GoldenCross");
-            request.addParam("SHORT_SMA_TYPE", GoldenCross.DEFAULT_SHORT_SMA_TYPE_DAY);
-            request.addParam("LONG_SMA_TYPE", GoldenCross.DEFAULT_LONG_SMA_TYPE_DAY);
-            cacheDao.itemCount(request, response);
+            cacheDao.items(request, response);
+            List<GoldenCross> goldenCrosses = (List<GoldenCross>) response.getParam(GlobalConstant.ITEMS);
 
-            if ((long) response.getParam(GlobalConstant.ITEMCOUNT) == 1) {
-                cacheDao.item(request, response);
-                globalGoldenCross = (GoldenCross) response.getParam(GlobalConstant.ITEM);
-            } else {
-                globalGoldenCross.setSymbol(symbol);
-                globalGoldenCross.setFirstCheck(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
-                globalGoldenCross.setShortSMAType(GoldenCross.DEFAULT_SHORT_SMA_TYPE_DAY);
-                globalGoldenCross.setLongSMAType(GoldenCross.DEFAULT_LONG_SMA_TYPE_DAY);
-            }
+            for (GoldenCross goldenCross : goldenCrosses) {
 
-            request.addParam(GlobalConstant.EPOCHSECONDS,
-                    tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
-
-            request.addParam(GlobalConstant.IDENTIFIER, "SMA");
-
-            request.addParam(GlobalConstant.TYPE, globalGoldenCross.getShortSMAType());
-            currentTestingDao.item(request, response);
-            SMA shortSMA = (SMA) response.getParam(GlobalConstant.ITEM);
-
-            request.addParam(GlobalConstant.TYPE, globalGoldenCross.getLongSMAType());
-            currentTestingDao.item(request, response);
-            SMA longSMA = (SMA) response.getParam(GlobalConstant.ITEM);
-
-            if (globalGoldenCross.getLastCheck() != tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol)) {
-
-                for (GoldenCrossDetail g : globalGoldenCross.getGoldenCrossDetails()) {
-                    if (g.getChecked() < 100) {
-                        g.setChecked(g.getChecked() + 1);
-
-                        BigDecimal tempSuccessPercent = (tradeSignalCache.getRecentClosingPriceMap()
-                                .get("DAY::" + symbol).subtract(g.getFlashPrice()))
-                                .divide(g.getFlashPrice(), MathContext.DECIMAL32).multiply(BigDecimal.valueOf(100));
-
-                        if (g.getSuccessPercent() == null || g.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
-                            g.setSuccessPercent(tempSuccessPercent);
-                        }
-
-                        if (g.isSuccess() == false && g.getFlashPrice().compareTo(
-                                tradeSignalCache.getRecentClosingPriceMap().get("DAY::" + symbol)) < 0) {
-                            g.setSuccess(true);
-                            globalGoldenCross.setSuccesses(globalGoldenCross.getSuccesses() + 1);
-                        }
-                    }
+                if (goldenCross.getFirstCheck() == 0) {
+                    goldenCross
+                            .setFirstCheck(tradeSignalCache.getRecentEpochSecondsMap().get(evalPeriod + "::" + symbol));
                 }
 
-                if (shortSMA.getValue().compareTo(longSMA.getValue()) > 0) {
-                    globalGoldenCross.setFlashing(true);
-                    globalGoldenCross.setLastFlash(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
-                    globalGoldenCross.setFlashed(globalGoldenCross.getFlashed() + 1);
+                request.addParam(GlobalConstant.EPOCHSECONDS,
+                        tradeSignalCache.getRecentEpochSecondsMap().get(evalPeriod + "::" + symbol));
 
-                    GoldenCrossDetail goldenCrossDetail = new GoldenCrossDetail();
-                    goldenCrossDetail.setGoldenCross(globalGoldenCross);
-                    goldenCrossDetail.setFlashTime(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
-                    goldenCrossDetail.setFlashPrice(tradeSignalCache.getRecentClosingPriceMap().get("DAY::" + symbol));
-                    goldenCrossDetail.setVolume(tradeSignalCache.getRecentVolumeMap().get("DAY::" + symbol));
-                    goldenCrossDetail.setVwap(tradeSignalCache.getRecentVwapMap().get("DAY::" + symbol));
-                    globalGoldenCross.getGoldenCrossDetails().add(goldenCrossDetail);
+                request.addParam(GlobalConstant.IDENTIFIER, "SMA");
 
-                } else
-                    globalGoldenCross.setFlashing(false);
+                request.addParam(GlobalConstant.TYPE, goldenCross.getShortSMAType());
+                currentTestingDao.item(request, response);
+                SMA shortSMA = (SMA) response.getParam(GlobalConstant.ITEM);
 
-                globalGoldenCross.setChecked(globalGoldenCross.getChecked() + 1);
+                request.addParam(GlobalConstant.TYPE, goldenCross.getLongSMAType());
+                currentTestingDao.item(request, response);
+                SMA longSMA = (SMA) response.getParam(GlobalConstant.ITEM);
 
-                globalGoldenCross.setLastCheck(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
+                // if cache is being updated with new data, update goldenCross cache data
+                // including, lastflash, times checked ,etc..
+                if (goldenCross.getLastCheck() != tradeSignalCache.getRecentEpochSecondsMap()
+                        .get(evalPeriod + "::" + symbol)) {
 
-                request.addParam("DAY_CACHE_CHECKED", true);
+                    // update each goldencross child
+                    for (GoldenCrossDetail g : goldenCross.getGoldenCrossDetails()) {
+                        if (g.getChecked() < 100) {
+                            g.setChecked(g.getChecked() + 1);
+
+                            BigDecimal tempSuccessPercent = (tradeSignalCache.getRecentClosingPriceMap()
+                                    .get(evalPeriod + "::" + symbol).subtract(g.getFlashPrice()))
+                                    .divide(g.getFlashPrice(), MathContext.DECIMAL32).multiply(BigDecimal.valueOf(100));
+
+                            if (g.getSuccessPercent() == null
+                                    || g.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
+                                g.setSuccessPercent(tempSuccessPercent);
+                            }
+
+                            if (g.isSuccess() == false && g.getFlashPrice().compareTo(
+                                    tradeSignalCache.getRecentClosingPriceMap().get(evalPeriod + "::" + symbol)) < 0) {
+                                g.setSuccess(true);
+                                goldenCross.setSuccesses(goldenCross.getSuccesses() + 1);
+                            }
+                        }
+                    }
+
+                    if (shortSMA.getValue().compareTo(longSMA.getValue()) > 0) {
+                        goldenCross.setFlashing(true);
+                        goldenCross.setLastFlash(
+                                tradeSignalCache.getRecentEpochSecondsMap().get(evalPeriod + "::" + symbol));
+                        goldenCross.setFlashed(goldenCross.getFlashed() + 1);
+
+                        GoldenCrossDetail goldenCrossDetail = new GoldenCrossDetail();
+                        goldenCrossDetail.setGoldenCross(goldenCross);
+                        goldenCrossDetail.setFlashTime(
+                                tradeSignalCache.getRecentEpochSecondsMap().get(evalPeriod + "::" + symbol));
+                        goldenCrossDetail.setFlashPrice(
+                                tradeSignalCache.getRecentClosingPriceMap().get(evalPeriod + "::" + symbol));
+                        goldenCrossDetail
+                                .setVolume(tradeSignalCache.getRecentVolumeMap().get(evalPeriod + "::" + symbol));
+                        goldenCrossDetail.setVwap(tradeSignalCache.getRecentVwapMap().get(evalPeriod + "::" + symbol));
+                        goldenCross.getGoldenCrossDetails().add(goldenCrossDetail);
+
+                    } else
+                        goldenCross.setFlashing(false);
+
+                    goldenCross.setChecked(goldenCross.getChecked() + 1);
+
+                    goldenCross
+                            .setLastCheck(tradeSignalCache.getRecentEpochSecondsMap().get(evalPeriod + "::" + symbol));
+
+                    request.addParam(evalPeriod + "_CACHE_CHECKED", true);
+                }
+
+                tradeSignalCache.getGoldenCrossMap()
+                        .put(goldenCross.getTradeSignalKey() + "::" + evalPeriod + "::" + symbol, goldenCross);
+
+                request.addParam(GlobalConstant.ITEM, goldenCross);
+                cacheDao.save(request, response);
             }
-
-            tradeSignalCache.getGoldenCrossMap().put("GLOBAL::DAY::" + symbol, globalGoldenCross);
-
-            request.addParam(GlobalConstant.ITEM, globalGoldenCross);
-            cacheDao.save(request, response);
-
         } catch (Exception e) {
-            System.out.println("Error at Golden Cross Cache Day");
+            System.out.println("Error at Golden Cross Cache");
             e.printStackTrace();
         }
     }
 
-    public void updateGoldenCrossCacheGlobalMinute(Request request, Response response) {
+    @SuppressWarnings("unchecked")
+    public void updateLowerBollingerBandCache(Request request, Response response) {
         try {
-            GoldenCross globalGoldenCross = new GoldenCross();
-
             String symbol = (String) request.getParam(GlobalConstant.SYMBOL);
-
-            request.addParam(GlobalConstant.IDENTIFIER, "GoldenCross");
-            request.addParam("SHORT_SMA_TYPE", GoldenCross.DEFAULT_SHORT_SMA_TYPE_MINUTE);
-            request.addParam("LONG_SMA_TYPE", GoldenCross.DEFAULT_LONG_SMA_TYPE_MINUTE);
-            cacheDao.itemCount(request, response);
-
-            if ((long) response.getParam(GlobalConstant.ITEMCOUNT) == 1) {
-                cacheDao.item(request, response);
-                globalGoldenCross = (GoldenCross) response.getParam(GlobalConstant.ITEM);
-            } else {
-                globalGoldenCross.setSymbol(symbol);
-                globalGoldenCross.setFirstCheck(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
-                globalGoldenCross.setShortSMAType(GoldenCross.DEFAULT_SHORT_SMA_TYPE_MINUTE);
-                globalGoldenCross.setLongSMAType(GoldenCross.DEFAULT_LONG_SMA_TYPE_MINUTE);
-            }
-
-            request.addParam(GlobalConstant.EPOCHSECONDS,
-                    tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
-
-            request.addParam(GlobalConstant.IDENTIFIER, "SMA");
-
-            request.addParam(GlobalConstant.TYPE, globalGoldenCross.getShortSMAType());
-            currentTestingDao.item(request, response);
-            SMA shortSMA = (SMA) response.getParam(GlobalConstant.ITEM);
-
-            request.addParam(GlobalConstant.TYPE, globalGoldenCross.getLongSMAType());
-            currentTestingDao.item(request, response);
-            SMA longSMA = (SMA) response.getParam(GlobalConstant.ITEM);
-
-            if (globalGoldenCross.getLastCheck() != tradeSignalCache.getRecentEpochSecondsMap()
-                    .get("MINUTE::" + symbol)) {
-
-                for (GoldenCrossDetail g : globalGoldenCross.getGoldenCrossDetails()) {
-                    if (g.getChecked() < 100) {
-                        g.setChecked(g.getChecked() + 1);
-
-                        BigDecimal tempSuccessPercent = (tradeSignalCache.getRecentClosingPriceMap()
-                                .get("MINUTE::" + symbol).subtract(g.getFlashPrice()))
-                                .divide(g.getFlashPrice(), MathContext.DECIMAL32).multiply(BigDecimal.valueOf(100));
-
-                        if (g.getSuccessPercent() == null || g.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
-                            g.setSuccessPercent(tempSuccessPercent);
-                        }
-
-                        if (g.isSuccess() == false && g.getFlashPrice().compareTo(
-                                tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol)) < 0) {
-                            g.setSuccess(true);
-                            globalGoldenCross.setSuccesses(globalGoldenCross.getSuccesses() + 1);
-                        }
-                    }
-                }
-
-                if (shortSMA.getValue().compareTo(longSMA.getValue()) > 0) {
-                    globalGoldenCross.setFlashing(true);
-                    globalGoldenCross
-                            .setLastFlash(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
-                    globalGoldenCross.setFlashed(globalGoldenCross.getFlashed() + 1);
-
-                    GoldenCrossDetail goldenCrossDetail = new GoldenCrossDetail();
-                    goldenCrossDetail.setGoldenCross(globalGoldenCross);
-                    goldenCrossDetail
-                            .setFlashTime(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
-                    goldenCrossDetail
-                            .setFlashPrice(tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol));
-                    goldenCrossDetail.setVolume(tradeSignalCache.getRecentVolumeMap().get("MINUTE::" + symbol));
-                    goldenCrossDetail.setVwap(tradeSignalCache.getRecentVwapMap().get("MINUTE::" + symbol));
-                    globalGoldenCross.getGoldenCrossDetails().add(goldenCrossDetail);
-                } else
-                    globalGoldenCross.setFlashing(false);
-
-                globalGoldenCross.setChecked(globalGoldenCross.getChecked() + 1);
-                globalGoldenCross.setLastCheck(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
-
-                request.addParam("MINUTE_CACHE_CHECKED", true);
-            }
-            tradeSignalCache.getGoldenCrossMap().put("GLOBAL::MINUTE::" + symbol, globalGoldenCross);
-
-            request.addParam(GlobalConstant.ITEM, globalGoldenCross);
-            cacheDao.save(request, response);
-
-        } catch (Exception e) {
-            System.out.println("Error at Golden Cross Cache Minute");
-            e.printStackTrace();
-        }
-    }
-
-    public void updateLowerBollingerBandCacheGlobalDay(Request request, Response response) {
-        try {
-            LowerBollingerBand lowerBollingerBand = new LowerBollingerBand();
-
-            String symbol = (String) request.getParam(GlobalConstant.SYMBOL);
+            String evalPeriod = (String) request.getParam("EVAL_PERIOD");
 
             request.addParam(GlobalConstant.IDENTIFIER, "LowerBollingerBand");
-            request.addParam("LBB_TYPE", LowerBollingerBand.DEFAULT_LBB_TYPE_DAY);
-            request.addParam("STANDARD_DEVIATION_VALUE", LowerBollingerBand.DEFAULT_STANDARD_DEVIATION_VALUE);
-            cacheDao.itemCount(request, response);
+            cacheDao.items(request, response);
+            List<LowerBollingerBand> lowerBollingerBands = (List<LowerBollingerBand>) response
+                    .getParam(GlobalConstant.ITEMS);
 
-            if ((long) response.getParam(GlobalConstant.ITEMCOUNT) == 1) {
-                cacheDao.item(request, response);
-                lowerBollingerBand = (LowerBollingerBand) response.getParam(GlobalConstant.ITEM);
-            } else {
-                lowerBollingerBand.setSymbol(symbol);
-                lowerBollingerBand.setFirstCheck(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
-                lowerBollingerBand.setLBBType(LowerBollingerBand.DEFAULT_LBB_TYPE_DAY);
-                lowerBollingerBand.setStandardDeviationValue(LowerBollingerBand.DEFAULT_STANDARD_DEVIATION_VALUE);
-            }
+            for (LowerBollingerBand lowerBollingerBand : lowerBollingerBands) {
 
-            request.addParam(GlobalConstant.EPOCHSECONDS,
-                    tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
-
-            request.addParam(GlobalConstant.IDENTIFIER, "LBB");
-
-            request.addParam(GlobalConstant.TYPE, lowerBollingerBand.getLBBType());
-            currentTestingDao.item(request, response);
-            LBB lbb = (LBB) response.getParam(GlobalConstant.ITEM);
-
-            if (lowerBollingerBand.getLastCheck() != tradeSignalCache.getRecentEpochSecondsMap()
-                    .get("DAY::" + symbol)) {
-
-                for (LowerBollingerBandDetail l : lowerBollingerBand.getLowerBollingerBandDetails()) {
-                    if (l.getChecked() < 100) {
-                        l.setChecked(l.getChecked() + 1);
-
-                        BigDecimal tempSuccessPercent = (tradeSignalCache.getRecentClosingPriceMap()
-                                .get("DAY::" + symbol).subtract(l.getFlashPrice()))
-                                .divide(l.getFlashPrice(), MathContext.DECIMAL32).multiply(BigDecimal.valueOf(100));
-
-                        if (l.getSuccessPercent() == null || l.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
-                            l.setSuccessPercent(tempSuccessPercent);
-                        }
-
-                        if (l.isSuccess() == false && l.getFlashPrice().compareTo(
-                                tradeSignalCache.getRecentClosingPriceMap().get("DAY::" + symbol)) < 0) {
-                            l.setSuccess(true);
-                            lowerBollingerBand.setSuccesses(lowerBollingerBand.getSuccesses() + 1);
-                        }
-                    }
-                }
-                if (tradeSignalCache.getRecentClosingPriceMap().get("DAY::" + symbol).compareTo(lbb.getValue()) < 0) {
-                    lowerBollingerBand.setFlashing(true);
-                    lowerBollingerBand.setFlashed(lowerBollingerBand.getFlashed() + 1);
-                    lowerBollingerBand.setLastFlash(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
-
-                    LowerBollingerBandDetail lowerBollingerBandDetail = new LowerBollingerBandDetail();
-                    lowerBollingerBandDetail.setLowerBollingerBand(lowerBollingerBand);
-                    lowerBollingerBandDetail
-                            .setFlashTime(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
-                    lowerBollingerBandDetail
-                            .setFlashPrice(tradeSignalCache.getRecentClosingPriceMap().get("DAY::" + symbol));
-                    lowerBollingerBandDetail.setVolume(tradeSignalCache.getRecentVolumeMap().get("DAY::" + symbol));
-                    lowerBollingerBandDetail.setVwap(tradeSignalCache.getRecentVwapMap().get("DAY::" + symbol));
-                    lowerBollingerBand.getLowerBollingerBandDetails().add(lowerBollingerBandDetail);
-                } else
-                    lowerBollingerBand.setFlashing(false);
-
-                lowerBollingerBand.setChecked(lowerBollingerBand.getChecked() + 1);
-                lowerBollingerBand.setLastCheck(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
-
-                request.addParam("DAY_CACHE_CHECKED", true);
-            }
-            tradeSignalCache.getLowerBollingerBandMap().put("GLOBAL::DAY::" + symbol, lowerBollingerBand);
-
-            request.addParam(GlobalConstant.ITEM, lowerBollingerBand);
-            cacheDao.save(request, response);
-        } catch (Exception e) {
-            System.out.println("Error at Lower Bollinger Band Cache Day");
-            e.printStackTrace();
-        }
-    }
-
-    public void updateLowerBollingerBandCacheGlobalMinute(Request request, Response response) {
-        try {
-            LowerBollingerBand lowerBollingerBand = new LowerBollingerBand();
-
-            String symbol = (String) request.getParam(GlobalConstant.SYMBOL);
-
-            request.addParam(GlobalConstant.IDENTIFIER, "LowerBollingerBand");
-            request.addParam("LBB_TYPE", LowerBollingerBand.DEFAULT_LBB_TYPE_MINUTE);
-            request.addParam("STANDARD_DEVIATION_VALUE", LowerBollingerBand.DEFAULT_STANDARD_DEVIATION_VALUE);
-            cacheDao.itemCount(request, response);
-
-            if ((long) response.getParam(GlobalConstant.ITEMCOUNT) == 1) {
-                cacheDao.item(request, response);
-                lowerBollingerBand = (LowerBollingerBand) response.getParam(GlobalConstant.ITEM);
-            } else {
-                lowerBollingerBand.setSymbol(symbol);
-                lowerBollingerBand.setFirstCheck(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
-                lowerBollingerBand.setLBBType(LowerBollingerBand.DEFAULT_LBB_TYPE_MINUTE);
-                lowerBollingerBand.setStandardDeviationValue(LowerBollingerBand.DEFAULT_STANDARD_DEVIATION_VALUE);
-            }
-
-            request.addParam(GlobalConstant.EPOCHSECONDS,
-                    tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
-
-            request.addParam(GlobalConstant.IDENTIFIER, "LBB");
-
-            request.addParam(GlobalConstant.TYPE, lowerBollingerBand.getLBBType());
-            currentTestingDao.item(request, response);
-            LBB lbb = (LBB) response.getParam(GlobalConstant.ITEM);
-
-            if (lowerBollingerBand.getLastCheck() != tradeSignalCache.getRecentEpochSecondsMap()
-                    .get("MINUTE::" + symbol)) {
-
-                for (LowerBollingerBandDetail l : lowerBollingerBand.getLowerBollingerBandDetails()) {
-                    if (l.getChecked() < 100) {
-                        l.setChecked(l.getChecked() + 1);
-
-                        BigDecimal tempSuccessPercent = (tradeSignalCache.getRecentClosingPriceMap()
-                                .get("MINUTE::" + symbol).subtract(l.getFlashPrice()))
-                                .divide(l.getFlashPrice(), MathContext.DECIMAL32).multiply(BigDecimal.valueOf(100));
-
-                        if (l.getSuccessPercent() == null || l.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
-                            l.setSuccessPercent(tempSuccessPercent);
-                        }
-
-                        if (l.isSuccess() == false && l.getFlashPrice().compareTo(
-                                tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol)) < 0) {
-                            l.setSuccess(true);
-                            lowerBollingerBand.setSuccesses(lowerBollingerBand.getSuccesses() + 1);
-                        }
-                    }
-                }
-
-                if (tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol)
-                        .compareTo(lbb.getValue()) < 0) {
-                    lowerBollingerBand.setFlashing(true);
-                    lowerBollingerBand.setFlashed(lowerBollingerBand.getFlashed() + 1);
+                if (lowerBollingerBand.getFirstCheck() == 0) {
                     lowerBollingerBand
-                            .setLastFlash(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
+                            .setFirstCheck(tradeSignalCache.getRecentEpochSecondsMap().get(evalPeriod + "::" + symbol));
+                }
 
-                    LowerBollingerBandDetail lowerBollingerBandDetail = new LowerBollingerBandDetail();
-                    lowerBollingerBandDetail.setLowerBollingerBand(lowerBollingerBand);
-                    lowerBollingerBandDetail
-                            .setFlashTime(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
-                    lowerBollingerBandDetail
-                            .setFlashPrice(tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol));
-                    lowerBollingerBandDetail.setVolume(tradeSignalCache.getRecentVolumeMap().get("MINUTE::" + symbol));
-                    lowerBollingerBandDetail.setVwap(tradeSignalCache.getRecentVwapMap().get("MINUTE::" + symbol));
-                    lowerBollingerBand.getLowerBollingerBandDetails().add(lowerBollingerBandDetail);
-                } else
-                    lowerBollingerBand.setFlashing(false);
+                request.addParam(GlobalConstant.EPOCHSECONDS,
+                        tradeSignalCache.getRecentEpochSecondsMap().get(evalPeriod + "::" + symbol));
 
-                lowerBollingerBand.setChecked(lowerBollingerBand.getChecked() + 1);
-                lowerBollingerBand.setLastCheck(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
+                request.addParam(GlobalConstant.IDENTIFIER, "LBB");
 
-                request.addParam("MINUTE_CACHE_CHECKED", true);
+                request.addParam(GlobalConstant.TYPE, lowerBollingerBand.getLBBType());
+                currentTestingDao.item(request, response);
+                LBB lbb = (LBB) response.getParam(GlobalConstant.ITEM);
+
+                // if cache is being updated with new data, update goldenCross cache data
+                // including, lastflash, times checked ,etc..
+                if (lowerBollingerBand.getLastCheck() != tradeSignalCache.getRecentEpochSecondsMap()
+                        .get(evalPeriod + "::" + symbol)) {
+
+                    for (LowerBollingerBandDetail l : lowerBollingerBand.getLowerBollingerBandDetails()) {
+                        if (l.getChecked() < 100) {
+                            l.setChecked(l.getChecked() + 1);
+
+                            BigDecimal tempSuccessPercent = (tradeSignalCache.getRecentClosingPriceMap()
+                                    .get(evalPeriod + "::" + symbol).subtract(l.getFlashPrice()))
+                                    .divide(l.getFlashPrice(), MathContext.DECIMAL32).multiply(BigDecimal.valueOf(100));
+
+                            if (l.getSuccessPercent() == null
+                                    || l.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
+                                l.setSuccessPercent(tempSuccessPercent);
+                            }
+
+                            if (l.isSuccess() == false && l.getFlashPrice().compareTo(
+                                    tradeSignalCache.getRecentClosingPriceMap().get(evalPeriod + "::" + symbol)) < 0) {
+                                l.setSuccess(true);
+                                lowerBollingerBand.setSuccesses(lowerBollingerBand.getSuccesses() + 1);
+                            }
+                        }
+                    }
+                    if (tradeSignalCache.getRecentClosingPriceMap().get(evalPeriod + "::" + symbol)
+                            .compareTo(lbb.getValue()) < 0) {
+                        lowerBollingerBand.setFlashing(true);
+                        lowerBollingerBand.setFlashed(lowerBollingerBand.getFlashed() + 1);
+                        lowerBollingerBand
+                                .setLastFlash(
+                                        tradeSignalCache.getRecentEpochSecondsMap().get(evalPeriod + "::" + symbol));
+
+                        LowerBollingerBandDetail lowerBollingerBandDetail = new LowerBollingerBandDetail();
+                        lowerBollingerBandDetail.setLowerBollingerBand(lowerBollingerBand);
+                        lowerBollingerBandDetail
+                                .setFlashTime(
+                                        tradeSignalCache.getRecentEpochSecondsMap().get(evalPeriod + "::" + symbol));
+                        lowerBollingerBandDetail
+                                .setFlashPrice(
+                                        tradeSignalCache.getRecentClosingPriceMap().get(evalPeriod + "::" + symbol));
+                        lowerBollingerBandDetail
+                                .setVolume(tradeSignalCache.getRecentVolumeMap().get(evalPeriod + "::" + symbol));
+                        lowerBollingerBandDetail
+                                .setVwap(tradeSignalCache.getRecentVwapMap().get(evalPeriod + "::" + symbol));
+                        lowerBollingerBand.getLowerBollingerBandDetails().add(lowerBollingerBandDetail);
+                    } else
+                        lowerBollingerBand.setFlashing(false);
+
+                    lowerBollingerBand.setChecked(lowerBollingerBand.getChecked() + 1);
+                    lowerBollingerBand
+                            .setLastCheck(tradeSignalCache.getRecentEpochSecondsMap().get(evalPeriod + "::" + symbol));
+
+                    request.addParam(evalPeriod + "_CACHE_CHECKED", true);
+                }
+                tradeSignalCache.getLowerBollingerBandMap().put(
+                        lowerBollingerBand.getTradeSignalKey() + "::" + evalPeriod + "::" + symbol, lowerBollingerBand);
+
+                request.addParam(GlobalConstant.ITEM, lowerBollingerBand);
+                cacheDao.save(request, response);
             }
-            tradeSignalCache.getLowerBollingerBandMap().put("GLOBAL::MINUTE::" + symbol, lowerBollingerBand);
-
-            request.addParam(GlobalConstant.ITEM, lowerBollingerBand);
-            cacheDao.save(request, response);
         } catch (Exception e) {
-            System.out.println("Error at Lower Bollinger Band Cache Minute");
+            System.out.println("Error at Lower Bollinger Band Cache");
             e.printStackTrace();
         }
     }
 
-    public void updateUpperBollingerBandCacheGlobalDay(Request request, Response response) {
+    @SuppressWarnings("unchecked")
+    public void updateUpperBollingerBandCache(Request request, Response response) {
         try {
-            UpperBollingerBand upperBollingerBand = new UpperBollingerBand();
-
             String symbol = (String) request.getParam(GlobalConstant.SYMBOL);
+            String evalPeriod = (String) request.getParam("EVAL_PERIOD");
 
             request.addParam(GlobalConstant.IDENTIFIER, "UpperBollingerBand");
-            request.addParam("UBB_TYPE", UpperBollingerBand.DEFAULT_UBB_TYPE_DAY);
-            request.addParam("STANDARD_DEVIATION_VALUE", UpperBollingerBand.DEFAULT_STANDARD_DEVIATION_VALUE);
-            cacheDao.itemCount(request, response);
+            cacheDao.items(request, response);
+            List<UpperBollingerBand> upperBollingerBands = (List<UpperBollingerBand>) response
+                    .getParam(GlobalConstant.ITEMS);
 
-            if ((long) response.getParam(GlobalConstant.ITEMCOUNT) == 1) {
-                cacheDao.item(request, response);
-                upperBollingerBand = (UpperBollingerBand) response.getParam(GlobalConstant.ITEM);
-            } else {
-                upperBollingerBand.setSymbol(symbol);
-                upperBollingerBand.setFirstCheck(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
-                upperBollingerBand.setUBBType(UpperBollingerBand.DEFAULT_UBB_TYPE_DAY);
-                upperBollingerBand.setStandardDeviationValue(LowerBollingerBand.DEFAULT_STANDARD_DEVIATION_VALUE);
-            }
+            for (UpperBollingerBand upperBollingerBand : upperBollingerBands) {
 
-            request.addParam(GlobalConstant.EPOCHSECONDS,
-                    tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
-
-            request.addParam(GlobalConstant.IDENTIFIER, "UBB");
-
-            request.addParam(GlobalConstant.TYPE, upperBollingerBand.getUBBType());
-            currentTestingDao.item(request, response);
-            UBB ubb = (UBB) response.getParam(GlobalConstant.ITEM);
-
-            if (upperBollingerBand.getLastCheck() != tradeSignalCache.getRecentEpochSecondsMap()
-                    .get("DAY::" + symbol)) {
-
-                for (UpperBollingerBandDetail u : upperBollingerBand.getUpperBollingerBandDetails()) {
-                    if (u.getChecked() < 100) {
-                        u.setChecked(u.getChecked() + 1);
-
-                        BigDecimal tempSuccessPercent = (tradeSignalCache.getRecentClosingPriceMap()
-                                .get("DAY::" + symbol).subtract(u.getFlashPrice()))
-                                .divide(u.getFlashPrice(), MathContext.DECIMAL32).multiply(BigDecimal.valueOf(100))
-                                .negate();
-
-                        if (u.getSuccessPercent() == null || u.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
-                            u.setSuccessPercent(tempSuccessPercent);
-                        }
-
-                        if (u.isSuccess() == false && u.getFlashPrice().compareTo(
-                                tradeSignalCache.getRecentClosingPriceMap().get("DAY::" + symbol)) > 0) {
-                            u.setSuccess(true);
-                            upperBollingerBand.setSuccesses(upperBollingerBand.getSuccesses() + 1);
-                        }
-                    }
-                }
-
-                if (tradeSignalCache.getRecentClosingPriceMap().get("DAY::" + symbol).compareTo(ubb.getValue()) > 0) {
-                    upperBollingerBand.setFlashing(true);
-                    upperBollingerBand.setFlashed(upperBollingerBand.getFlashed() + 1);
-                    upperBollingerBand.setLastFlash(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
-
-                    UpperBollingerBandDetail upperBollingerBandDetail = new UpperBollingerBandDetail();
-                    upperBollingerBandDetail.setUpperBollingerBand(upperBollingerBand);
-                    upperBollingerBandDetail
-                            .setFlashTime(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
-                    upperBollingerBandDetail
-                            .setFlashPrice(tradeSignalCache.getRecentClosingPriceMap().get("DAY::" + symbol));
-                    upperBollingerBandDetail.setVolume(tradeSignalCache.getRecentVolumeMap().get("DAY::" + symbol));
-                    upperBollingerBandDetail.setVwap(tradeSignalCache.getRecentVwapMap().get("DAY::" + symbol));
-                    upperBollingerBand.getUpperBollingerBandDetails().add(upperBollingerBandDetail);
-                } else
-                    upperBollingerBand.setFlashing(false);
-
-                upperBollingerBand.setChecked(upperBollingerBand.getChecked() + 1);
-                upperBollingerBand.setLastCheck(tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol));
-
-                request.addParam("DAY_CACHE_CHECKED", true);
-            }
-            tradeSignalCache.getUpperBollingerBandMap().put("GLOBAL::DAY::" + symbol, upperBollingerBand);
-
-            request.addParam(GlobalConstant.ITEM, upperBollingerBand);
-            cacheDao.save(request, response);
-        } catch (Exception e) {
-            System.out.println("Error at Upper Bollinger Band Cache Day");
-            e.printStackTrace();
-        }
-    }
-
-    public void updateUpperBollingerBandCacheGlobalMinute(Request request, Response response) {
-        try {
-            UpperBollingerBand upperBollingerBand = new UpperBollingerBand();
-
-            String symbol = (String) request.getParam(GlobalConstant.SYMBOL);
-
-            request.addParam(GlobalConstant.IDENTIFIER, "UpperBollingerBand");
-            request.addParam("UBB_TYPE", UpperBollingerBand.DEFAULT_UBB_TYPE_MINUTE);
-            request.addParam("STANDARD_DEVIATION_VALUE", UpperBollingerBand.DEFAULT_STANDARD_DEVIATION_VALUE);
-            cacheDao.itemCount(request, response);
-
-            if ((long) response.getParam(GlobalConstant.ITEMCOUNT) == 1) {
-                cacheDao.item(request, response);
-                upperBollingerBand = (UpperBollingerBand) response.getParam(GlobalConstant.ITEM);
-            } else {
-                upperBollingerBand.setSymbol(symbol);
-                upperBollingerBand.setFirstCheck(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
-                upperBollingerBand.setUBBType(UpperBollingerBand.DEFAULT_UBB_TYPE_MINUTE);
-                upperBollingerBand.setStandardDeviationValue(LowerBollingerBand.DEFAULT_STANDARD_DEVIATION_VALUE);
-            }
-
-            request.addParam(GlobalConstant.EPOCHSECONDS,
-                    tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
-
-            request.addParam(GlobalConstant.IDENTIFIER, "UBB");
-
-            request.addParam(GlobalConstant.TYPE, upperBollingerBand.getUBBType());
-            currentTestingDao.item(request, response);
-            UBB ubb = (UBB) response.getParam(GlobalConstant.ITEM);
-
-            if (upperBollingerBand.getLastCheck() != tradeSignalCache.getRecentEpochSecondsMap()
-                    .get("MINUTE::" + symbol)) {
-                for (UpperBollingerBandDetail u : upperBollingerBand.getUpperBollingerBandDetails()) {
-                    if (u.getChecked() < 100) {
-                        u.setChecked(u.getChecked() + 1);
-
-                        BigDecimal tempSuccessPercent = (tradeSignalCache.getRecentClosingPriceMap()
-                                .get("MINUTE::" + symbol).subtract(u.getFlashPrice()))
-                                .divide(u.getFlashPrice(), MathContext.DECIMAL32).multiply(BigDecimal.valueOf(100))
-                                .negate();
-
-                        if (u.getSuccessPercent() == null || u.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
-                            u.setSuccessPercent(tempSuccessPercent);
-                        }
-
-                        if (u.isSuccess() == false && u.getFlashPrice().compareTo(
-                                tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol)) > 0) {
-                            u.setSuccess(true);
-                            upperBollingerBand.setSuccesses(upperBollingerBand.getSuccesses() + 1);
-                        }
-                    }
-                }
-                if (tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol)
-                        .compareTo(ubb.getValue()) > 0) {
-                    upperBollingerBand.setFlashing(true);
-                    upperBollingerBand.setFlashed(upperBollingerBand.getFlashed() + 1);
+                if (upperBollingerBand.getFirstCheck() == 0) {
                     upperBollingerBand
-                            .setLastFlash(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
+                            .setFirstCheck(tradeSignalCache.getRecentEpochSecondsMap().get(evalPeriod + "::" + symbol));
+                }
 
-                    UpperBollingerBandDetail upperBollingerBandDetail = new UpperBollingerBandDetail();
-                    upperBollingerBandDetail.setUpperBollingerBand(upperBollingerBand);
-                    upperBollingerBandDetail
-                            .setFlashTime(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
-                    upperBollingerBandDetail
-                            .setFlashPrice(tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol));
-                    upperBollingerBandDetail.setVolume(tradeSignalCache.getRecentVolumeMap().get("MINUTE::" + symbol));
-                    upperBollingerBandDetail.setVwap(tradeSignalCache.getRecentVwapMap().get("MINUTE::" + symbol));
-                    upperBollingerBand.getUpperBollingerBandDetails().add(upperBollingerBandDetail);
-                } else
-                    upperBollingerBand.setFlashing(false);
+                request.addParam(GlobalConstant.EPOCHSECONDS,
+                        tradeSignalCache.getRecentEpochSecondsMap().get(evalPeriod + "::" + symbol));
 
-                upperBollingerBand.setChecked(upperBollingerBand.getChecked() + 1);
-                upperBollingerBand.setLastCheck(tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol));
+                request.addParam(GlobalConstant.IDENTIFIER, "UBB");
 
-                request.addParam("MINUTE_CACHE_CHECKED", true);
+                request.addParam(GlobalConstant.TYPE, upperBollingerBand.getUBBType());
+                currentTestingDao.item(request, response);
+                UBB ubb = (UBB) response.getParam(GlobalConstant.ITEM);
 
+                // if cache is being updated with new data, update goldenCross cache data
+                // including, lastflash, times checked ,etc..
+                if (upperBollingerBand.getLastCheck() != tradeSignalCache.getRecentEpochSecondsMap()
+                        .get(evalPeriod + "::" + symbol)) {
+
+                    for (UpperBollingerBandDetail u : upperBollingerBand.getUpperBollingerBandDetails()) {
+                        if (u.getChecked() < 100) {
+                            u.setChecked(u.getChecked() + 1);
+
+                            BigDecimal tempSuccessPercent = (tradeSignalCache.getRecentClosingPriceMap()
+                                    .get(evalPeriod + "::" + symbol).subtract(u.getFlashPrice()))
+                                    .divide(u.getFlashPrice(), MathContext.DECIMAL32).multiply(BigDecimal.valueOf(100))
+                                    .negate();
+
+                            if (u.getSuccessPercent() == null
+                                    || u.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
+                                u.setSuccessPercent(tempSuccessPercent);
+                            }
+
+                            if (u.isSuccess() == false && u.getFlashPrice().compareTo(
+                                    tradeSignalCache.getRecentClosingPriceMap().get(evalPeriod + "::" + symbol)) > 0) {
+                                u.setSuccess(true);
+                                upperBollingerBand.setSuccesses(upperBollingerBand.getSuccesses() + 1);
+                            }
+                        }
+                    }
+
+                    if (tradeSignalCache.getRecentClosingPriceMap().get(evalPeriod + "::" + symbol)
+                            .compareTo(ubb.getValue()) > 0) {
+                        upperBollingerBand.setFlashing(true);
+                        upperBollingerBand.setFlashed(upperBollingerBand.getFlashed() + 1);
+                        upperBollingerBand.setLastFlash(
+                                tradeSignalCache.getRecentEpochSecondsMap().get(evalPeriod + "::" + symbol));
+
+                        UpperBollingerBandDetail upperBollingerBandDetail = new UpperBollingerBandDetail();
+                        upperBollingerBandDetail.setUpperBollingerBand(upperBollingerBand);
+                        upperBollingerBandDetail
+                                .setFlashTime(
+                                        tradeSignalCache.getRecentEpochSecondsMap().get(evalPeriod + "::" + symbol));
+                        upperBollingerBandDetail
+                                .setFlashPrice(
+                                        tradeSignalCache.getRecentClosingPriceMap().get(evalPeriod + "::" + symbol));
+                        upperBollingerBandDetail
+                                .setVolume(tradeSignalCache.getRecentVolumeMap().get(evalPeriod + "::" + symbol));
+                        upperBollingerBandDetail
+                                .setVwap(tradeSignalCache.getRecentVwapMap().get(evalPeriod + "::" + symbol));
+                        upperBollingerBand.getUpperBollingerBandDetails().add(upperBollingerBandDetail);
+                    } else
+                        upperBollingerBand.setFlashing(false);
+
+                    upperBollingerBand.setChecked(upperBollingerBand.getChecked() + 1);
+                    upperBollingerBand
+                            .setLastCheck(tradeSignalCache.getRecentEpochSecondsMap().get(evalPeriod + "::" + symbol));
+
+                    request.addParam(evalPeriod + "_CACHE_CHECKED", true);
+                }
+                tradeSignalCache.getUpperBollingerBandMap().put(
+                        upperBollingerBand.getTradeSignalKey() + "::" + evalPeriod + "::" + symbol, upperBollingerBand);
+
+                request.addParam(GlobalConstant.ITEM, upperBollingerBand);
+                cacheDao.save(request, response);
             }
-            tradeSignalCache.getUpperBollingerBandMap().put("GLOBAL::MINUTE::" + symbol, upperBollingerBand);
-
-            request.addParam(GlobalConstant.ITEM, upperBollingerBand);
-            cacheDao.save(request, response);
         } catch (Exception e) {
-            System.out.println("Error at Upper Bollinger Band Cache Minute");
+            System.out.println("Error at Upper Bollinger Band Cache");
             e.printStackTrace();
         }
     }

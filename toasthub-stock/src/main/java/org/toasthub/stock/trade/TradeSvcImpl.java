@@ -10,13 +10,8 @@ import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
 
-import net.jacobpeterson.alpaca.AlpacaAPI;
-
 @Service("TradeSvc")
 public class TradeSvcImpl implements TradeSvc {
-
-	@Autowired
-	protected AlpacaAPI alpacaAPI;
 
 	@Autowired
 	protected TradeDao tradeDao;
