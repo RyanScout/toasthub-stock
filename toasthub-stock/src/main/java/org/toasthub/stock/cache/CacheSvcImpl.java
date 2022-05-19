@@ -8,6 +8,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.toasthub.common.Symbol;
+import org.toasthub.stock.model.UserTradeSignalKey;
 import org.toasthub.stock.model.cache.GoldenCross;
 import org.toasthub.stock.model.cache.LowerBollingerBand;
 import org.toasthub.stock.model.cache.TradeSignalCache;
@@ -26,19 +27,8 @@ public class CacheSvcImpl implements CacheSvc {
     protected TradeSignalCache tradeSignalCache;
 
     @Override
-    @SuppressWarnings("unchecked")
     public void process(Request request, Response response) {
         String action = (String) request.getParams().get("action");
-
-        Map<String, Object> m = new HashMap<String, Object>();
-
-        if (request.containsParam(GlobalConstant.ITEM)) {
-            m = (Map<String, Object>) request.getParam(GlobalConstant.ITEM);
-        }
-        request.setParams(m);
-        request.addParam(GlobalConstant.IDENTIFIER, m.get("identifier"));
-        request.addParam("EVAL_PERIOD", m.get("evalPeriod"));
-
         switch (action) {
             case "ITEM":
                 item(request, response);
@@ -52,6 +42,8 @@ public class CacheSvcImpl implements CacheSvc {
             case "DELETE":
                 delete(request, response);
                 break;
+            case "LIST_GENERALS":
+                listGenerals(request, response);
             case "CREATE_GLOBALS":
                 createGlobals(request, response);
                 break;
@@ -60,7 +52,16 @@ public class CacheSvcImpl implements CacheSvc {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void save(Request request, Response response) {
+        Map<String, Object> m = new HashMap<String, Object>();
+
+        if (request.containsParam(GlobalConstant.ITEM)) {
+            m = (Map<String, Object>) request.getParam(GlobalConstant.ITEM);
+        }
+        request.setParams(m);
+        request.addParam(GlobalConstant.IDENTIFIER, m.get("identifier"));
+        request.addParam("EVAL_PERIOD", m.get("evalPeriod"));
         switch ((String) request.getParam(GlobalConstant.IDENTIFIER)) {
             case "GoldenCross":
                 saveGoldenCross(request, response);
@@ -76,6 +77,12 @@ public class CacheSvcImpl implements CacheSvc {
 
             request.addParam("SHORT_SMA_TYPE", request.getParam("shortSMAType"));
             request.addParam("LONG_SMA_TYPE", request.getParam("longSMAType"));
+
+            UserTradeSignalKey x = new UserTradeSignalKey();
+            x.setUserTradeSignalKey(
+                    "GOLDEN_CROSS::" + request.getParam("SHORT_SMA_TYPE") + "::" + request.getParam("LONG_SMA_TYPE"));
+            request.addParam(GlobalConstant.ITEM, x);
+            cacheDao.save(request, response);
 
             cacheDao.itemCount(request, response);
 
@@ -134,6 +141,11 @@ public class CacheSvcImpl implements CacheSvc {
 
     @Override
     public void item(Request request, Response response) {
+        if (!request.containsParam("TRADE_SIGNAL")) {
+            System.out.println("INVALID REQUEST");
+            response.setStatus(Response.ACTIONFAILED);
+            return;
+        }
         switch ((String) request.getParam("TRADE_SIGNAL")) {
             case "GOLDEN_CROSS_DAY":
                 response.addParam("GOLDEN_CROSS_DAY",
@@ -164,6 +176,7 @@ public class CacheSvcImpl implements CacheSvc {
                 break;
             default:
                 System.out.println("INVALID REQUEST");
+                response.setStatus(Response.ACTIONFAILED);
                 break;
         }
     }
@@ -182,8 +195,32 @@ public class CacheSvcImpl implements CacheSvc {
                 tradeSignalCache.getUpperBollingerBandMap().get("GLOBAL::MINUTE::GENERAL"));
     }
 
+    public void listGenerals(Request request, Response response) {
+        response.addParam("GOLDEN_CROSS_DAY", tradeSignalCache.getGoldenCrossMap().get("GLOBAL::DAY::GENERAL"));
+        response.addParam("LOWER_BOLLINGER_BAND_DAY",
+                tradeSignalCache.getLowerBollingerBandMap().get("GLOBAL::DAY::GENERAL"));
+        response.addParam("UPPER_BOLLINGER_BAND_DAY",
+                tradeSignalCache.getUpperBollingerBandMap().get("GLOBAL::DAY::GENERAL"));
+        response.addParam("GOLDEN_CROSS_MINUTE", tradeSignalCache.getGoldenCrossMap().get("GLOBAL::MINUTE::GENERAL"));
+        response.addParam("LOWER_BOLLINGER_BAND_MINUTE",
+                tradeSignalCache.getLowerBollingerBandMap().get("GLOBAL::MINUTE::GENERAL"));
+        response.addParam("UPPER_BOLLINGER_BAND_MINUTE",
+                tradeSignalCache.getUpperBollingerBandMap().get("GLOBAL::MINUTE::GENERAL"));
+    }
+
+
+    @SuppressWarnings("unchecked")
     public void createGlobals(Request request, Response response) {
         try {
+            Map<String, Object> m = new HashMap<String, Object>();
+
+            if (request.containsParam(GlobalConstant.ITEM)) {
+                m = (Map<String, Object>) request.getParam(GlobalConstant.ITEM);
+            }
+            request.setParams(m);
+            request.addParam(GlobalConstant.IDENTIFIER, m.get("identifier"));
+            request.addParam("EVAL_PERIOD", m.get("evalPeriod"));
+
             List<Object> tradeSignals = new ArrayList<Object>();
 
             request.addParam(GlobalConstant.IDENTIFIER, "GoldenCross");
@@ -235,7 +272,7 @@ public class CacheSvcImpl implements CacheSvc {
             }
 
             request.addParam(GlobalConstant.IDENTIFIER, "LowerBollingerBand");
-            request.addParam("STANDARD_DEVIATION_VALUE", LowerBollingerBand.DEFAULT_STANDARD_DEVIATION_VALUE);
+            request.addParam("STANDARD_DEVIATION_VALUE", LowerBollingerBand.DEFAULT_STANDARD_DEVIATIONS);
 
             request.addParam("LBB_TYPE", LowerBollingerBand.DEFAULT_LBB_TYPE_DAY);
 
@@ -243,7 +280,7 @@ public class CacheSvcImpl implements CacheSvc {
             lowerBollingerbandDay.setEvalPeriod("DAY");
             lowerBollingerbandDay.setTradeSignalKey("GLOBAL");
             lowerBollingerbandDay.setLBBType(LowerBollingerBand.DEFAULT_LBB_TYPE_DAY);
-            lowerBollingerbandDay.setStandardDeviationValue(LowerBollingerBand.DEFAULT_STANDARD_DEVIATION_VALUE);
+            lowerBollingerbandDay.setStandardDeviations(LowerBollingerBand.DEFAULT_STANDARD_DEVIATIONS);
             request.addParam(GlobalConstant.ITEM, lowerBollingerbandDay);
             cacheDao.itemCount(request, response);
 
@@ -252,7 +289,7 @@ public class CacheSvcImpl implements CacheSvc {
                     LowerBollingerBand tempLowerBollingerBand = new LowerBollingerBand();
                     tempLowerBollingerBand.setTradeSignalKey(lowerBollingerbandDay.getTradeSignalKey());
                     tempLowerBollingerBand.setLBBType(lowerBollingerbandDay.getLBBType());
-                    tempLowerBollingerBand.setStandardDeviationValue(lowerBollingerbandDay.getStandardDeviationValue());
+                    tempLowerBollingerBand.setStandardDeviations(lowerBollingerbandDay.getStandardDeviations());
                     tempLowerBollingerBand.setEvalPeriod(lowerBollingerbandDay.getEvalPeriod());
                     tempLowerBollingerBand.setSymbol(symbol);
                     tradeSignals.add(tempLowerBollingerBand);
@@ -265,7 +302,7 @@ public class CacheSvcImpl implements CacheSvc {
             lowerBollingerbandMinute.setEvalPeriod("MINUTE");
             lowerBollingerbandMinute.setTradeSignalKey("GLOBAL");
             lowerBollingerbandMinute.setLBBType(LowerBollingerBand.DEFAULT_LBB_TYPE_MINUTE);
-            lowerBollingerbandMinute.setStandardDeviationValue(LowerBollingerBand.DEFAULT_STANDARD_DEVIATION_VALUE);
+            lowerBollingerbandMinute.setStandardDeviations(LowerBollingerBand.DEFAULT_STANDARD_DEVIATIONS);
             request.addParam(GlobalConstant.ITEM, lowerBollingerbandMinute);
             cacheDao.itemCount(request, response);
 
@@ -274,7 +311,7 @@ public class CacheSvcImpl implements CacheSvc {
                     LowerBollingerBand tempLowerBollingerBand = new LowerBollingerBand();
                     tempLowerBollingerBand.setTradeSignalKey(lowerBollingerbandMinute.getTradeSignalKey());
                     tempLowerBollingerBand.setLBBType(lowerBollingerbandMinute.getLBBType());
-                    tempLowerBollingerBand.setStandardDeviationValue(lowerBollingerbandMinute.getStandardDeviationValue());
+                    tempLowerBollingerBand.setStandardDeviations(lowerBollingerbandMinute.getStandardDeviations());
                     tempLowerBollingerBand.setEvalPeriod(lowerBollingerbandMinute.getEvalPeriod());
                     tempLowerBollingerBand.setSymbol(symbol);
                     tradeSignals.add(tempLowerBollingerBand);
@@ -282,7 +319,7 @@ public class CacheSvcImpl implements CacheSvc {
             }
 
             request.addParam(GlobalConstant.IDENTIFIER, "UpperBollingerBand");
-            request.addParam("STANDARD_DEVIATION_VALUE", UpperBollingerBand.DEFAULT_STANDARD_DEVIATION_VALUE);
+            request.addParam("STANDARD_DEVIATION_VALUE", UpperBollingerBand.DEFAULT_STANDARD_DEVIATIONS);
 
             request.addParam("UBB_TYPE", UpperBollingerBand.DEFAULT_UBB_TYPE_DAY);
 
@@ -290,7 +327,7 @@ public class CacheSvcImpl implements CacheSvc {
             upperBollingerbandDay.setEvalPeriod("DAY");
             upperBollingerbandDay.setTradeSignalKey("GLOBAL");
             upperBollingerbandDay.setUBBType(UpperBollingerBand.DEFAULT_UBB_TYPE_DAY);
-            upperBollingerbandDay.setStandardDeviationValue(UpperBollingerBand.DEFAULT_STANDARD_DEVIATION_VALUE);
+            upperBollingerbandDay.setStandardDeviations(UpperBollingerBand.DEFAULT_STANDARD_DEVIATIONS);
             request.addParam(GlobalConstant.ITEM, upperBollingerbandDay);
             cacheDao.itemCount(request, response);
 
@@ -299,7 +336,7 @@ public class CacheSvcImpl implements CacheSvc {
                     UpperBollingerBand tempUpperBollingerBand = new UpperBollingerBand();
                     tempUpperBollingerBand.setTradeSignalKey(upperBollingerbandDay.getTradeSignalKey());
                     tempUpperBollingerBand.setUBBType(upperBollingerbandDay.getUBBType());
-                    tempUpperBollingerBand.setStandardDeviationValue(upperBollingerbandDay.getStandardDeviationValue());
+                    tempUpperBollingerBand.setStandardDeviations(upperBollingerbandDay.getStandardDeviations());
                     tempUpperBollingerBand.setEvalPeriod(upperBollingerbandDay.getEvalPeriod());
                     tempUpperBollingerBand.setSymbol(symbol);
                     tradeSignals.add(tempUpperBollingerBand);
@@ -312,7 +349,7 @@ public class CacheSvcImpl implements CacheSvc {
             upperBollingerbandMinute.setEvalPeriod("MINUTE");
             upperBollingerbandMinute.setTradeSignalKey("GLOBAL");
             upperBollingerbandMinute.setUBBType(UpperBollingerBand.DEFAULT_UBB_TYPE_MINUTE);
-            upperBollingerbandMinute.setStandardDeviationValue(UpperBollingerBand.DEFAULT_STANDARD_DEVIATION_VALUE);
+            upperBollingerbandMinute.setStandardDeviations(UpperBollingerBand.DEFAULT_STANDARD_DEVIATIONS);
             request.addParam(GlobalConstant.ITEM, upperBollingerbandMinute);
             cacheDao.itemCount(request, response);
 
@@ -321,7 +358,7 @@ public class CacheSvcImpl implements CacheSvc {
                     UpperBollingerBand tempUpperBollingerBand = new UpperBollingerBand();
                     tempUpperBollingerBand.setTradeSignalKey(upperBollingerbandMinute.getTradeSignalKey());
                     tempUpperBollingerBand.setUBBType(upperBollingerbandMinute.getUBBType());
-                    tempUpperBollingerBand.setStandardDeviationValue(upperBollingerbandMinute.getStandardDeviationValue());
+                    tempUpperBollingerBand.setStandardDeviations(upperBollingerbandMinute.getStandardDeviations());
                     tempUpperBollingerBand.setEvalPeriod(upperBollingerbandMinute.getEvalPeriod());
                     tempUpperBollingerBand.setSymbol(symbol);
                     tradeSignals.add(tempUpperBollingerBand);

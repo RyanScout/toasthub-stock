@@ -1,8 +1,10 @@
 package org.toasthub.stock.analysis;
 
+import java.io.File;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -71,8 +73,41 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
         super.finalize();
     }
 
+    public void printSystemStats() {
+        /* Total number of processors or cores available to the JVM */
+        System.out.println("Available processors (cores): " +
+                Runtime.getRuntime().availableProcessors());
+
+        /* Total amount of free memory available to the JVM */
+        System.out.println("Free memory (bytes): " +
+                Runtime.getRuntime().freeMemory());
+
+        /* This will return Long.MAX_VALUE if there is no preset limit */
+        long maxMemory = Runtime.getRuntime().maxMemory();
+        /* Maximum amount of memory the JVM will attempt to use */
+        System.out.println("Maximum memory (bytes): " +
+                (maxMemory == Long.MAX_VALUE ? "no limit" : maxMemory));
+
+        /* Total memory currently available to the JVM */
+        System.out.println("Total memory available to JVM (bytes): " +
+                Runtime.getRuntime().totalMemory());
+
+        /* Get a list of all filesystem roots on this system */
+        File[] roots = File.listRoots();
+
+        /* For each filesystem root, print some info */
+        for (File root : roots) {
+            System.out.println("File system root: " + root.getAbsolutePath());
+            System.out.println("Total space (bytes): " + root.getTotalSpace());
+            System.out.println("Free space (bytes): " + root.getFreeSpace());
+            System.out.println("Usable space (bytes): " + root.getUsableSpace());
+        }
+    }
+
     @Scheduled(cron = "30 * * * * ?")
     public void tradeAnalysisTask() {
+
+        // printSystemStats();
 
         if (tradeAnalysisJobRunning.get()) {
             System.out.println("Trade analysis is currently running ,  skipping this time");
@@ -180,10 +215,18 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                 request.addParam(GlobalConstant.IDENTIFIER, "SMA");
 
                 request.addParam(GlobalConstant.TYPE, goldenCross.getShortSMAType());
+                currentTestingDao.itemCount(request, response);
+                if ((long) response.getParam(GlobalConstant.ITEMCOUNT) == 0) {
+                    return;
+                }
                 currentTestingDao.item(request, response);
                 SMA shortSMA = (SMA) response.getParam(GlobalConstant.ITEM);
 
                 request.addParam(GlobalConstant.TYPE, goldenCross.getLongSMAType());
+                currentTestingDao.itemCount(request, response);
+                if ((long) response.getParam(GlobalConstant.ITEMCOUNT) == 0) {
+                    return;
+                }
                 currentTestingDao.item(request, response);
                 SMA longSMA = (SMA) response.getParam(GlobalConstant.ITEM);
 
@@ -278,6 +321,11 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                 request.addParam(GlobalConstant.IDENTIFIER, "LBB");
 
                 request.addParam(GlobalConstant.TYPE, lowerBollingerBand.getLBBType());
+                request.addParam("STANDARD_DEVIATIONS", lowerBollingerBand.getStandardDeviations());
+                currentTestingDao.itemCount(request, response);
+                if ((long) response.getParam(GlobalConstant.ITEMCOUNT) == 0) {
+                    return;
+                }
                 currentTestingDao.item(request, response);
                 LBB lbb = (LBB) response.getParam(GlobalConstant.ITEM);
 
@@ -372,6 +420,11 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                 request.addParam(GlobalConstant.IDENTIFIER, "UBB");
 
                 request.addParam(GlobalConstant.TYPE, upperBollingerBand.getUBBType());
+                request.addParam("STANDARD_DEVIATIONS", upperBollingerBand.getStandardDeviations());
+                currentTestingDao.itemCount(request, response);
+                if ((long) response.getParam(GlobalConstant.ITEMCOUNT) == 0) {
+                    return;
+                }
                 currentTestingDao.item(request, response);
                 UBB ubb = (UBB) response.getParam(GlobalConstant.ITEM);
 
@@ -452,43 +505,66 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
         LowerBollingerBand generalLowerBollingerBand = new LowerBollingerBand();
         generalLowerBollingerBand.setSymbol("GENERAL");
         generalLowerBollingerBand.setLBBType(LowerBollingerBand.DEFAULT_LBB_TYPE_DAY);
-        generalLowerBollingerBand.setStandardDeviationValue(LowerBollingerBand.DEFAULT_STANDARD_DEVIATION_VALUE);
+        generalLowerBollingerBand.setStandardDeviations(LowerBollingerBand.DEFAULT_STANDARD_DEVIATIONS);
 
         UpperBollingerBand generalUpperBollingerBand = new UpperBollingerBand();
         generalUpperBollingerBand.setSymbol("GENERAL");
         generalUpperBollingerBand.setUBBType(UpperBollingerBand.DEFAULT_UBB_TYPE_DAY);
-        generalUpperBollingerBand.setStandardDeviationValue(UpperBollingerBand.DEFAULT_STANDARD_DEVIATION_VALUE);
+        generalUpperBollingerBand.setStandardDeviations(UpperBollingerBand.DEFAULT_STANDARD_DEVIATIONS);
 
         GoldenCross tempGoldenCross;
         LowerBollingerBand tempLowerBollingerBand;
         UpperBollingerBand tempUpperBollingerBand;
 
         for (String symbol : Symbol.SYMBOLS) {
-            tempGoldenCross = tradeSignalCache.getGoldenCrossMap().get("GLOBAL::DAY::" + symbol);
-            generalGoldenCross.setChecked(generalGoldenCross.getChecked() + tempGoldenCross.getChecked());
-            generalGoldenCross.setFlashed(generalGoldenCross.getFlashed() + tempGoldenCross.getFlashed());
-            generalGoldenCross.setSuccesses(generalGoldenCross.getSuccesses() + tempGoldenCross.getSuccesses());
 
-            tempLowerBollingerBand = tradeSignalCache.getLowerBollingerBandMap().get("GLOBAL::DAY::" + symbol);
-            generalLowerBollingerBand
-                    .setChecked(generalLowerBollingerBand.getChecked() + tempLowerBollingerBand.getChecked());
-            generalLowerBollingerBand
-                    .setFlashed(generalLowerBollingerBand.getFlashed() + tempLowerBollingerBand.getFlashed());
-            generalLowerBollingerBand
-                    .setSuccesses(generalLowerBollingerBand.getSuccesses() + tempLowerBollingerBand.getSuccesses());
+            if (tradeSignalCache.getGoldenCrossMap().get("GLOBAL::DAY::" + symbol) != null) {
+                tempGoldenCross = tradeSignalCache.getGoldenCrossMap().get("GLOBAL::DAY::" + symbol);
+                generalGoldenCross.setChecked(generalGoldenCross.getChecked() + tempGoldenCross.getChecked());
+                generalGoldenCross.setFlashed(generalGoldenCross.getFlashed() + tempGoldenCross.getFlashed());
+                generalGoldenCross.setSuccesses(generalGoldenCross.getSuccesses() + tempGoldenCross.getSuccesses());
+            }
 
-            tempUpperBollingerBand = tradeSignalCache.getUpperBollingerBandMap().get("GLOBAL::DAY::" + symbol);
-            generalUpperBollingerBand
-                    .setChecked(generalUpperBollingerBand.getChecked() + tempUpperBollingerBand.getChecked());
-            generalUpperBollingerBand
-                    .setFlashed(generalUpperBollingerBand.getFlashed() + tempUpperBollingerBand.getFlashed());
-            generalUpperBollingerBand
-                    .setSuccesses(generalUpperBollingerBand.getSuccesses() + tempUpperBollingerBand.getSuccesses());
+            if (tradeSignalCache.getLowerBollingerBandMap().get("GLOBAL::DAY::" + symbol) != null) {
+                tempLowerBollingerBand = tradeSignalCache.getLowerBollingerBandMap().get("GLOBAL::DAY::" + symbol);
+                generalLowerBollingerBand
+                        .setChecked(generalLowerBollingerBand.getChecked() + tempLowerBollingerBand.getChecked());
+                generalLowerBollingerBand
+                        .setFlashed(generalLowerBollingerBand.getFlashed() + tempLowerBollingerBand.getFlashed());
+                generalLowerBollingerBand
+                        .setSuccesses(generalLowerBollingerBand.getSuccesses() + tempLowerBollingerBand.getSuccesses());
+            }
+
+            if (tradeSignalCache.getUpperBollingerBandMap().get("GLOBAL::DAY::" + symbol) != null) {
+                tempUpperBollingerBand = tradeSignalCache.getUpperBollingerBandMap().get("GLOBAL::DAY::" + symbol);
+                generalUpperBollingerBand
+                        .setChecked(generalUpperBollingerBand.getChecked() + tempUpperBollingerBand.getChecked());
+                generalUpperBollingerBand
+                        .setFlashed(generalUpperBollingerBand.getFlashed() + tempUpperBollingerBand.getFlashed());
+                generalUpperBollingerBand
+                        .setSuccesses(generalUpperBollingerBand.getSuccesses() + tempUpperBollingerBand.getSuccesses());
+            }
         }
 
         tradeSignalCache.getGoldenCrossMap().put("GLOBAL::DAY::GENERAL", generalGoldenCross);
         tradeSignalCache.getLowerBollingerBandMap().put("GLOBAL::DAY::GENERAL", generalLowerBollingerBand);
         tradeSignalCache.getUpperBollingerBandMap().put("GLOBAL::DAY::GENERAL", generalUpperBollingerBand);
+    }
+
+    public void createGeneralTradeSignals(Request request, Response response) {
+        request.addParam(GlobalConstant.IDENTIFIER, "GoldenCross");
+        try {
+            currentTestingDao.items(request, response);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        List<GoldenCross> goldenCrosses = new ArrayList<GoldenCross>();
+        GoldenCross generalGoldenCross = new GoldenCross();
+        for(GoldenCross goldenCross : goldenCrosses){
+        generalGoldenCross.setSymbol("GENERAL");
+        generalGoldenCross.setShortSMAType(GoldenCross.DEFAULT_SHORT_SMA_TYPE_MINUTE);
+        generalGoldenCross.setLongSMAType(GoldenCross.DEFAULT_LONG_SMA_TYPE_MINUTE);
+        }
     }
 
     public void updateGeneralGlobalsMinute(Request request, Response response) {
@@ -500,38 +576,43 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
         LowerBollingerBand generalLowerBollingerBand = new LowerBollingerBand();
         generalLowerBollingerBand.setSymbol("GENERAL");
         generalLowerBollingerBand.setLBBType(LowerBollingerBand.DEFAULT_LBB_TYPE_MINUTE);
-        generalLowerBollingerBand.setStandardDeviationValue(LowerBollingerBand.DEFAULT_STANDARD_DEVIATION_VALUE);
+        generalLowerBollingerBand.setStandardDeviations(LowerBollingerBand.DEFAULT_STANDARD_DEVIATIONS);
 
         UpperBollingerBand generalUpperBollingerBand = new UpperBollingerBand();
         generalUpperBollingerBand.setSymbol("GENERAL");
         generalUpperBollingerBand.setUBBType(UpperBollingerBand.DEFAULT_UBB_TYPE_MINUTE);
-        generalUpperBollingerBand.setStandardDeviationValue(UpperBollingerBand.DEFAULT_STANDARD_DEVIATION_VALUE);
+        generalUpperBollingerBand.setStandardDeviations(UpperBollingerBand.DEFAULT_STANDARD_DEVIATIONS);
 
         GoldenCross tempGoldenCross;
         LowerBollingerBand tempLowerBollingerBand;
         UpperBollingerBand tempUpperBollingerBand;
 
         for (String symbol : Symbol.SYMBOLS) {
-            tempGoldenCross = tradeSignalCache.getGoldenCrossMap().get("GLOBAL::MINUTE::" + symbol);
-            generalGoldenCross.setChecked(generalGoldenCross.getChecked() + tempGoldenCross.getChecked());
-            generalGoldenCross.setFlashed(generalGoldenCross.getFlashed() + tempGoldenCross.getFlashed());
-            generalGoldenCross.setSuccesses(generalGoldenCross.getSuccesses() + tempGoldenCross.getSuccesses());
+            if (tradeSignalCache.getGoldenCrossMap().get("GLOBAL::MINUTE::" + symbol) != null) {
+                tempGoldenCross = tradeSignalCache.getGoldenCrossMap().get("GLOBAL::MINUTE::" + symbol);
+                generalGoldenCross.setChecked(generalGoldenCross.getChecked() + tempGoldenCross.getChecked());
+                generalGoldenCross.setFlashed(generalGoldenCross.getFlashed() + tempGoldenCross.getFlashed());
+                generalGoldenCross.setSuccesses(generalGoldenCross.getSuccesses() + tempGoldenCross.getSuccesses());
+            }
 
-            tempLowerBollingerBand = tradeSignalCache.getLowerBollingerBandMap().get("GLOBAL::MINUTE::" + symbol);
-            generalLowerBollingerBand
-                    .setChecked(generalLowerBollingerBand.getChecked() + tempLowerBollingerBand.getChecked());
-            generalLowerBollingerBand
-                    .setFlashed(generalLowerBollingerBand.getFlashed() + tempLowerBollingerBand.getFlashed());
-            generalLowerBollingerBand
-                    .setSuccesses(generalLowerBollingerBand.getSuccesses() + tempLowerBollingerBand.getSuccesses());
-
-            tempUpperBollingerBand = tradeSignalCache.getUpperBollingerBandMap().get("GLOBAL::MINUTE::" + symbol);
-            generalUpperBollingerBand
-                    .setChecked(generalUpperBollingerBand.getChecked() + tempUpperBollingerBand.getChecked());
-            generalUpperBollingerBand
-                    .setFlashed(generalUpperBollingerBand.getFlashed() + tempUpperBollingerBand.getFlashed());
-            generalUpperBollingerBand
-                    .setSuccesses(generalUpperBollingerBand.getSuccesses() + tempUpperBollingerBand.getSuccesses());
+            if (tradeSignalCache.getLowerBollingerBandMap().get("GLOBAL::MINUTE::" + symbol) != null) {
+                tempLowerBollingerBand = tradeSignalCache.getLowerBollingerBandMap().get("GLOBAL::MINUTE::" + symbol);
+                generalLowerBollingerBand
+                        .setChecked(generalLowerBollingerBand.getChecked() + tempLowerBollingerBand.getChecked());
+                generalLowerBollingerBand
+                        .setFlashed(generalLowerBollingerBand.getFlashed() + tempLowerBollingerBand.getFlashed());
+                generalLowerBollingerBand
+                        .setSuccesses(generalLowerBollingerBand.getSuccesses() + tempLowerBollingerBand.getSuccesses());
+            }
+            if (tradeSignalCache.getUpperBollingerBandMap().get("GLOBAL::MINUTE::" + symbol) != null) {
+                tempUpperBollingerBand = tradeSignalCache.getUpperBollingerBandMap().get("GLOBAL::MINUTE::" + symbol);
+                generalUpperBollingerBand
+                        .setChecked(generalUpperBollingerBand.getChecked() + tempUpperBollingerBand.getChecked());
+                generalUpperBollingerBand
+                        .setFlashed(generalUpperBollingerBand.getFlashed() + tempUpperBollingerBand.getFlashed());
+                generalUpperBollingerBand
+                        .setSuccesses(generalUpperBollingerBand.getSuccesses() + tempUpperBollingerBand.getSuccesses());
+            }
         }
 
         tradeSignalCache.getGoldenCrossMap().put("GLOBAL::MINUTE::GENERAL", generalGoldenCross);

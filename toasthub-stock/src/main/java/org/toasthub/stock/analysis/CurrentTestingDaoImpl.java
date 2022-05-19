@@ -16,6 +16,7 @@
 
 package org.toasthub.stock.analysis;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 
@@ -171,6 +172,15 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 			queryStr += "x.type =:type ";
 			and = true;
 		}
+		if (x.equals("LBB") || x.equals("UBB")) {
+			if (!and)
+				queryStr += " WHERE ";
+			else
+				queryStr += " AND ";
+
+			queryStr += "x.standardDeviations =:standardDeviations ";
+			and = true;
+		}
 
 		Query query = entityManager.createQuery(queryStr);
 
@@ -183,6 +193,9 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 		if (request.containsParam(GlobalConstant.SYMBOL)) {
 			query.setParameter("symbol", (String) request.getParam(GlobalConstant.SYMBOL));
 		}
+		if (x.equals("LBB") || x.equals("UBB")) {
+			query.setParameter("standardDeviations", (BigDecimal) request.getParam("STANDARD_DEVIATIONS"));
+		}
 
 		Long count = (Long) query.getSingleResult();
 		if (count == null) {
@@ -194,6 +207,8 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 	@Override
 	public void item(Request request, Response response) throws Exception {
 		String x = "";
+		Query query = null;
+		Object result = null;
 		switch ((String) request.getParam(GlobalConstant.IDENTIFIER)) {
 			case "SMA":
 				x = "SMA";
@@ -202,11 +217,31 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 				x = "EMA";
 				break;
 			case "LBB":
-				x = "LBB";
-				break;
+				query = entityManager.createQuery("SELECT DISTINCT x FROM LBB"
+						+ " AS x"
+						+ " WHERE x.epochSeconds =:epochSeconds"
+						+ " AND x.type =: type AND x.symbol =:symbol AND x.standardDeviations =: standardDeviations");
+				query.setParameter("epochSeconds", request.getParam(GlobalConstant.EPOCHSECONDS));
+				query.setParameter("type", request.getParam(GlobalConstant.TYPE));
+				query.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
+				query.setParameter("standardDeviations", request.getParam("STANDARD_DEVIATIONS"));
+				result = query.getSingleResult();
+				response.addParam(GlobalConstant.ITEM, result);
+
+				return;
 			case "UBB":
-				x = "UBB";
-				break;
+				query = entityManager.createQuery("SELECT DISTINCT x FROM UBB"
+						+ " AS x"
+						+ " WHERE x.epochSeconds =:epochSeconds"
+						+ " AND x.type =: type AND x.symbol =:symbol AND x.standardDeviations =: standardDeviations");
+				query.setParameter("epochSeconds", request.getParam(GlobalConstant.EPOCHSECONDS));
+				query.setParameter("type", request.getParam(GlobalConstant.TYPE));
+				query.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
+				query.setParameter("standardDeviations", request.getParam("STANDARD_DEVIATIONS"));
+				result = query.getSingleResult();
+				response.addParam(GlobalConstant.ITEM, result);
+
+				return;
 			case "MACD":
 				x = "MACD";
 				break;
@@ -223,11 +258,11 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 				+ " WHERE x.epochSeconds =:epochSeconds"
 				+ " AND x.type =: type AND x.symbol =:symbol";
 
-		Query query = entityManager.createQuery(queryStr);
+		query = entityManager.createQuery(queryStr);
 		query.setParameter("epochSeconds", request.getParam(GlobalConstant.EPOCHSECONDS));
 		query.setParameter("type", request.getParam(GlobalConstant.TYPE));
 		query.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
-		Object result = query.getSingleResult();
+		result = query.getSingleResult();
 
 		response.addParam(GlobalConstant.ITEM, result);
 	}

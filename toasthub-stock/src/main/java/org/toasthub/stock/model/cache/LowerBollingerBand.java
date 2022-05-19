@@ -1,5 +1,6 @@
 package org.toasthub.stock.model.cache;
 
+import java.math.BigDecimal;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -13,16 +14,24 @@ import javax.persistence.Table;
 @Table(name = "ta_lower_bollinger_band")
 public class LowerBollingerBand extends BaseTradeSignal {
     private String LBBType;
-    private double standardDeviationValue;
+    private BigDecimal standardDeviations;
     private Set<LowerBollingerBandDetail> lowerBollingerBandDetails = new LinkedHashSet<LowerBollingerBandDetail>();
 
     public static final String DEFAULT_LBB_TYPE_DAY = "20-day";
     public static final String DEFAULT_LBB_TYPE_MINUTE = "20-minute";
-    public static final double DEFAULT_STANDARD_DEVIATION_VALUE = 2.0;
+    public static final BigDecimal DEFAULT_STANDARD_DEVIATIONS = BigDecimal.valueOf(2.0);
 
     public LowerBollingerBand() {
         super();
         setIdentifier("LowerBollingerBand");
+    }
+
+    public BigDecimal getStandardDeviations() {
+        return standardDeviations;
+    }
+
+    public void setStandardDeviations(BigDecimal standardDeviations) {
+        this.standardDeviations = standardDeviations;
     }
 
     @OneToMany(mappedBy = "lowerBollingerBand", cascade = CascadeType.ALL)
@@ -41,14 +50,5 @@ public class LowerBollingerBand extends BaseTradeSignal {
 
     public void setLBBType(String LBBType) {
         this.LBBType = LBBType;
-    }
-
-    @Column(name = "standard_deviation_value")
-    public double getStandardDeviationValue() {
-        return standardDeviationValue;
-    }
-
-    public void setStandardDeviationValue(double standardDeviationValue) {
-        this.standardDeviationValue = standardDeviationValue;
     }
 }

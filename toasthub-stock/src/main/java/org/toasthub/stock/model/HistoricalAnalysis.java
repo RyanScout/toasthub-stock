@@ -21,10 +21,7 @@
 package org.toasthub.stock.model;
 
 import java.math.BigDecimal;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.util.Date;
 import java.util.Map;
 import java.util.Set;
 
@@ -33,7 +30,6 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
-import javax.persistence.Transient;
 
 import org.toasthub.common.BaseEntity;
 

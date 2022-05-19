@@ -203,13 +203,13 @@ public class CacheDaoImpl implements CacheDao {
             queryStr += "x.LBBType =:LBBType ";
             and = true;
         }
-        if (request.containsParam("STANDARD_DEVIATION_VALUE")) {
+        if (request.containsParam("STANDARD_DEVIATIONS")) {
             if (!and)
                 queryStr += " WHERE ";
             else
                 queryStr += " AND ";
 
-            queryStr += "x.standardDeviationValue =:standardDeviationValue";
+            queryStr += "x.standardDeviations =:standardDeviations";
             and = true;
         }
         Query query = entityManager.createQuery(queryStr);
@@ -222,8 +222,8 @@ public class CacheDaoImpl implements CacheDao {
             query.setParameter("LBBType", (String) request.getParam("LBB_TYPE"));
         }
 
-        if (request.containsParam("STANDARD_DEVIATION_VALUE")) {
-            query.setParameter("standardDeviationValue", (double) request.getParam("STANDARD_DEVIATION_VALUE"));
+        if (request.containsParam("STANDARD_DEVIATIONS")) {
+            query.setParameter("standardDeviations", (double) request.getParam("STANDARD_DEVIATIONS"));
         }
 
         Long count = (Long) query.getSingleResult();
@@ -257,13 +257,13 @@ public class CacheDaoImpl implements CacheDao {
             queryStr += "x.UBBType =:UBBType ";
             and = true;
         }
-        if (request.containsParam("STANDARD_DEVIATION_VALUE")) {
+        if (request.containsParam("STANDARD_DEVIATIONS")) {
             if (!and)
                 queryStr += " WHERE ";
             else
                 queryStr += " AND ";
 
-            queryStr += "x.standardDeviationValue =:standardDeviationValue";
+            queryStr += "x.standardDeviations =:standardDeviations";
             and = true;
         }
 
@@ -277,8 +277,8 @@ public class CacheDaoImpl implements CacheDao {
             query.setParameter("UBBType", (String) request.getParam("UBB_TYPE"));
         }
 
-        if (request.containsParam("STANDARD_DEVIATION_VALUE")) {
-            query.setParameter("standardDeviationValue", (double) request.getParam("STANDARD_DEVIATION_VALUE"));
+        if (request.containsParam("STANDARD_DEVIATIONS")) {
+            query.setParameter("standardDeviations", (double) request.getParam("STANDARD_DEVIATIONS"));
         }
 
         Long count = (Long) query.getSingleResult();
@@ -321,11 +321,11 @@ public class CacheDaoImpl implements CacheDao {
     }
 
     public void lowerBollingerBand(Request request, Response response) {
-        String queryStr = "SELECT DISTINCT x FROM LowerBollingerBand AS x WHERE x.symbol =:symbol AND x.LBBType =:LBBType AND x.standardDeviationValue =: standardDeviationValue";
+        String queryStr = "SELECT DISTINCT x FROM LowerBollingerBand AS x WHERE x.symbol =:symbol AND x.LBBType =:LBBType AND x.standardDeviations =: standardDeviations";
         Query query = entityManager.createQuery(queryStr);
         query.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
         query.setParameter("LBBType", request.getParam("LBB_TYPE"));
-        query.setParameter("standardDeviationValue", request.getParam("STANDARD_DEVIATION_VALUE"));
+        query.setParameter("standardDeviations", request.getParam("STANDARD_DEVIATIONS"));
         LowerBollingerBand result = (LowerBollingerBand) query.getSingleResult();
 
         Hibernate.initialize(result.getLowerBollingerBandDetails());
@@ -334,11 +334,11 @@ public class CacheDaoImpl implements CacheDao {
     }
 
     public void upperBollingerBand(Request request, Response response) {
-        String queryStr = "SELECT DISTINCT x FROM UpperBollingerBand AS x WHERE x.symbol =:symbol AND x.UBBType =:UBBType AND x.standardDeviationValue =: standardDeviationValue";
+        String queryStr = "SELECT DISTINCT x FROM UpperBollingerBand AS x WHERE x.symbol =:symbol AND x.UBBType =:UBBType AND x.standardDeviations =: standardDeviations";
         Query query = entityManager.createQuery(queryStr);
         query.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
         query.setParameter("UBBType", request.getParam("UBB_TYPE"));
-        query.setParameter("standardDeviationValue", request.getParam("STANDARD_DEVIATION_VALUE"));
+        query.setParameter("standardDeviations", request.getParam("STANDARD_DEVIATIONS"));
         UpperBollingerBand result = (UpperBollingerBand) query.getSingleResult();
 
         Hibernate.initialize(result.getUpperBollingerBandDetails());
