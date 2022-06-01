@@ -15,7 +15,7 @@ import javax.persistence.Table;
 public class UpperBollingerBand extends BaseTradeSignal {
     private String UBBType;
     private BigDecimal standardDeviations;
-    private Set<UpperBollingerBandDetail> upperBollingerBandDetails = new LinkedHashSet<UpperBollingerBandDetail>();
+    private Set<UpperBollingerBandDetail> details = new LinkedHashSet<UpperBollingerBandDetail>();
 
     public static final String DEFAULT_UBB_TYPE_DAY = "20-day";
     public static final String DEFAULT_UBB_TYPE_MINUTE = "20-minute";
@@ -35,12 +35,12 @@ public class UpperBollingerBand extends BaseTradeSignal {
     }
 
     @OneToMany(mappedBy = "upperBollingerBand", cascade = CascadeType.ALL)
-    public Set<UpperBollingerBandDetail> getUpperBollingerBandDetails() {
-        return upperBollingerBandDetails;
+    public Set<UpperBollingerBandDetail> getDetails() {
+        return details;
     }
 
-    public void setUpperBollingerBandDetails(Set<UpperBollingerBandDetail> upperBollingerBandDetails) {
-        this.upperBollingerBandDetails = upperBollingerBandDetails;
+    public void setDetails(Set<UpperBollingerBandDetail> details) {
+        this.details = details;
     }
 
     @Column(name = "ubb_type")

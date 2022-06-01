@@ -14,7 +14,7 @@ import javax.persistence.Table;
 public class GoldenCross extends BaseTradeSignal {
     private String shortSMAType;
     private String longSMAType;
-    private Set<GoldenCrossDetail> goldenCrossDetails = new LinkedHashSet<GoldenCrossDetail>();
+    private Set<GoldenCrossDetail> details = new LinkedHashSet<GoldenCrossDetail>();
 
     public static final String DEFAULT_SHORT_SMA_TYPE_DAY = "15-day";
     public static final String DEFAULT_LONG_SMA_TYPE_DAY = "50-day";
@@ -27,12 +27,12 @@ public class GoldenCross extends BaseTradeSignal {
     }
 
     @OneToMany(mappedBy = "goldenCross", cascade = CascadeType.ALL)
-    public Set<GoldenCrossDetail> getGoldenCrossDetails() {
-        return goldenCrossDetails;
+    public Set<GoldenCrossDetail> getDetails() {
+        return details;
     }
 
-    public void setGoldenCrossDetails(Set<GoldenCrossDetail> goldenCrossDetails) {
-        this.goldenCrossDetails = goldenCrossDetails;
+    public void setDetails(Set<GoldenCrossDetail> details) {
+        this.details = details;
     }
 
     @Column(name = "long_sma_type")

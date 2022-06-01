@@ -17,10 +17,12 @@
 package org.toasthub.stock.analysis;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
 import javax.persistence.Query;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +30,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import org.toasthub.analysis.model.AssetDay;
 import org.toasthub.analysis.model.AssetMinute;
-import org.toasthub.common.Symbol;
+import org.toasthub.model.Symbol;
 import org.toasthub.stock.model.HistoricalAnalysis;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
@@ -100,7 +102,8 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 				+ " AS x ";
 
 		Query query = entityManager.createQuery(queryStr);
-		List<?> items = query.getResultList();
+		List<?> items = null;
+		items = (List<?>)(query.getResultList());
 
 		response.addParam(GlobalConstant.ITEMS, items);
 	}
@@ -271,14 +274,10 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 		String x = (String) request.getParam(GlobalConstant.SYMBOL);
 
 		if (Arrays.asList(Symbol.SYMBOLS).contains(x)) {
-			String queryStr = "SELECT * FROM tradeanalyzer_main.ta_asset_day WHERE symbol = \""
-					+ x
-					+ "\" ORDER BY id DESC LIMIT 0, 1;";
-
-			Query query = entityManager.createNativeQuery(queryStr, AssetDay.class);
-			Object result = query.getSingleResult();
-
-			response.addParam(GlobalConstant.ITEM, result);
+			String queryStr = "SELECT DISTINCT x FROM AssetDay x WHERE (SELECT MAX(x.epochSeconds) FROM AssetDay x WHERE x.symbol = : symbol) = x.epochSeconds AND x.symbol =: symbol";
+			Query query = entityManager.createQuery(queryStr);
+			query.setParameter("symbol", x);
+			response.addParam(GlobalConstant.ITEM, query.getSingleResult());
 		} else
 			System.out.println("Symbol does not match symbols");
 	}
@@ -288,17 +287,11 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 		String x = (String) request.getParam(GlobalConstant.SYMBOL);
 
 		if (Arrays.asList(Symbol.SYMBOLS).contains(x)) {
-
-			String queryStr = "SELECT * FROM tradeanalyzer_main.ta_asset_minute WHERE symbol = \""
-					+ x
-					+ "\" ORDER BY id DESC LIMIT 0, 1;";
-
-			Query query = entityManager.createNativeQuery(queryStr, AssetMinute.class);
-			Object result = query.getSingleResult();
-
-			response.addParam(GlobalConstant.ITEM, result);
+			String queryStr = "SELECT DISTINCT x FROM AssetMinute x WHERE (SELECT MAX(x.epochSeconds) FROM AssetMinute x WHERE x.symbol = : symbol) = x.epochSeconds AND x.symbol =: symbol";
+			Query query = entityManager.createQuery(queryStr);
+			query.setParameter("symbol", x);
+			response.addParam(GlobalConstant.ITEM, query.getSingleResult());
 		} else
 			System.out.println("Symbol does not match symbols");
-
 	}
 }

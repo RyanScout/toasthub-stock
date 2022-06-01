@@ -15,7 +15,7 @@ import javax.persistence.Table;
 public class LowerBollingerBand extends BaseTradeSignal {
     private String LBBType;
     private BigDecimal standardDeviations;
-    private Set<LowerBollingerBandDetail> lowerBollingerBandDetails = new LinkedHashSet<LowerBollingerBandDetail>();
+    private Set<LowerBollingerBandDetail> details = new LinkedHashSet<LowerBollingerBandDetail>();
 
     public static final String DEFAULT_LBB_TYPE_DAY = "20-day";
     public static final String DEFAULT_LBB_TYPE_MINUTE = "20-minute";
@@ -35,12 +35,12 @@ public class LowerBollingerBand extends BaseTradeSignal {
     }
 
     @OneToMany(mappedBy = "lowerBollingerBand", cascade = CascadeType.ALL)
-    public Set<LowerBollingerBandDetail> getLowerBollingerBandDetails() {
-        return lowerBollingerBandDetails;
+    public Set<LowerBollingerBandDetail> getDetails() {
+        return details;
     }
 
-    public void setLowerBollingerBandDetails(Set<LowerBollingerBandDetail> lowerBollingerBandDetails) {
-        this.lowerBollingerBandDetails = lowerBollingerBandDetails;
+    public void setDetails(Set<LowerBollingerBandDetail> details) {
+        this.details = details;
     }
 
     @Column(name = "lbb_type")

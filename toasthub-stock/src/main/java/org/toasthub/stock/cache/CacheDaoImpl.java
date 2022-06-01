@@ -10,7 +10,7 @@ import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import org.toasthub.common.Symbol;
+import org.toasthub.model.Symbol;
 import org.toasthub.stock.model.cache.GoldenCross;
 import org.toasthub.stock.model.cache.LowerBollingerBand;
 import org.toasthub.stock.model.cache.UpperBollingerBand;
@@ -86,19 +86,19 @@ public class CacheDaoImpl implements CacheDao {
             case "GoldenCross":
                 List<GoldenCross> goldenCrosses = (List<GoldenCross>) items;
                 for (GoldenCross goldenCross : goldenCrosses) {
-                    Hibernate.initialize(goldenCross.getGoldenCrossDetails());
+                    Hibernate.initialize(goldenCross.getDetails());
                 }
                 break;
             case "LowerBollingerBand":
                 List<LowerBollingerBand> lowerBollingerBands = (List<LowerBollingerBand>) items;
                 for (LowerBollingerBand lowerBollingerBand : lowerBollingerBands) {
-                    Hibernate.initialize(lowerBollingerBand.getLowerBollingerBandDetails());
+                    Hibernate.initialize(lowerBollingerBand.getDetails());
                 }
                 break;
             case "UpperBollingerBand":
                 List<UpperBollingerBand> upperBollingerBands = (List<UpperBollingerBand>) items;
                 for (UpperBollingerBand upperBollingerBand : upperBollingerBands) {
-                    Hibernate.initialize(upperBollingerBand.getUpperBollingerBandDetails());
+                    Hibernate.initialize(upperBollingerBand.getDetails());
                 }
                 break;
             default:
@@ -315,7 +315,7 @@ public class CacheDaoImpl implements CacheDao {
         query.setParameter("longSMAType", request.getParam("LONG_SMA_TYPE"));
         GoldenCross result = (GoldenCross) query.getSingleResult();
 
-        Hibernate.initialize(result.getGoldenCrossDetails());
+        Hibernate.initialize(result.getDetails());
 
         response.addParam(GlobalConstant.ITEM, result);
     }
@@ -328,7 +328,7 @@ public class CacheDaoImpl implements CacheDao {
         query.setParameter("standardDeviations", request.getParam("STANDARD_DEVIATIONS"));
         LowerBollingerBand result = (LowerBollingerBand) query.getSingleResult();
 
-        Hibernate.initialize(result.getLowerBollingerBandDetails());
+        Hibernate.initialize(result.getDetails());
 
         response.addParam(GlobalConstant.ITEM, result);
     }
@@ -341,8 +341,17 @@ public class CacheDaoImpl implements CacheDao {
         query.setParameter("standardDeviations", request.getParam("STANDARD_DEVIATIONS"));
         UpperBollingerBand result = (UpperBollingerBand) query.getSingleResult();
 
-        Hibernate.initialize(result.getUpperBollingerBandDetails());
+        Hibernate.initialize(result.getDetails());
 
         response.addParam(GlobalConstant.ITEM, result);
+    }
+
+    @Override
+    public void getCustomTechnicalIndicators(Request request, Response response) {
+        String queryStr = "SELECT DISTINCT x FROM CustomTechnicalIndicator AS x";
+        Query query = entityManager.createQuery(queryStr);
+        List<?> result = query.getResultList();
+
+        response.addParam(GlobalConstant.ITEMS, result);
     }
 }

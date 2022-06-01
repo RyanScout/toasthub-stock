@@ -7,8 +7,8 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.toasthub.common.Symbol;
-import org.toasthub.stock.model.UserTradeSignalKey;
+import org.toasthub.model.CustomTechnicalIndicator;
+import org.toasthub.model.Symbol;
 import org.toasthub.stock.model.cache.GoldenCross;
 import org.toasthub.stock.model.cache.LowerBollingerBand;
 import org.toasthub.stock.model.cache.TradeSignalCache;
@@ -59,9 +59,14 @@ public class CacheSvcImpl implements CacheSvc {
         if (request.containsParam(GlobalConstant.ITEM)) {
             m = (Map<String, Object>) request.getParam(GlobalConstant.ITEM);
         }
+
         request.setParams(m);
         request.addParam(GlobalConstant.IDENTIFIER, m.get("identifier"));
         request.addParam("EVAL_PERIOD", m.get("evalPeriod"));
+        request.addParam("SHORT_SMA_TYPE", m.get("shortSMAType"));
+        request.addParam("LONG_SMA_TYPE", m.get("longSMAType"));
+        request.addParam("NAME", m.get("name"));
+        request.addParam("SYMBOLS", m.get("symbols"));
         switch ((String) request.getParam(GlobalConstant.IDENTIFIER)) {
             case "GoldenCross":
                 saveGoldenCross(request, response);
@@ -75,56 +80,62 @@ public class CacheSvcImpl implements CacheSvc {
         try {
             GoldenCross goldenCross = new GoldenCross();
 
-            request.addParam("SHORT_SMA_TYPE", request.getParam("shortSMAType"));
-            request.addParam("LONG_SMA_TYPE", request.getParam("longSMAType"));
+            CustomTechnicalIndicator x = new CustomTechnicalIndicator();
+            x.setName((String) request.getParam("NAME"));
+            x.setEvaluationPeriod((String) request.getParam("EVAL_PERIOD"));
+            x.setTechnicalIndicatorType((String) request.getParam(GlobalConstant.IDENTIFIER));
+            x.setTechnicalIndicatorKey(
+                    request.getParam("SHORT_SMA_TYPE") + ":" + request.getParam("LONG_SMA_TYPE"));
 
-            UserTradeSignalKey x = new UserTradeSignalKey();
-            x.setUserTradeSignalKey(
-                    "GOLDEN_CROSS::" + request.getParam("SHORT_SMA_TYPE") + "::" + request.getParam("LONG_SMA_TYPE"));
+            List<String> symbols = new ArrayList<String>();
+
+            for (Object o : ArrayList.class.cast(request.getParam("SYMBOLS"))) {
+                symbols.add(String.class.cast(o));
+            }
+
+            symbols.stream()
+                    .distinct()
+                    .forEach(symbol -> {
+                        Symbol s = new Symbol();
+                        s.setSymbol(symbol);
+                        s.setCustomTechnicalIndicator(x);
+                        x.getSymbols().add(s);
+
+                        request.addParam(GlobalConstant.SYMBOL, symbol);
+
+                        try {
+                            cacheDao.itemCount(request, response);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            return;
+                        }
+
+                        if ((long) response.getParam(GlobalConstant.ITEMCOUNT) >= 1) {
+                            response.setStatus(Response.SUCCESS);
+                            return;
+                        }
+
+                        goldenCross.setTradeSignalKey(((String) request.getParam("SHORT_SMA_TYPE")) + ":"
+                                + ((String) request.getParam("LONG_SMA_TYPE")));
+
+                        goldenCross.setShortSMAType((String) request.getParam("SHORT_SMA_TYPE"));
+
+                        goldenCross.setLongSMAType((String) request.getParam("LONG_SMA_TYPE"));
+
+                        goldenCross.setEvalPeriod((String) request.getParam("EVAL_PERIOD"));
+
+                        goldenCross.setSymbol(symbol);
+
+                        request.addParam(GlobalConstant.ITEM, goldenCross);
+                        try {
+                            cacheDao.save(request, response);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    });
+
             request.addParam(GlobalConstant.ITEM, x);
             cacheDao.save(request, response);
-
-            cacheDao.itemCount(request, response);
-
-            // if goldenCross already exists, do nothing
-            if ((long) response.getParam(GlobalConstant.ITEMCOUNT) >= 1) {
-                response.setStatus(Response.SUCCESS);
-                return;
-            }
-
-            // check if goldenCross is a global, if not create unique key
-            if (((String) request.getParam("EVAL_PERIOD")).equals("DAY")
-                    && ((String) request.getParam("SHORT_SMA_TYPE")).equals(GoldenCross.DEFAULT_SHORT_SMA_TYPE_DAY)
-                    && ((String) request.getParam("LONG_SMA_TYPE")).equals(GoldenCross.DEFAULT_LONG_SMA_TYPE_DAY)) {
-                goldenCross.setTradeSignalKey("GLOBAL");
-            } else if (((String) request.getParam("EVAL_PERIOD")).equals("MINUTE")
-                    && ((String) request.getParam("SHORT_SMA_TYPE")).equals(GoldenCross.DEFAULT_SHORT_SMA_TYPE_MINUTE)
-                    && ((String) request.getParam("LONG_SMA_TYPE")).equals(GoldenCross.DEFAULT_LONG_SMA_TYPE_MINUTE)) {
-                goldenCross.setTradeSignalKey("GLOBAL");
-            } else {
-                goldenCross.setTradeSignalKey(((String) request.getParam("SHORT_SMA_TYPE")) + "::"
-                        + ((String) request.getParam("LONG_SMA_TYPE")));
-            }
-
-            goldenCross.setShortSMAType((String) request.getParam("SHORT_SMA_TYPE"));
-
-            goldenCross.setLongSMAType((String) request.getParam("LONG_SMA_TYPE"));
-
-            goldenCross.setEvalPeriod((String) request.getParam("EVAL_PERIOD"));
-
-            List<Object> goldenCrosses = new ArrayList<Object>();
-            for (String symbol : Symbol.SYMBOLS) {
-                GoldenCross tempGoldenCross = new GoldenCross();
-                tempGoldenCross.setTradeSignalKey(goldenCross.getTradeSignalKey());
-                tempGoldenCross.setShortSMAType(goldenCross.getShortSMAType());
-                tempGoldenCross.setLongSMAType(goldenCross.getLongSMAType());
-                tempGoldenCross.setEvalPeriod(goldenCross.getEvalPeriod());
-                tempGoldenCross.setSymbol(symbol);
-                goldenCrosses.add(tempGoldenCross);
-            }
-
-            request.addParam(GlobalConstant.ITEMS, goldenCrosses);
-            cacheDao.saveAll(request, response);
 
             response.setStatus(Response.SUCCESS);
         } catch (Exception e) {
@@ -182,17 +193,25 @@ public class CacheSvcImpl implements CacheSvc {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void items(Request request, Response response) {
-        response.addParam("GOLDEN_CROSS_DAY", tradeSignalCache.getGoldenCrossMap().get("GLOBAL::DAY::GENERAL"));
-        response.addParam("LOWER_BOLLINGER_BAND_DAY",
-                tradeSignalCache.getLowerBollingerBandMap().get("GLOBAL::DAY::GENERAL"));
-        response.addParam("UPPER_BOLLINGER_BAND_DAY",
-                tradeSignalCache.getUpperBollingerBandMap().get("GLOBAL::DAY::GENERAL"));
-        response.addParam("GOLDEN_CROSS_MINUTE", tradeSignalCache.getGoldenCrossMap().get("GLOBAL::MINUTE::GENERAL"));
-        response.addParam("LOWER_BOLLINGER_BAND_MINUTE",
-                tradeSignalCache.getLowerBollingerBandMap().get("GLOBAL::MINUTE::GENERAL"));
-        response.addParam("UPPER_BOLLINGER_BAND_MINUTE",
-                tradeSignalCache.getUpperBollingerBandMap().get("GLOBAL::MINUTE::GENERAL"));
+        cacheDao.getCustomTechnicalIndicators(request, response);
+        List<CustomTechnicalIndicator> keys = (List<CustomTechnicalIndicator>) response.getParam(GlobalConstant.ITEMS);
+        for (CustomTechnicalIndicator item : keys) {
+            switch (item.getTechnicalIndicatorType()) {
+                case "GoldenCross":
+                    for (Symbol symbol : item.getSymbols()) {
+                        item.getTechnicalIndicators().add(
+                                (tradeSignalCache.getGoldenCrossMap()
+                                        .get(item.getTechnicalIndicatorKey() + "::" + item.getEvaluationPeriod() + "::"
+                                                + symbol)));
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+        response.addParam(GlobalConstant.ITEMS, keys);
     }
 
     public void listGenerals(Request request, Response response) {
@@ -207,7 +226,6 @@ public class CacheSvcImpl implements CacheSvc {
         response.addParam("UPPER_BOLLINGER_BAND_MINUTE",
                 tradeSignalCache.getUpperBollingerBandMap().get("GLOBAL::MINUTE::GENERAL"));
     }
-
 
     @SuppressWarnings("unchecked")
     public void createGlobals(Request request, Response response) {

@@ -6,4 +6,5 @@ import org.toasthub.utils.Response;
 
 public interface CacheDao extends BaseDao {
     public void saveAll(Request request, Response response) throws Exception;
+    public void getCustomTechnicalIndicators(Request request, Response response);
 }

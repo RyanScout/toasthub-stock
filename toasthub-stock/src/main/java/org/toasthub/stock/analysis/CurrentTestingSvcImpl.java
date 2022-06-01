@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.persistence.NoResultException;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.toasthub.analysis.model.LBB;
 import org.toasthub.analysis.model.SMA;
 import org.toasthub.analysis.model.UBB;
+import org.toasthub.model.Symbol;
 import org.toasthub.analysis.model.AssetDay;
 import org.toasthub.analysis.model.AssetMinute;
 import org.toasthub.stock.cache.CacheDao;
@@ -30,7 +33,6 @@ import org.toasthub.stock.model.cache.UpperBollingerBand;
 import org.toasthub.stock.model.cache.UpperBollingerBandDetail;
 import org.toasthub.stock.trade.TradeDao;
 import org.toasthub.utils.GlobalConstant;
-import org.toasthub.common.Symbol;
 import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
 
@@ -144,20 +146,23 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
             for (String symbol : Symbol.SYMBOLS) {
                 request.addParam(GlobalConstant.SYMBOL, symbol);
 
-                currentTestingDao.getRecentAssetDay(request, response);
+                AssetDay recentAsesetDay = null;
 
-                AssetDay recentAssetDay = (AssetDay) response.getParam(GlobalConstant.ITEM);
+                try{
+                currentTestingDao.getRecentAssetDay(request, response);
+                recentAsesetDay = (AssetDay) response.getParam(GlobalConstant.ITEM);
+                }catch(NoResultException e){
+                }
 
                 boolean cacheIsInitialized = (tradeSignalCache.getRecentEpochSecondsMap()
                         .get("DAY::" + symbol) != null);
 
-                if (!cacheIsInitialized
-                        || tradeSignalCache.getRecentEpochSecondsMap().get("DAY::" + symbol) < recentAssetDay
-                                .getEpochSeconds()) {
-                    tradeSignalCache.getRecentClosingPriceMap().put("DAY::" + symbol, recentAssetDay.getClose());
-                    tradeSignalCache.getRecentEpochSecondsMap().put("DAY::" + symbol, recentAssetDay.getEpochSeconds());
-                    tradeSignalCache.getRecentVolumeMap().put("DAY::" + symbol, recentAssetDay.getVolume());
-                    tradeSignalCache.getRecentVwapMap().put("DAY::" + symbol, recentAssetDay.getVwap());
+                if (recentAsesetDay != null && (!cacheIsInitialized || tradeSignalCache.getRecentEpochSecondsMap()
+                        .get("DAY::" + symbol) < recentAsesetDay.getEpochSeconds())) {
+                    tradeSignalCache.getRecentClosingPriceMap().put("DAY::" + symbol, recentAsesetDay.getClose());
+                    tradeSignalCache.getRecentEpochSecondsMap().put("DAY::" + symbol, recentAsesetDay.getEpochSeconds());
+                    tradeSignalCache.getRecentVolumeMap().put("DAY::" + symbol, recentAsesetDay.getVolume());
+                    tradeSignalCache.getRecentVwapMap().put("DAY::" + symbol, recentAsesetDay.getVwap());
                     request.addParam("EVAL_PERIOD", "DAY");
                     updateGoldenCrossCache(request, response);
                     updateLowerBollingerBandCache(request, response);
@@ -167,13 +172,18 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
 
                 currentTestingDao.getRecentAssetMinute(request, response);
 
-                AssetMinute recentAssetMinute = (AssetMinute) response.getParam(GlobalConstant.ITEM);
+                AssetMinute recentAsesetMinute = null;
+
+                try{
+                currentTestingDao.getRecentAssetMinute(request, response);
+                recentAsesetMinute = (AssetMinute) response.getParam(GlobalConstant.ITEM);
+                }catch(NoResultException e){
+                }
 
                 cacheIsInitialized = (tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol) != null);
 
-                if (!cacheIsInitialized
-                        || tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol) < recentAssetMinute
-                                .getEpochSeconds()) {
+                if (recentAssetMinute != null && (!cacheIsInitialized || tradeSignalCache.getRecentEpochSecondsMap()
+                        .get("MINUTE::" + symbol) < recentAssetMinute.getEpochSeconds())) {
                     tradeSignalCache.getRecentClosingPriceMap().put("MINUTE::" + symbol, recentAssetMinute.getValue());
                     tradeSignalCache.getRecentEpochSecondsMap().put("MINUTE::" + symbol,
                             recentAssetMinute.getEpochSeconds());
@@ -236,7 +246,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                         .get(evalPeriod + "::" + symbol)) {
 
                     // update each goldencross child
-                    for (GoldenCrossDetail g : goldenCross.getGoldenCrossDetails()) {
+                    for (GoldenCrossDetail g : goldenCross.getDetails()) {
                         if (g.getChecked() < 100) {
                             g.setChecked(g.getChecked() + 1);
 
@@ -272,7 +282,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                         goldenCrossDetail
                                 .setVolume(tradeSignalCache.getRecentVolumeMap().get(evalPeriod + "::" + symbol));
                         goldenCrossDetail.setVwap(tradeSignalCache.getRecentVwapMap().get(evalPeriod + "::" + symbol));
-                        goldenCross.getGoldenCrossDetails().add(goldenCrossDetail);
+                        goldenCross.getDetails().add(goldenCrossDetail);
 
                     } else
                         goldenCross.setFlashing(false);
@@ -334,7 +344,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                 if (lowerBollingerBand.getLastCheck() != tradeSignalCache.getRecentEpochSecondsMap()
                         .get(evalPeriod + "::" + symbol)) {
 
-                    for (LowerBollingerBandDetail l : lowerBollingerBand.getLowerBollingerBandDetails()) {
+                    for (LowerBollingerBandDetail l : lowerBollingerBand.getDetails()) {
                         if (l.getChecked() < 100) {
                             l.setChecked(l.getChecked() + 1);
 
@@ -374,7 +384,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                                 .setVolume(tradeSignalCache.getRecentVolumeMap().get(evalPeriod + "::" + symbol));
                         lowerBollingerBandDetail
                                 .setVwap(tradeSignalCache.getRecentVwapMap().get(evalPeriod + "::" + symbol));
-                        lowerBollingerBand.getLowerBollingerBandDetails().add(lowerBollingerBandDetail);
+                        lowerBollingerBand.getDetails().add(lowerBollingerBandDetail);
                     } else
                         lowerBollingerBand.setFlashing(false);
 
@@ -433,7 +443,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                 if (upperBollingerBand.getLastCheck() != tradeSignalCache.getRecentEpochSecondsMap()
                         .get(evalPeriod + "::" + symbol)) {
 
-                    for (UpperBollingerBandDetail u : upperBollingerBand.getUpperBollingerBandDetails()) {
+                    for (UpperBollingerBandDetail u : upperBollingerBand.getDetails()) {
                         if (u.getChecked() < 100) {
                             u.setChecked(u.getChecked() + 1);
 
@@ -474,7 +484,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                                 .setVolume(tradeSignalCache.getRecentVolumeMap().get(evalPeriod + "::" + symbol));
                         upperBollingerBandDetail
                                 .setVwap(tradeSignalCache.getRecentVwapMap().get(evalPeriod + "::" + symbol));
-                        upperBollingerBand.getUpperBollingerBandDetails().add(upperBollingerBandDetail);
+                        upperBollingerBand.getDetails().add(upperBollingerBandDetail);
                     } else
                         upperBollingerBand.setFlashing(false);
 
@@ -560,10 +570,10 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
         }
         List<GoldenCross> goldenCrosses = new ArrayList<GoldenCross>();
         GoldenCross generalGoldenCross = new GoldenCross();
-        for(GoldenCross goldenCross : goldenCrosses){
-        generalGoldenCross.setSymbol("GENERAL");
-        generalGoldenCross.setShortSMAType(GoldenCross.DEFAULT_SHORT_SMA_TYPE_MINUTE);
-        generalGoldenCross.setLongSMAType(GoldenCross.DEFAULT_LONG_SMA_TYPE_MINUTE);
+        for (GoldenCross goldenCross : goldenCrosses) {
+            generalGoldenCross.setSymbol("GENERAL");
+            generalGoldenCross.setShortSMAType(GoldenCross.DEFAULT_SHORT_SMA_TYPE_MINUTE);
+            generalGoldenCross.setLongSMAType(GoldenCross.DEFAULT_LONG_SMA_TYPE_MINUTE);
         }
     }
 
