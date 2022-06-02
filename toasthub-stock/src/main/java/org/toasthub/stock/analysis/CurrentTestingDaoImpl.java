@@ -17,7 +17,6 @@
 package org.toasthub.stock.analysis;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -28,8 +27,6 @@ import javax.persistence.Query;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import org.toasthub.analysis.model.AssetDay;
-import org.toasthub.analysis.model.AssetMinute;
 import org.toasthub.model.Symbol;
 import org.toasthub.stock.model.HistoricalAnalysis;
 import org.toasthub.utils.GlobalConstant;
@@ -103,7 +100,7 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 
 		Query query = entityManager.createQuery(queryStr);
 		List<?> items = null;
-		items = (List<?>)(query.getResultList());
+		items = (List<?>) (query.getResultList());
 
 		response.addParam(GlobalConstant.ITEMS, items);
 	}
@@ -270,7 +267,8 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 		response.addParam(GlobalConstant.ITEM, result);
 	}
 
-	public void getRecentAssetDay(Request request, Response response) {
+	@Override
+	public void getRecentAssetDay(Request request, Response response) throws NoResultException {
 		String x = (String) request.getParam(GlobalConstant.SYMBOL);
 
 		if (Arrays.asList(Symbol.SYMBOLS).contains(x)) {
@@ -283,7 +281,7 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 	}
 
 	@Override
-	public void getRecentAssetMinute(Request request, Response response) {
+	public void getRecentAssetMinute(Request request, Response response) throws NoResultException {
 		String x = (String) request.getParam(GlobalConstant.SYMBOL);
 
 		if (Arrays.asList(Symbol.SYMBOLS).contains(x)) {

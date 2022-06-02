@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+import org.toasthub.model.TechnicalIndicator;
 
 @Component
 @Scope("singleton")
@@ -15,13 +16,22 @@ public class TradeSignalCache {
     private Map<String, LowerBollingerBand> lowerBollingerBandMap = new ConcurrentHashMap<String, LowerBollingerBand>();
     private Map<String, UpperBollingerBand> upperBollingerBandMap = new ConcurrentHashMap<String, UpperBollingerBand>();
     private Map<String, SignalLineCross> signalLineCrossMap = new ConcurrentHashMap<String, SignalLineCross>();
-    
+    private Map<String, TechnicalIndicator> technicalIndicatorMap = new ConcurrentHashMap<String, TechnicalIndicator>();
+
     private Map<String, BigDecimal> recentClosingPriceMap = new ConcurrentHashMap<String, BigDecimal>();
     private Map<String, Long> recentVolumeMap = new ConcurrentHashMap<String, Long>();
     private Map<String, BigDecimal> recentVwapMap = new ConcurrentHashMap<String, BigDecimal>();
     private Map<String, Long> recentEpochSecondsMap = new ConcurrentHashMap<String, Long>();
 
     private TradeSignalCache() {
+    }
+
+    public Map<String, TechnicalIndicator> getTechnicalIndicatorMap() {
+        return technicalIndicatorMap;
+    }
+
+    public void setTechnicalIndicatorMap(Map<String, TechnicalIndicator> technicalIndicatorMap) {
+        this.technicalIndicatorMap = technicalIndicatorMap;
     }
 
     public Map<String, Long> getRecentVolumeMap() {

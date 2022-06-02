@@ -16,11 +16,14 @@
 
 package org.toasthub.stock.analysis;
 
+import javax.persistence.NoResultException;
+
 import org.toasthub.common.BaseDao;
 import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
 
 public interface CurrentTestingDao extends BaseDao {
-	public void getRecentAssetDay(Request request, Response response);
-	public void getRecentAssetMinute(Request request, Response response);
+	public void getRecentAssetDay(Request request, Response response) throws NoResultException;
+
+	public void getRecentAssetMinute(Request request, Response response) throws NoResultException;
 }

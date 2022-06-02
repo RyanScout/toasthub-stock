@@ -1,14 +1,18 @@
 package org.toasthub.stock.cache;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.toasthub.model.CustomTechnicalIndicator;
 import org.toasthub.model.Symbol;
+import org.toasthub.model.TechnicalIndicator;
+import org.toasthub.stock.custom_technical_indicator.CustomTechnicalIndicatorDao;
 import org.toasthub.stock.model.cache.GoldenCross;
 import org.toasthub.stock.model.cache.LowerBollingerBand;
 import org.toasthub.stock.model.cache.TradeSignalCache;
@@ -22,6 +26,9 @@ public class CacheSvcImpl implements CacheSvc {
 
     @Autowired
     protected CacheDao cacheDao;
+
+    @Autowired
+    private CustomTechnicalIndicatorDao customTechnicalIndicatorDao;
 
     @Autowired
     protected TradeSignalCache tradeSignalCache;
@@ -52,96 +59,70 @@ public class CacheSvcImpl implements CacheSvc {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public void save(Request request, Response response) {
-        Map<String, Object> m = new HashMap<String, Object>();
 
-        if (request.containsParam(GlobalConstant.ITEM)) {
-            m = (Map<String, Object>) request.getParam(GlobalConstant.ITEM);
+        TechnicalIndicator temp = new TechnicalIndicator();
+
+        temp.setEvaluationPeriod((String) request.getParam("EVALUATION_PERIOD"));
+        temp.setTechnicalIndicatorType((String) request.getParam("TECHNICAL_INDICATOR_TYPE"));
+        temp.setTechnicalIndicatorKey((String) request.getParam("TECHNICAL_INDICATOR_KEY"));
+
+        if (request.getParam("SHORT_SMA_TYPE") != null) {
+            temp.setShortSMAType((String) request.getParam("SHORT_SMA_TYPE"));
         }
 
-        request.setParams(m);
-        request.addParam(GlobalConstant.IDENTIFIER, m.get("identifier"));
-        request.addParam("EVAL_PERIOD", m.get("evalPeriod"));
-        request.addParam("SHORT_SMA_TYPE", m.get("shortSMAType"));
-        request.addParam("LONG_SMA_TYPE", m.get("longSMAType"));
-        request.addParam("NAME", m.get("name"));
-        request.addParam("SYMBOLS", m.get("symbols"));
-        switch ((String) request.getParam(GlobalConstant.IDENTIFIER)) {
-            case "GoldenCross":
-                saveGoldenCross(request, response);
-                break;
-            default:
-                break;
+        if (request.getParam("LONG_SMA_TYPE") != null) {
+            temp.setLongSMAType((String) request.getParam("LONG_SMA_TYPE"));
         }
-    }
 
-    public void saveGoldenCross(Request request, Response response) {
         try {
-            GoldenCross goldenCross = new GoldenCross();
-
-            CustomTechnicalIndicator x = new CustomTechnicalIndicator();
-            x.setName((String) request.getParam("NAME"));
-            x.setEvaluationPeriod((String) request.getParam("EVAL_PERIOD"));
-            x.setTechnicalIndicatorType((String) request.getParam(GlobalConstant.IDENTIFIER));
-            x.setTechnicalIndicatorKey(
-                    request.getParam("SHORT_SMA_TYPE") + ":" + request.getParam("LONG_SMA_TYPE"));
-
-            List<String> symbols = new ArrayList<String>();
-
-            for (Object o : ArrayList.class.cast(request.getParam("SYMBOLS"))) {
-                symbols.add(String.class.cast(o));
-            }
-
-            symbols.stream()
-                    .distinct()
-                    .forEach(symbol -> {
-                        Symbol s = new Symbol();
-                        s.setSymbol(symbol);
-                        s.setCustomTechnicalIndicator(x);
-                        x.getSymbols().add(s);
-
-                        request.addParam(GlobalConstant.SYMBOL, symbol);
-
-                        try {
-                            cacheDao.itemCount(request, response);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            return;
-                        }
-
-                        if ((long) response.getParam(GlobalConstant.ITEMCOUNT) >= 1) {
-                            response.setStatus(Response.SUCCESS);
-                            return;
-                        }
-
-                        goldenCross.setTradeSignalKey(((String) request.getParam("SHORT_SMA_TYPE")) + ":"
-                                + ((String) request.getParam("LONG_SMA_TYPE")));
-
-                        goldenCross.setShortSMAType((String) request.getParam("SHORT_SMA_TYPE"));
-
-                        goldenCross.setLongSMAType((String) request.getParam("LONG_SMA_TYPE"));
-
-                        goldenCross.setEvalPeriod((String) request.getParam("EVAL_PERIOD"));
-
-                        goldenCross.setSymbol(symbol);
-
-                        request.addParam(GlobalConstant.ITEM, goldenCross);
-                        try {
-                            cacheDao.save(request, response);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    });
-
-            request.addParam(GlobalConstant.ITEM, x);
-            cacheDao.save(request, response);
-
-            response.setStatus(Response.SUCCESS);
+            cacheDao.itemCount(request, response);
         } catch (Exception e) {
-            response.setStatus(Response.ACTIONFAILED);
+            e.printStackTrace();
+            return;
+        }
+
+        if ((Long) response.getParam(GlobalConstant.ITEMCOUNT) == 1) {
+            try {
+                cacheDao.item(request, response);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            temp = (TechnicalIndicator) response.getParam(GlobalConstant.ITEM);
+        }
+
+        TechnicalIndicator x = temp;
+        Collection<String> symbols = new ArrayList<String>();
+
+        for (Object o : ArrayList.class.cast(request.getParam("SYMBOLS"))) {
+            symbols.add(String.class.cast(o));
+        }
+
+        symbols.removeAll(
+                x.getSymbols()
+                        .stream()
+                        .map(symbol -> symbol.getSymbol())
+                        .collect(Collectors.toList()));
+
+        symbols.stream()
+                .distinct()
+                .forEach(symbol -> {
+                    Symbol s = new Symbol();
+                    s.setSymbol(symbol);
+                    s.setTechnicalIndicator(x);
+                    x.getSymbols().add(s);
+                });
+
+        request.addParam(GlobalConstant.ITEM, x);
+
+        try {
+            cacheDao.save(request, response);
+        } catch (Exception e) {
             e.printStackTrace();
         }
+
+        response.setStatus(Response.SUCCESS);
+
     }
 
     @Override
@@ -193,24 +174,28 @@ public class CacheSvcImpl implements CacheSvc {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public void items(Request request, Response response) {
-        cacheDao.getCustomTechnicalIndicators(request, response);
-        List<CustomTechnicalIndicator> keys = (List<CustomTechnicalIndicator>) response.getParam(GlobalConstant.ITEMS);
-        for (CustomTechnicalIndicator item : keys) {
-            switch (item.getTechnicalIndicatorType()) {
-                case "GoldenCross":
-                    for (Symbol symbol : item.getSymbols()) {
-                        item.getTechnicalIndicators().add(
-                                (tradeSignalCache.getGoldenCrossMap()
-                                        .get(item.getTechnicalIndicatorKey() + "::" + item.getEvaluationPeriod() + "::"
-                                                + symbol)));
-                    }
-                    break;
-                default:
-                    break;
-            }
+        try {
+            customTechnicalIndicatorDao.items(request, response);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+
+        List<CustomTechnicalIndicator> keys = new ArrayList<CustomTechnicalIndicator>();
+
+        for (Object o : ArrayList.class.cast(response.getParam(GlobalConstant.ITEMS))) {
+            keys.add(CustomTechnicalIndicator.class.cast(o));
+        }
+
+        keys.stream().forEach(item -> {
+            item.getSymbols().stream().forEach(symbol -> {
+                item.getTechnicalIndicators()
+                        .add(tradeSignalCache.getTechnicalIndicatorMap()
+                                .get(item.getTechnicalIndicatorType() + "::" + item.getTechnicalIndicatorKey() + "::"
+                                        + item.getEvaluationPeriod() + "::" + symbol.getSymbol()));
+            });
+        });
+
         response.addParam(GlobalConstant.ITEMS, keys);
     }
 
