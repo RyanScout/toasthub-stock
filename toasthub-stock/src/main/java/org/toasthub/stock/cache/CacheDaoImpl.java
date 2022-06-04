@@ -43,7 +43,7 @@ public class CacheDaoImpl implements CacheDao {
 
     @Override
     public void items(Request request, Response response) {
-        String queryStr = "SELECT DISTINCT x FROM TechnicalIndicator as x JOIN FETCH x.symbols as s";
+        String queryStr = "SELECT DISTINCT x FROM TechnicalIndicator as x";
         Query query = entityManager.createQuery(queryStr);
         for (Object o : ArrayList.class.cast(query.getResultList())) {
             Hibernate.initialize(((TechnicalIndicator) o).getDetails());
@@ -53,11 +53,12 @@ public class CacheDaoImpl implements CacheDao {
 
     @Override
     public void itemCount(Request request, Response response) throws Exception {
-        String queryStr = "SELECT COUNT(DISTINCT x) FROM TechnicalIndicator as x WHERE x.technicalIndicatorType =:technicalIndicatorType AND x.evaluationPeriod =:evaluationPeriod AND x.technicalIndicatorKey =:technicalIndicatorKey";
+        String queryStr = "SELECT COUNT(DISTINCT x) FROM TechnicalIndicator as x WHERE x.technicalIndicatorType =:technicalIndicatorType AND x.evaluationPeriod =:evaluationPeriod AND x.technicalIndicatorKey =:technicalIndicatorKey AND x.symbol =:symbol";
         Query query = entityManager.createQuery(queryStr);
         query.setParameter("technicalIndicatorType", (String) request.getParam("TECHNICAL_INDICATOR_TYPE"));
         query.setParameter("evaluationPeriod", (String) request.getParam("EVALUATION_PERIOD"));
         query.setParameter("technicalIndicatorKey", (String) request.getParam("TECHNICAL_INDICATOR_KEY"));
+        query.setParameter("symbol", ((String) request.getParam(GlobalConstant.SYMBOL)));
 
         Long count = (Long) query.getSingleResult();
         if (count == null) {

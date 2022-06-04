@@ -261,99 +261,102 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
 
         technicalIndicators.stream()
                 .forEach(technicalIndicator -> {
-                    technicalIndicator.getSymbols().stream()
-                            .forEach(symbol -> {
-                                String evaluationPeriod = technicalIndicator.getEvaluationPeriod();
-                                if (tradeSignalCache.getRecentEpochSecondsMap()
-                                        .get(evaluationPeriod + "::" + symbol.getSymbol()) == null) {
-                                    return;
-                                }
-                                if (technicalIndicator.getFirstCheck() == 0) {
-                                    technicalIndicator
-                                            .setFirstCheck(tradeSignalCache.getRecentEpochSecondsMap()
-                                                    .get(evaluationPeriod + "::" + symbol.getSymbol()));
-                                }
+                    String symbol = technicalIndicator.getSymbol();
+                    String evaluationPeriod = technicalIndicator.getEvaluationPeriod();
 
-                                if (technicalIndicator.getLastCheck() < tradeSignalCache.getRecentEpochSecondsMap()
-                                        .get(evaluationPeriod + "::" + symbol.getSymbol())) {
+                    tradeSignalCache.getTechnicalIndicatorMap()
+                            .put(technicalIndicator.getTechnicalIndicatorType() + "::"
+                                    + technicalIndicator.getTechnicalIndicatorKey() + "::"
+                                    + evaluationPeriod + "::"
+                                    + symbol, technicalIndicator);
 
-                                    technicalIndicator.getDetails().stream().forEach(detail -> {
-                                        if (detail.getChecked() < 100) {
-                                            detail.setChecked(detail.getChecked() + 1);
+                    if (tradeSignalCache.getRecentEpochSecondsMap()
+                            .get(evaluationPeriod + "::" + symbol) == null) {
+                        return;
+                    }
+                    if (technicalIndicator.getFirstCheck() == 0) {
+                        technicalIndicator
+                                .setFirstCheck(tradeSignalCache.getRecentEpochSecondsMap()
+                                        .get(evaluationPeriod + "::" + symbol));
+                    }
 
-                                            BigDecimal tempSuccessPercent = (tradeSignalCache.getRecentClosingPriceMap()
-                                                    .get(evaluationPeriod + "::" + symbol.getSymbol())
-                                                    .subtract(detail.getFlashPrice()))
-                                                    .divide(detail.getFlashPrice(), MathContext.DECIMAL32)
-                                                    .multiply(BigDecimal.valueOf(100));
+                    if (technicalIndicator.getLastCheck() < tradeSignalCache.getRecentEpochSecondsMap()
+                            .get(evaluationPeriod + "::" + symbol)) {
 
-                                            if (detail.getSuccessPercent() == null
-                                                    || detail.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
-                                                detail.setSuccessPercent(tempSuccessPercent);
-                                            }
+                        technicalIndicator.getDetails().stream().forEach(detail -> {
+                            if (detail.getChecked() < 100) {
+                                detail.setChecked(detail.getChecked() + 1);
 
-                                            if (detail.isSuccess() == false && detail.getFlashPrice().compareTo(
-                                                    tradeSignalCache.getRecentClosingPriceMap()
-                                                            .get(evaluationPeriod + "::" + symbol.getSymbol())) < 0) {
-                                                detail.setSuccess(true);
-                                                technicalIndicator.setSuccesses(technicalIndicator.getSuccesses() + 1);
-                                            }
-                                        }
-                                    });
+                                BigDecimal tempSuccessPercent = (tradeSignalCache.getRecentClosingPriceMap()
+                                        .get(evaluationPeriod + "::" + symbol)
+                                        .subtract(detail.getFlashPrice()))
+                                        .divide(detail.getFlashPrice(), MathContext.DECIMAL32)
+                                        .multiply(BigDecimal.valueOf(100));
 
-                                    boolean flashing = false;
-
-                                    switch (technicalIndicator.getTechnicalIndicatorType()) {
-                                        case "GoldenCross":
-                                            flashing = goldenCrossIsFlashing(request, response);
-                                            break;
-                                    }
-
-                                    technicalIndicator.setFlashing(flashing);
-                                    if (flashing) {
-                                        technicalIndicator.setLastFlash(
-                                                tradeSignalCache.getRecentEpochSecondsMap()
-                                                        .get(evaluationPeriod + "::" + symbol.getSymbol()));
-                                        technicalIndicator.setFlashed(technicalIndicator.getFlashed() + 1);
-
-                                        TechnicalIndicatorDetail technicalIndicatorDetail = new TechnicalIndicatorDetail();
-                                        technicalIndicatorDetail.setTechnicalIndicator(technicalIndicator);
-                                        technicalIndicatorDetail.setFlashTime(
-                                                tradeSignalCache.getRecentEpochSecondsMap()
-                                                        .get(evaluationPeriod + "::" + symbol.getSymbol()));
-                                        technicalIndicatorDetail.setFlashPrice(
-                                                tradeSignalCache.getRecentClosingPriceMap()
-                                                        .get(evaluationPeriod + "::" + symbol.getSymbol()));
-                                        technicalIndicatorDetail
-                                                .setVolume(tradeSignalCache.getRecentVolumeMap()
-                                                        .get(evaluationPeriod + "::" + symbol.getSymbol()));
-                                        technicalIndicatorDetail.setVwap(
-                                                tradeSignalCache.getRecentVwapMap()
-                                                        .get(evaluationPeriod + "::" + symbol.getSymbol()));
-                                        technicalIndicator.getDetails().add(technicalIndicatorDetail);
-                                    }
-
-                                    technicalIndicator.setChecked(technicalIndicator.getChecked() + 1);
-
-                                    technicalIndicator
-                                            .setLastCheck(tradeSignalCache.getRecentEpochSecondsMap()
-                                                    .get(evaluationPeriod + "::" + symbol.getSymbol()));
+                                if (detail.getSuccessPercent() == null
+                                        || detail.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
+                                    detail.setSuccessPercent(tempSuccessPercent);
                                 }
 
-                                tradeSignalCache.getTechnicalIndicatorMap()
-                                        .put(technicalIndicator.getTechnicalIndicatorType() + "::"
-                                                + technicalIndicator.getTechnicalIndicatorKey() + "::"
-                                                + evaluationPeriod + "::"
-                                                + symbol.getSymbol(), technicalIndicator);
-
-                                request.addParam(GlobalConstant.ITEM, technicalIndicator);
-                                try {
-                                    cacheDao.save(request, response);
-                                } catch (Exception e) {
-                                    e.printStackTrace();
+                                if (detail.isSuccess() == false && detail.getFlashPrice().compareTo(
+                                        tradeSignalCache.getRecentClosingPriceMap()
+                                                .get(evaluationPeriod + "::" + symbol)) < 0) {
+                                    detail.setSuccess(true);
+                                    technicalIndicator.setSuccesses(technicalIndicator.getSuccesses() + 1);
                                 }
+                            }
+                        });
 
-                            });
+                        boolean flashing = false;
+
+                        request.addParam(GlobalConstant.SYMBOL, symbol);
+                        request.addParam("EVALUATION_PERIOD", technicalIndicator.getEvaluationPeriod());
+                        request.addParam("SHORT_SMA_TYPE", technicalIndicator.getShortSMAType());
+                        request.addParam("LONG_SMA_TYPE", technicalIndicator.getLongSMAType());
+                        switch (technicalIndicator.getTechnicalIndicatorType()) {
+                            case "GoldenCross":
+                                flashing = goldenCrossIsFlashing(request, response);
+                                break;
+                        }
+
+                        technicalIndicator.setFlashing(flashing);
+                        if (flashing) {
+                            technicalIndicator.setLastFlash(
+                                    tradeSignalCache.getRecentEpochSecondsMap()
+                                            .get(evaluationPeriod + "::" + symbol));
+                            technicalIndicator.setFlashed(technicalIndicator.getFlashed() + 1);
+
+                            TechnicalIndicatorDetail technicalIndicatorDetail = new TechnicalIndicatorDetail();
+                            technicalIndicatorDetail.setTechnicalIndicator(technicalIndicator);
+                            technicalIndicatorDetail.setFlashTime(
+                                    tradeSignalCache.getRecentEpochSecondsMap()
+                                            .get(evaluationPeriod + "::" + symbol));
+                            technicalIndicatorDetail.setFlashPrice(
+                                    tradeSignalCache.getRecentClosingPriceMap()
+                                            .get(evaluationPeriod + "::" + symbol));
+                            technicalIndicatorDetail
+                                    .setVolume(tradeSignalCache.getRecentVolumeMap()
+                                            .get(evaluationPeriod + "::" + symbol));
+                            technicalIndicatorDetail.setVwap(
+                                    tradeSignalCache.getRecentVwapMap()
+                                            .get(evaluationPeriod + "::" + symbol));
+                            technicalIndicator.getDetails().add(technicalIndicatorDetail);
+                        }
+
+                        technicalIndicator.setChecked(technicalIndicator.getChecked() + 1);
+
+                        technicalIndicator
+                                .setLastCheck(tradeSignalCache.getRecentEpochSecondsMap()
+                                        .get(evaluationPeriod + "::" + symbol));
+                    }
+
+                    request.addParam(GlobalConstant.ITEM, technicalIndicator);
+                    try {
+                        cacheDao.save(request, response);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
                 });
     }
 

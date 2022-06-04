@@ -1,6 +1,7 @@
 package org.toasthub.stock.custom_technical_indicator;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,11 +60,17 @@ public class CustomTechnicalIndicatorSvcImpl implements CustomTechnicalIndicator
         int i = 0;
 
         request.setParams(tempMap);
+        request.addParam("SYMBOLS", request.getParam("symbols"));
         request.addParam(GlobalConstant.ITEMID, request.getParam("id"));
         request.addParam("TECHNICAL_INDICATOR_TYPE", request.getParam("technicalIndicatorType"));
         request.addParam("NAME", request.getParam("name"));
+
+        if (request.getParam("evaluationPeriod") == null) {
+            response.setStatus(Response.EMPTY);
+            return;
+        }
+
         request.addParam("EVALUATION_PERIOD", request.getParam("evaluationPeriod"));
-        request.addParam("SYMBOLS", request.getParam("symbols"));
 
         string = (String) request.getParam("shortSMAType");
         if (!string.endsWith("-" + ((String) request.getParam("EVALUATION_PERIOD")).toLowerCase())) {
@@ -100,6 +107,7 @@ public class CustomTechnicalIndicatorSvcImpl implements CustomTechnicalIndicator
         }
 
         if (i <= 0 || i > 999) {
+            response.setStatus(Response.ERROR);
             return;
         }
 
@@ -146,6 +154,9 @@ public class CustomTechnicalIndicatorSvcImpl implements CustomTechnicalIndicator
 
         symbols.stream()
                 .distinct()
+                .filter(symbol -> Arrays.asList(Symbol.SYMBOLS).contains(symbol))
+                .filter(symbol -> !x.getSymbols().stream()
+                        .anyMatch(tempSymbol -> tempSymbol.getSymbol().equals(symbol)))
                 .forEach(symbol -> {
                     Symbol s = new Symbol();
                     s.setSymbol(symbol);

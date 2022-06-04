@@ -1,11 +1,13 @@
 package org.toasthub.stock.cache;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -60,66 +62,52 @@ public class CacheSvcImpl implements CacheSvc {
 
     @Override
     public void save(Request request, Response response) {
-
-        TechnicalIndicator temp = new TechnicalIndicator();
-
-        temp.setEvaluationPeriod((String) request.getParam("EVALUATION_PERIOD"));
-        temp.setTechnicalIndicatorType((String) request.getParam("TECHNICAL_INDICATOR_TYPE"));
-        temp.setTechnicalIndicatorKey((String) request.getParam("TECHNICAL_INDICATOR_KEY"));
-
-        if (request.getParam("SHORT_SMA_TYPE") != null) {
-            temp.setShortSMAType((String) request.getParam("SHORT_SMA_TYPE"));
-        }
-
-        if (request.getParam("LONG_SMA_TYPE") != null) {
-            temp.setLongSMAType((String) request.getParam("LONG_SMA_TYPE"));
-        }
-
-        try {
-            cacheDao.itemCount(request, response);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return;
-        }
-
-        if ((Long) response.getParam(GlobalConstant.ITEMCOUNT) == 1) {
-            try {
-                cacheDao.item(request, response);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            temp = (TechnicalIndicator) response.getParam(GlobalConstant.ITEM);
-        }
-
-        TechnicalIndicator x = temp;
         Collection<String> symbols = new ArrayList<String>();
 
         for (Object o : ArrayList.class.cast(request.getParam("SYMBOLS"))) {
             symbols.add(String.class.cast(o));
         }
 
-        symbols.removeAll(
-                x.getSymbols()
-                        .stream()
-                        .map(symbol -> symbol.getSymbol())
-                        .collect(Collectors.toList()));
-
         symbols.stream()
                 .distinct()
+                .filter(symbol -> Arrays.asList(Symbol.SYMBOLS).contains(symbol))
                 .forEach(symbol -> {
-                    Symbol s = new Symbol();
-                    s.setSymbol(symbol);
-                    s.setTechnicalIndicator(x);
-                    x.getSymbols().add(s);
+                    request.addParam(GlobalConstant.SYMBOL, symbol);
+                    try {
+                        cacheDao.itemCount(request, response);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return;
+                    }
+
+                    if ((Long) response.getParam(GlobalConstant.ITEMCOUNT) == 1) {
+                        return;
+                    }
+
+                    TechnicalIndicator temp = new TechnicalIndicator();
+
+                    temp.setEvaluationPeriod((String) request.getParam("EVALUATION_PERIOD"));
+                    temp.setTechnicalIndicatorType((String) request.getParam("TECHNICAL_INDICATOR_TYPE"));
+                    temp.setTechnicalIndicatorKey((String) request.getParam("TECHNICAL_INDICATOR_KEY"));
+
+                    temp.setSymbol(symbol);
+
+                    if (request.getParam("SHORT_SMA_TYPE") != null) {
+                        temp.setShortSMAType((String) request.getParam("SHORT_SMA_TYPE"));
+                    }
+
+                    if (request.getParam("LONG_SMA_TYPE") != null) {
+                        temp.setLongSMAType((String) request.getParam("LONG_SMA_TYPE"));
+                    }
+
+                    request.addParam(GlobalConstant.ITEM, temp);
+
+                    try {
+                        cacheDao.save(request, response);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 });
-
-        request.addParam(GlobalConstant.ITEM, x);
-
-        try {
-            cacheDao.save(request, response);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
         response.setStatus(Response.SUCCESS);
 
@@ -188,12 +176,15 @@ public class CacheSvcImpl implements CacheSvc {
         }
 
         keys.stream().forEach(item -> {
-            item.getSymbols().stream().forEach(symbol -> {
-                item.getTechnicalIndicators()
-                        .add(tradeSignalCache.getTechnicalIndicatorMap()
-                                .get(item.getTechnicalIndicatorType() + "::" + item.getTechnicalIndicatorKey() + "::"
-                                        + item.getEvaluationPeriod() + "::" + symbol.getSymbol()));
-            });
+            item.getSymbols().stream()
+                    .map(symbol -> symbol.getSymbol())
+                    .forEach(symbol -> {
+                        item.getTechnicalIndicators()
+                                .add(tradeSignalCache.getTechnicalIndicatorMap()
+                                        .get(item.getTechnicalIndicatorType() + "::" + item.getTechnicalIndicatorKey()
+                                                + "::"
+                                                + item.getEvaluationPeriod() + "::" + symbol));
+                    });
         });
 
         response.addParam(GlobalConstant.ITEMS, keys);
