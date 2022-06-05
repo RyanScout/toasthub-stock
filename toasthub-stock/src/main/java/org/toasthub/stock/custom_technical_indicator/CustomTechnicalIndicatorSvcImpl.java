@@ -1,5 +1,6 @@
 package org.toasthub.stock.custom_technical_indicator;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -8,8 +9,10 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.toasthub.common.RequestValidation;
 import org.toasthub.model.CustomTechnicalIndicator;
 import org.toasthub.model.Symbol;
+import org.toasthub.model.TechnicalIndicator;
 import org.toasthub.stock.cache.CacheSvc;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
@@ -45,24 +48,43 @@ public class CustomTechnicalIndicatorSvcImpl implements CustomTechnicalIndicator
 
     @Override
     public void save(Request request, Response response) {
+        response.setStatus("Starting!");
+
         if ((!request.containsParam(GlobalConstant.ITEM)) || (request.getParam(GlobalConstant.ITEM) == null)) {
             return;
         }
 
         Map<?, ?> m = Map.class.cast(request.getParam(GlobalConstant.ITEM));
+
         Map<String, Object> tempMap = new HashMap<String, Object>();
+
         for (Object o : m.keySet()) {
             tempMap.put(String.class.cast(o), m.get(String.class.cast(o)));
         }
 
-        String string = "";
-        String substring = "";
-        int i = 0;
-
         request.setParams(tempMap);
+
         request.addParam("SYMBOLS", request.getParam("symbols"));
         request.addParam(GlobalConstant.ITEMID, request.getParam("id"));
+
+        if (request.getParam("technicalIndicatorType") == null) {
+            response.setStatus(Response.EMPTY);
+            return;
+        }
+
+        if (!Arrays.asList(TechnicalIndicator.TECHNICALINDICATORTYPES)
+                .contains((String) request.getParam("technicalIndicatorType"))) {
+            response.setStatus(Response.ERROR);
+            return;
+        }
+
         request.addParam("TECHNICAL_INDICATOR_TYPE", request.getParam("technicalIndicatorType"));
+
+        if (request.getParam("name") == null || ((String) request.getParam("name")).trim().isEmpty()) {
+            response.setStatus(Response.EMPTY);
+            return;
+        }
+
         request.addParam("NAME", request.getParam("name"));
 
         if (request.getParam("evaluationPeriod") == null) {
@@ -72,46 +94,36 @@ public class CustomTechnicalIndicatorSvcImpl implements CustomTechnicalIndicator
 
         request.addParam("EVALUATION_PERIOD", request.getParam("evaluationPeriod"));
 
-        string = (String) request.getParam("shortSMAType");
-        if (!string.endsWith("-" + ((String) request.getParam("EVALUATION_PERIOD")).toLowerCase())) {
-            response.setStatus(Response.ERROR);
-            return;
-        }
-        substring = string.substring(0,
-                string.length() - ((String) request.getParam("EVALUATION_PERIOD")).length() - 1);
-        try {
-            i = Integer.parseInt(substring);
-        } catch (NumberFormatException e) {
-            response.setStatus(Response.ERROR);
-            return;
+        if (request.getParam("shortSMAType") != null
+                && ((String) request.getParam("TECHNICAL_INDICATOR_TYPE")).equals(TechnicalIndicator.GOLDENCROSS)) {
+            RequestValidation.validateShortSMAType(request, response);
         }
 
-        if (i <= 0 || i > 999) {
-            return;
+        if (request.getParam("longSMAType") != null
+                && ((String) request.getParam("TECHNICAL_INDICATOR_TYPE")).equals(TechnicalIndicator.GOLDENCROSS)) {
+            RequestValidation.validateLongSMAType(request, response);
         }
 
-        request.addParam("SHORT_SMA_TYPE", request.getParam("shortSMAType"));
-
-        string = (String) request.getParam("longSMAType");
-        if (!string.endsWith("-" + ((String) request.getParam("EVALUATION_PERIOD")).toLowerCase())) {
-            response.setStatus(Response.ERROR);
-            return;
-        }
-        substring = string.substring(0,
-                string.length() - ((String) request.getParam("EVALUATION_PERIOD")).length() - 1);
-        try {
-            i = Integer.parseInt(substring);
-        } catch (NumberFormatException e) {
-            response.setStatus(Response.ERROR);
-            return;
+        if (request.getParam("lbbType") != null && ((String) request.getParam("TECHNICAL_INDICATOR_TYPE"))
+                .equals(TechnicalIndicator.LOWERBOLLINGERBAND)) {
+            RequestValidation.validateLBBType(request, response);
         }
 
-        if (i <= 0 || i > 999) {
-            response.setStatus(Response.ERROR);
-            return;
+        if (request.getParam("ubbType") != null && ((String) request.getParam("TECHNICAL_INDICATOR_TYPE"))
+                .equals(TechnicalIndicator.UPPERBOLLINGERBAND)) {
+            RequestValidation.validateUBBType(request, response);
         }
 
-        request.addParam("LONG_SMA_TYPE", request.getParam("longSMAType"));
+        if (request.getParam("standardDeviations") != null && (((String) request.getParam("TECHNICAL_INDICATOR_TYPE"))
+                .equals(TechnicalIndicator.UPPERBOLLINGERBAND)
+                || ((String) request.getParam("TECHNICAL_INDICATOR_TYPE"))
+                        .equals(TechnicalIndicator.LOWERBOLLINGERBAND))) {
+            RequestValidation.validateStandardDeviations(request, response);
+        }
+
+        if (response.getStatus().equals(Response.ERROR) || response.getStatus().equals(Response.EMPTY)) {
+            return;
+        }
 
         CustomTechnicalIndicator temp = new CustomTechnicalIndicator();
 
@@ -133,11 +145,29 @@ public class CustomTechnicalIndicatorSvcImpl implements CustomTechnicalIndicator
         String technicalIndicatorKey = "";
 
         if (request.getParam("SHORT_SMA_TYPE") != null) {
+            x.setShortSMAType((String) request.getParam("SHORT_SMA_TYPE"));
             technicalIndicatorKey += (String) request.getParam("SHORT_SMA_TYPE") + ":";
         }
 
         if (request.getParam("LONG_SMA_TYPE") != null) {
+            x.setLongSMAType((String) request.getParam("LONG_SMA_TYPE"));
             technicalIndicatorKey += (String) request.getParam("LONG_SMA_TYPE") + ":";
+        }
+
+        if (request.getParam("LBB_TYPE") != null) {
+            x.setLBBType((String) request.getParam("LBB_TYPE"));
+            technicalIndicatorKey += (String) request.getParam("LBB_TYPE") + ":";
+        }
+
+        if (request.getParam("UBB_TYPE") != null) {
+            x.setUBBType((String) request.getParam("UBB_TYPE"));
+            technicalIndicatorKey += (String) request.getParam("UBB_TYPE") + ":";
+        }
+
+        if (request.getParam("STANDARD_DEVIATIONS") != null) {
+            x.setStandardDeviations((BigDecimal) request.getParam("STANDARD_DEVIATIONS"));
+            technicalIndicatorKey += ((BigDecimal) request.getParam("STANDARD_DEVIATIONS")).toString()
+                    + ":";
         }
 
         if (!technicalIndicatorKey.equals("")) {
@@ -188,7 +218,6 @@ public class CustomTechnicalIndicatorSvcImpl implements CustomTechnicalIndicator
 
     @Override
     public void item(Request request, Response response) {
-        // TODO Auto-generated method stub
 
     }
 

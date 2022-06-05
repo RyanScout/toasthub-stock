@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
@@ -76,37 +77,6 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
     @Override
     protected void finalize() throws Throwable {
         super.finalize();
-    }
-
-    public void printSystemStats() {
-        /* Total number of processors or cores available to the JVM */
-        System.out.println("Available processors (cores): " +
-                Runtime.getRuntime().availableProcessors());
-
-        /* Total amount of free memory available to the JVM */
-        System.out.println("Free memory (bytes): " +
-                Runtime.getRuntime().freeMemory());
-
-        /* This will return Long.MAX_VALUE if there is no preset limit */
-        long maxMemory = Runtime.getRuntime().maxMemory();
-        /* Maximum amount of memory the JVM will attempt to use */
-        System.out.println("Maximum memory (bytes): " +
-                (maxMemory == Long.MAX_VALUE ? "no limit" : maxMemory));
-
-        /* Total memory currently available to the JVM */
-        System.out.println("Total memory available to JVM (bytes): " +
-                Runtime.getRuntime().totalMemory());
-
-        /* Get a list of all filesystem roots on this system */
-        File[] roots = File.listRoots();
-
-        /* For each filesystem root, print some info */
-        for (File root : roots) {
-            System.out.println("File system root: " + root.getAbsolutePath());
-            System.out.println("Total space (bytes): " + root.getTotalSpace());
-            System.out.println("Free space (bytes): " + root.getFreeSpace());
-            System.out.println("Usable space (bytes): " + root.getUsableSpace());
-        }
     }
 
     @Scheduled(cron = "30 * * * * ?")
@@ -215,6 +185,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
             e.printStackTrace();
         }
         if ((long) response.getParam(GlobalConstant.ITEMCOUNT) == 0) {
+            response.addParam("INSUFFICIENT_DATA", true);
             return result;
         }
         try {
@@ -231,6 +202,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
             e.printStackTrace();
         }
         if ((long) response.getParam(GlobalConstant.ITEMCOUNT) == 0) {
+            response.addParam("INSUFFICIENT_DATA", true);
             return result;
         }
         try {
@@ -243,6 +215,88 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
         if (shortSMA.getValue().compareTo(longSMA.getValue()) > 0) {
             result = true;
         }
+        return result;
+    }
+
+    public boolean lowerBollingerBandIsFlashing(Request request, Response response) {
+        boolean result = false;
+
+        String symbol = (String) request.getParam(GlobalConstant.SYMBOL);
+        String evaluationPeriod = (String) request.getParam("EVALUATION_PERIOD");
+        String lbbType = (String) request.getParam("LBB_TYPE");
+        BigDecimal standardDeviations = (BigDecimal) request.getParam("STANDARD_DEVIATIONS");
+
+        request.addParam(GlobalConstant.EPOCHSECONDS,
+                tradeSignalCache.getRecentEpochSecondsMap().get(evaluationPeriod + "::" + symbol));
+
+        request.addParam(GlobalConstant.IDENTIFIER, "LBB");
+
+        request.addParam(GlobalConstant.TYPE, lbbType);
+        request.addParam("STANDARD_DEVIATIONS", standardDeviations);
+
+        try {
+            currentTestingDao.itemCount(request, response);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if ((long) response.getParam(GlobalConstant.ITEMCOUNT) == 0) {
+            response.addParam("INSUFFICIENT_DATA", true);
+            return result;
+        }
+        try {
+            currentTestingDao.item(request, response);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        LBB lbb = (LBB) response.getParam(GlobalConstant.ITEM);
+
+        if (tradeSignalCache.getRecentClosingPriceMap().get(evaluationPeriod + "::" + symbol)
+                .compareTo(lbb.getValue()) < 0) {
+            result = true;
+        }
+
+        return result;
+    }
+
+    public boolean upperBollingerBandIsFlashing(Request request, Response response) {
+        boolean result = false;
+
+        String symbol = (String) request.getParam(GlobalConstant.SYMBOL);
+        String evaluationPeriod = (String) request.getParam("EVALUATION_PERIOD");
+        String ubbType = (String) request.getParam("UBB_TYPE");
+        BigDecimal standardDeviations = (BigDecimal) request.getParam("STANDARD_DEVIATIONS");
+
+        request.addParam(GlobalConstant.EPOCHSECONDS,
+                tradeSignalCache.getRecentEpochSecondsMap().get(evaluationPeriod + "::" + symbol));
+
+        request.addParam(GlobalConstant.IDENTIFIER, "UBB");
+
+        request.addParam(GlobalConstant.TYPE, ubbType);
+        request.addParam("STANDARD_DEVIATIONS", standardDeviations);
+
+        try {
+            currentTestingDao.itemCount(request, response);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if ((long) response.getParam(GlobalConstant.ITEMCOUNT) == 0) {
+            response.addParam("INSUFFICIENT_DATA", true);
+            return result;
+        }
+        try {
+            currentTestingDao.item(request, response);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        UBB ubb = (UBB) response.getParam(GlobalConstant.ITEM);
+
+        if (tradeSignalCache.getRecentClosingPriceMap().get(evaluationPeriod + "::" + symbol)
+                .compareTo(ubb.getValue()) > 0) {
+            result = true;
+        }
+
         return result;
     }
 
@@ -260,7 +314,10 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
         }
 
         technicalIndicators.stream()
+                .filter(technicalIndicator -> Arrays.asList(TechnicalIndicator.TECHNICALINDICATORTYPES)
+                        .contains(technicalIndicator.getTechnicalIndicatorType()))
                 .forEach(technicalIndicator -> {
+
                     String symbol = technicalIndicator.getSymbol();
                     String evaluationPeriod = technicalIndicator.getEvaluationPeriod();
 
@@ -274,6 +331,37 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                             .get(evaluationPeriod + "::" + symbol) == null) {
                         return;
                     }
+
+                    boolean flashing = false;
+
+                    request.addParam(GlobalConstant.SYMBOL, symbol);
+                    request.addParam("EVALUATION_PERIOD", technicalIndicator.getEvaluationPeriod());
+
+                    switch (technicalIndicator.getTechnicalIndicatorType()) {
+                        case TechnicalIndicator.GOLDENCROSS:
+                            request.addParam("SHORT_SMA_TYPE", technicalIndicator.getShortSMAType());
+                            request.addParam("LONG_SMA_TYPE", technicalIndicator.getLongSMAType());
+                            flashing = goldenCrossIsFlashing(request, response);
+                            break;
+                        case TechnicalIndicator.LOWERBOLLINGERBAND:
+                            request.addParam("LBB_TYPE", technicalIndicator.getLBBType());
+                            request.addParam("STANDARD_DEVIATIONS", technicalIndicator.getStandardDeviations());
+                            flashing = lowerBollingerBandIsFlashing(request, response);
+                            break;
+                        case TechnicalIndicator.UPPERBOLLINGERBAND:
+                            request.addParam("UBB_TYPE", technicalIndicator.getUBBType());
+                            request.addParam("STANDARD_DEVIATIONS", technicalIndicator.getStandardDeviations());
+                            flashing = upperBollingerBandIsFlashing(request, response);
+                            break;
+                    }
+
+                    if (response.getParam("INSUFFICIENT_DATA") != null
+                            && (boolean) response.getParam("INSUFFICIENT_DATA") == true) {
+                        return;
+                    }
+
+                    technicalIndicator.setFlashing(flashing);
+
                     if (technicalIndicator.getFirstCheck() == 0) {
                         technicalIndicator
                                 .setFirstCheck(tradeSignalCache.getRecentEpochSecondsMap()
@@ -283,63 +371,72 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                     if (technicalIndicator.getLastCheck() < tradeSignalCache.getRecentEpochSecondsMap()
                             .get(evaluationPeriod + "::" + symbol)) {
 
-                        technicalIndicator.getDetails().stream().forEach(detail -> {
-                            if (detail.getChecked() < 100) {
-                                detail.setChecked(detail.getChecked() + 1);
+                        technicalIndicator.getDetails().stream()
+                                .filter(detail -> detail.getChecked() < 100)
+                                .forEach(detail -> {
+                                    detail.setChecked(detail.getChecked() + 1);
 
-                                BigDecimal tempSuccessPercent = (tradeSignalCache.getRecentClosingPriceMap()
-                                        .get(evaluationPeriod + "::" + symbol)
-                                        .subtract(detail.getFlashPrice()))
-                                        .divide(detail.getFlashPrice(), MathContext.DECIMAL32)
-                                        .multiply(BigDecimal.valueOf(100));
+                                    BigDecimal tempSuccessPercent = (tradeSignalCache.getRecentClosingPriceMap()
+                                            .get(evaluationPeriod + "::" + symbol)
+                                            .subtract(detail.getFlashPrice()))
+                                            .divide(detail.getFlashPrice(), MathContext.DECIMAL32)
+                                            .multiply(BigDecimal.valueOf(100));
 
-                                if (detail.getSuccessPercent() == null
-                                        || detail.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
-                                    detail.setSuccessPercent(tempSuccessPercent);
-                                }
+                                    if (technicalIndicator.getTechnicalIndicatorType()
+                                            .equals(TechnicalIndicator.GOLDENCROSS)
+                                            || technicalIndicator.getTechnicalIndicatorType()
+                                                    .equals(TechnicalIndicator.LOWERBOLLINGERBAND)) {
+                                        if (detail.getSuccessPercent() == null
+                                                || detail.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
+                                            detail.setSuccessPercent(tempSuccessPercent);
+                                        }
+                                    }
 
-                                if (detail.isSuccess() == false && detail.getFlashPrice().compareTo(
-                                        tradeSignalCache.getRecentClosingPriceMap()
-                                                .get(evaluationPeriod + "::" + symbol)) < 0) {
-                                    detail.setSuccess(true);
-                                    technicalIndicator.setSuccesses(technicalIndicator.getSuccesses() + 1);
-                                }
-                            }
-                        });
+                                    if (technicalIndicator.getTechnicalIndicatorType()
+                                            .equals(TechnicalIndicator.UPPERBOLLINGERBAND)) {
+                                        if (detail.getSuccessPercent() == null
+                                                || detail.getSuccessPercent()
+                                                        .compareTo(tempSuccessPercent.negate()) < 0) {
+                                            detail.setSuccessPercent(tempSuccessPercent.negate());
+                                        }
+                                    }
 
-                        boolean flashing = false;
+                                    if (detail.isSuccess() == false && detail.getFlashPrice().compareTo(
+                                            tradeSignalCache.getRecentClosingPriceMap()
+                                                    .get(evaluationPeriod + "::" + symbol)) < 0) {
+                                        detail.setSuccess(true);
+                                        technicalIndicator.setSuccesses(technicalIndicator.getSuccesses() + 1);
+                                    }
+                                });
 
-                        request.addParam(GlobalConstant.SYMBOL, symbol);
-                        request.addParam("EVALUATION_PERIOD", technicalIndicator.getEvaluationPeriod());
-                        request.addParam("SHORT_SMA_TYPE", technicalIndicator.getShortSMAType());
-                        request.addParam("LONG_SMA_TYPE", technicalIndicator.getLongSMAType());
-                        switch (technicalIndicator.getTechnicalIndicatorType()) {
-                            case "GoldenCross":
-                                flashing = goldenCrossIsFlashing(request, response);
-                                break;
-                        }
+                        if (technicalIndicator.isFlashing()) {
 
-                        technicalIndicator.setFlashing(flashing);
-                        if (flashing) {
                             technicalIndicator.setLastFlash(
                                     tradeSignalCache.getRecentEpochSecondsMap()
                                             .get(evaluationPeriod + "::" + symbol));
+
                             technicalIndicator.setFlashed(technicalIndicator.getFlashed() + 1);
 
                             TechnicalIndicatorDetail technicalIndicatorDetail = new TechnicalIndicatorDetail();
+
                             technicalIndicatorDetail.setTechnicalIndicator(technicalIndicator);
+
                             technicalIndicatorDetail.setFlashTime(
                                     tradeSignalCache.getRecentEpochSecondsMap()
                                             .get(evaluationPeriod + "::" + symbol));
+
                             technicalIndicatorDetail.setFlashPrice(
                                     tradeSignalCache.getRecentClosingPriceMap()
                                             .get(evaluationPeriod + "::" + symbol));
+
                             technicalIndicatorDetail
                                     .setVolume(tradeSignalCache.getRecentVolumeMap()
                                             .get(evaluationPeriod + "::" + symbol));
+
                             technicalIndicatorDetail.setVwap(
                                     tradeSignalCache.getRecentVwapMap()
                                             .get(evaluationPeriod + "::" + symbol));
+
                             technicalIndicator.getDetails().add(technicalIndicatorDetail);
                         }
 
@@ -351,6 +448,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                     }
 
                     request.addParam(GlobalConstant.ITEM, technicalIndicator);
+
                     try {
                         cacheDao.save(request, response);
                     } catch (Exception e) {

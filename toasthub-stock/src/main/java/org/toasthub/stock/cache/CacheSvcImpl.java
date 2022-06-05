@@ -1,5 +1,6 @@
 package org.toasthub.stock.cache;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -98,6 +99,18 @@ public class CacheSvcImpl implements CacheSvc {
 
                     if (request.getParam("LONG_SMA_TYPE") != null) {
                         temp.setLongSMAType((String) request.getParam("LONG_SMA_TYPE"));
+                    }
+
+                    if (request.getParam("LBB_TYPE") != null) {
+                        temp.setLBBType((String) request.getParam("LBB_TYPE"));
+                    }
+
+                    if (request.getParam("UBB_TYPE") != null) {
+                        temp.setUBBType((String) request.getParam("UBB_TYPE"));
+                    }
+
+                    if (request.getParam("STANDARD_DEVIATIONS") != null) {
+                        temp.setStandardDeviations((BigDecimal) request.getParam("STANDARD_DEVIATIONS"));
                     }
 
                     request.addParam(GlobalConstant.ITEM, temp);
