@@ -182,11 +182,11 @@ public class CustomTechnicalIndicatorSvcImpl implements CustomTechnicalIndicator
             symbols.add((String.class.cast(o)));
         }
 
+        x.getSymbols().clear();
+
         symbols.stream()
                 .distinct()
                 .filter(symbol -> Arrays.asList(Symbol.SYMBOLS).contains(symbol))
-                .filter(symbol -> !x.getSymbols().stream()
-                        .anyMatch(tempSymbol -> tempSymbol.getSymbol().equals(symbol)))
                 .forEach(symbol -> {
                     Symbol s = new Symbol();
                     s.setSymbol(symbol);
