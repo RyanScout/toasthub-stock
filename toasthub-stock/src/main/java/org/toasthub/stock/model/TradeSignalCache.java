@@ -1,4 +1,4 @@
-package org.toasthub.stock.model.cache;
+package org.toasthub.stock.model;
 
 import java.math.BigDecimal;
 import java.util.Map;

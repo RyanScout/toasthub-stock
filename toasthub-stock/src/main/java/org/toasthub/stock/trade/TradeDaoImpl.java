@@ -83,14 +83,11 @@ public class TradeDaoImpl implements TradeDao {
 		if (request.containsParam(GlobalConstant.ACTIVE)) {
 			query.setParameter("active", (Boolean) request.getParam(GlobalConstant.ACTIVE));
 		}
-		if (request.containsParam(GlobalConstant.ACTIVE)) {
+		if (request.containsParam("RUNSTATUS")) {
 			query.setParameter("runStatus", (String) request.getParam("RUNSTATUS"));
 		}
 
-		@SuppressWarnings("unchecked")
-		List<Trade> trades = query.getResultList();
-
-		response.addParam(GlobalConstant.TRADES, trades);
+		response.addParam(GlobalConstant.TRADES, query.getResultList());
 	}
 
 	@Override
@@ -111,14 +108,24 @@ public class TradeDaoImpl implements TradeDao {
 			queryStr += "x.runStatus =:runStatus ";
 			and = true;
 		}
+		if (request.containsParam("NAME")) {
+			if (!and) {
+				queryStr += " WHERE ";
+			}
+			queryStr += "x.name =:name ";
+			and = true;
+		}
 
 		Query query = entityManager.createQuery(queryStr);
 
 		if (request.containsParam(GlobalConstant.ACTIVE)) {
 			query.setParameter("active", (Boolean) request.getParam(GlobalConstant.ACTIVE));
 		}
-		if (request.containsParam(GlobalConstant.ACTIVE)) {
+		if (request.containsParam("RUNSTATUS")) {
 			query.setParameter("runStatus", (String) request.getParam("RUNSTATUS"));
+		}
+		if (request.containsParam("NAME")) {
+			query.setParameter("name", request.getParam("NAME"));
 		}
 
 		Long count = (Long) query.getSingleResult();
@@ -135,7 +142,12 @@ public class TradeDaoImpl implements TradeDao {
 			String queryStr = "SELECT x FROM Trade AS x WHERE x.id =:id";
 			Query query = entityManager.createQuery(queryStr);
 
-			query.setParameter("id", new Long((Integer) request.getParam(GlobalConstant.ITEMID)));
+			if (request.getParam(GlobalConstant.ITEMID) instanceof Long) {
+				query.setParameter("id", (Long) request.getParam(GlobalConstant.ITEMID));
+			}
+			if (request.getParam(GlobalConstant.ITEMID) instanceof Integer) {
+				query.setParameter("id", new Long((Integer) request.getParam(GlobalConstant.ITEMID)));
+			}
 			Trade trade = (Trade) query.getSingleResult();
 
 			response.addParam(GlobalConstant.ITEM, trade);

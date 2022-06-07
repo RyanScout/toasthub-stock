@@ -38,29 +38,54 @@ public class Trade extends BaseEntity {
 
 	private static final long serialVersionUID = 1L;
 
-	protected String name;
+	public static final String BOT = "Bot";
+	public static final String BUY = "Buy";
+	public static final String SELL = "Sell";
+	public static final String[] SUPPORTED_ORDER_SIDES ={
+		BOT, BUY , SELL
+	};
+
+	public static final String MARKET = "Market";
+	public static final String TRAILING_STOP = "Trailing Stop";
+	public static final String PROFIT_LIMIT = "Profit Limit";
+	public static final String TRAILING_STOP_PROFIT_LIMIT = "Trailing Stop and Profit Limit";
+	public static final String[] SUPPORTED_ORDER_TYPES = {
+		MARKET, TRAILING_STOP , PROFIT_LIMIT , TRAILING_STOP_PROFIT_LIMIT
+	};
+
+	private String name;
 	private String symbol;
-	protected String orderType;
+	private String orderType;
 	private String orderSide;
+	private String status;
+	private String evaluationPeriod;
+
 	private String currencyType;
 	private BigDecimal currencyAmount;
+
 	private String buyCondition;
+	private String parseableBuyCondition;
+
 	private String sellCondition;
-	private String status;
+	private String parseableSellCondition;
+
 	private String trailingStopType;
 	private String profitLimitType;
+
 	private BigDecimal trailingStopAmount;
 	private BigDecimal profitLimitAmount;
+
 	private String iterations;
 	private int iterationsExecuted;
+
 	private BigDecimal budget;
 	private BigDecimal availableBudget;
 	private BigDecimal sharesHeld;
 	private BigDecimal totalValue;
 	private String recentBuyOrderID;
 	private String recentSellOrderID;
-	private String evaluationPeriod;
 	private long firstBuy;
+
 	private Set<TradeDetail> tradeDetails;
 
 	// Constructors
@@ -72,6 +97,22 @@ public class Trade extends BaseEntity {
 		this.setLocked(false);
 		this.setCreated(Instant.now());
 		this.setIdentifier("Trade");
+	}
+
+	public String getParseableSellCondition() {
+		return parseableSellCondition;
+	}
+
+	public void setParseableSellCondition(String parseableSellCondition) {
+		this.parseableSellCondition = parseableSellCondition;
+	}
+
+	public String getParseableBuyCondition() {
+		return parseableBuyCondition;
+	}
+
+	public void setParseableBuyCondition(String parseableBuyCondition) {
+		this.parseableBuyCondition = parseableBuyCondition;
 	}
 
 	public int getIterationsExecuted() {

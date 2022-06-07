@@ -9,13 +9,13 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.toasthub.common.RequestValidation;
 import org.toasthub.model.CustomTechnicalIndicator;
 import org.toasthub.model.Symbol;
 import org.toasthub.model.TechnicalIndicator;
 import org.toasthub.stock.cache.CacheSvc;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
+import org.toasthub.utils.RequestValidation;
 import org.toasthub.utils.Response;
 
 @Service("CustomTechnicalIndicatorSvc")
@@ -51,6 +51,7 @@ public class CustomTechnicalIndicatorSvcImpl implements CustomTechnicalIndicator
         response.setStatus("Starting!");
 
         if ((!request.containsParam(GlobalConstant.ITEM)) || (request.getParam(GlobalConstant.ITEM) == null)) {
+            response.setStatus(Response.ERROR);
             return;
         }
 
@@ -72,27 +73,27 @@ public class CustomTechnicalIndicatorSvcImpl implements CustomTechnicalIndicator
             return;
         }
 
+        if (request.getParam("evaluationPeriod") == null) {
+            response.setStatus(Response.EMPTY);
+            return;
+        }
+
         if (!Arrays.asList(TechnicalIndicator.TECHNICALINDICATORTYPES)
                 .contains((String) request.getParam("technicalIndicatorType"))) {
             response.setStatus(Response.ERROR);
             return;
         }
 
+        if (request.getParam("name") == null) {
+            response.setStatus(Response.EMPTY);
+            return;
+        }
+
+       
         request.addParam("TECHNICAL_INDICATOR_TYPE", request.getParam("technicalIndicatorType"));
-
-        if (request.getParam("name") == null || ((String) request.getParam("name")).trim().isEmpty()) {
-            response.setStatus(Response.EMPTY);
-            return;
-        }
-
-        request.addParam("NAME", request.getParam("name"));
-
-        if (request.getParam("evaluationPeriod") == null) {
-            response.setStatus(Response.EMPTY);
-            return;
-        }
-
         request.addParam("EVALUATION_PERIOD", request.getParam("evaluationPeriod"));
+
+        RequestValidation.validateName(request, response);
 
         if (request.getParam("shortSMAType") != null
                 && ((String) request.getParam("TECHNICAL_INDICATOR_TYPE")).equals(TechnicalIndicator.GOLDENCROSS)) {
@@ -134,6 +135,18 @@ public class CustomTechnicalIndicatorSvcImpl implements CustomTechnicalIndicator
                 e.printStackTrace();
             }
             temp = CustomTechnicalIndicator.class.cast(response.getParam(GlobalConstant.ITEM));
+        } else {
+
+            try {
+                customTechnicalIndicatorDao.itemCount(request, response);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            if ((long) response.getParam(GlobalConstant.ITEMCOUNT) > 0) {
+                response.setStatus(Response.ERROR);
+                return;
+            }
         }
 
         CustomTechnicalIndicator x = temp;

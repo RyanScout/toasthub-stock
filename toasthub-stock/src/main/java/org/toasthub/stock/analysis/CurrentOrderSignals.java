@@ -2,7 +2,7 @@ package org.toasthub.stock.analysis;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.toasthub.stock.model.cache.TradeSignalCache;
+import org.toasthub.stock.model.TradeSignalCache;
 import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
 
