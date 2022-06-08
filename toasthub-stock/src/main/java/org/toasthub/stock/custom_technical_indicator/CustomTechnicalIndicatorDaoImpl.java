@@ -7,11 +7,15 @@ import javax.persistence.NoResultException;
 import javax.persistence.Query;
 import javax.transaction.Transactional;
 
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
+import org.toasthub.model.CustomTechnicalIndicator;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
+
+import net.bytebuddy.agent.builder.AgentBuilder.CircularityLock.Global;
 
 @Repository("CustomTechnicalIndicatorDao")
 @Transactional()
@@ -61,9 +65,21 @@ public class CustomTechnicalIndicatorDaoImpl implements CustomTechnicalIndicator
 			String queryStr = "SELECT DISTINCT x FROM CustomTechnicalIndicator AS x WHERE x.id =:id";
 			Query query = entityManager.createQuery(queryStr);
 
-			query.setParameter("id", new Long((Integer) request.getParam(GlobalConstant.ITEMID)));
+            if(request.getParam(GlobalConstant.ITEMID)instanceof Integer){
+                query.setParameter("id", new Long((Integer) request.getParam(GlobalConstant.ITEMID)));
+            }
 
-			response.addParam(GlobalConstant.ITEM, query.getSingleResult());
+            if(request.getParam(GlobalConstant.ITEMID)instanceof Long){
+                query.setParameter("id", (Long) request.getParam(GlobalConstant.ITEMID));
+            }
+            
+            if(request.getParam(GlobalConstant.ITEMID)instanceof String){
+                query.setParameter("id", new Long((String) request.getParam(GlobalConstant.ITEMID)));
+            }
+
+            CustomTechnicalIndicator c = CustomTechnicalIndicator.class.cast(query.getSingleResult());
+            Hibernate.initialize(c.getSymbols());
+			response.addParam(GlobalConstant.ITEM, c);
             return;
         }
 

@@ -44,11 +44,18 @@ public class CacheDaoImpl implements CacheDao {
     @Override
     public void items(Request request, Response response) {
         String queryStr = "SELECT DISTINCT x FROM TechnicalIndicator as x";
+
         Query query = entityManager.createQuery(queryStr);
+
+        List<TechnicalIndicator> technicalIndicators = new ArrayList<TechnicalIndicator>();
+
         for (Object o : ArrayList.class.cast(query.getResultList())) {
-            Hibernate.initialize(((TechnicalIndicator) o).getDetails());
+            TechnicalIndicator t = TechnicalIndicator.class.cast(o);
+            Hibernate.initialize(t.getDetails());
+            technicalIndicators.add(t);
         }
-        response.addParam(GlobalConstant.ITEMS, query.getResultList());
+
+        response.addParam(GlobalConstant.ITEMS, technicalIndicators);
     }
 
     @Override

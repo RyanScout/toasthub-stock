@@ -82,48 +82,27 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
     @Scheduled(cron = "30 * * * * ?")
     public void tradeAnalysisTask() {
 
-        // printSystemStats();
-
         if (tradeAnalysisJobRunning.get()) {
             System.out.println("Trade analysis is currently running ,  skipping this time");
             return;
-
-        } else {
-            new Thread(() -> {
-                tradeAnalysisJobRunning.set(true);
-                Request request = new Request();
-                Response response = new Response();
-                request.addParam("MINUTE_CACHE_UPDATED", false);
-                updateTradeSignalCache(request, response);
-                updateTrades(request, response);
-                if ((boolean) request.getParam("MINUTE_CACHE_UPDATED")) {
-                    checkMinuteTrades(request, response);
-                }
-                tradeAnalysisJobRunning.set(false);
-            }).start();
         }
-    }
 
-    @Scheduled(cron = "0 0 12 * * ?")
-    public void dailyTradeAnalysisTask() {
-        if (tradeAnalysisJobRunning.get()) {
-            System.out.println("Trade analysis is currently running ,  skipping this time");
-            return;
-        } else {
-            new Thread(() -> {
-                Request request = new Request();
-                Response response = new Response();
-                checkDayTrades(request, response);
-            }).start();
-        }
-    }
+        new Thread(() -> {
+            tradeAnalysisJobRunning.set(true);
 
-    public void updateTradeSignalCache(Request request, Response response) {
-        updateRawData(request, response);
-        request.addParam("EVALUATION_PERIOD", "DAY");
-        updateTechnicalIndicatorCache(request, response);
-        request.addParam("EVALUATION_PERIOD", "MINUTE");
-        updateTechnicalIndicatorCache(request, response);
+            Request request = new Request();
+            Response response = new Response();
+
+            updateRawData(request, response);
+
+            updateTechnicalIndicatorCache(request, response);
+
+            updateTrades(request, response);
+
+            checkMinuteTrades(request, response);
+
+            tradeAnalysisJobRunning.set(false);
+        }).start();
     }
 
     public void updateRawData(Request request, Response response) {
@@ -139,7 +118,6 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
             }
 
             if (recentAsesetDay != null) {
-                request.addParam("DAY_CACHE_UPDATED", true);
                 tradeSignalCache.getRecentClosingPriceMap().put("DAY::" + symbol, recentAsesetDay.getClose());
                 tradeSignalCache.getRecentEpochSecondsMap().put("DAY::" + symbol, recentAsesetDay.getEpochSeconds());
                 tradeSignalCache.getRecentVolumeMap().put("DAY::" + symbol, recentAsesetDay.getVolume());
@@ -154,8 +132,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
             } catch (NoResultException e) {
             }
 
-            if (recentAsesetDay != null) {
-                request.addParam("MINUTE_CACHE_UPDATED", true);
+            if (recentAsesetMinute != null) {
                 tradeSignalCache.getRecentClosingPriceMap().put("MINUTE::" + symbol, recentAsesetMinute.getValue());
                 tradeSignalCache.getRecentEpochSecondsMap().put("MINUTE::" + symbol,
                         recentAsesetMinute.getEpochSeconds());
@@ -314,8 +291,6 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
         }
 
         technicalIndicators.stream()
-                .filter(technicalIndicator -> Arrays.asList(TechnicalIndicator.TECHNICALINDICATORTYPES)
-                        .contains(technicalIndicator.getTechnicalIndicatorType()))
                 .forEach(technicalIndicator -> {
 
                     String symbol = technicalIndicator.getSymbol();
@@ -370,6 +345,9 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
 
                     if (technicalIndicator.getLastCheck() < tradeSignalCache.getRecentEpochSecondsMap()
                             .get(evaluationPeriod + "::" + symbol)) {
+
+                        request.addParam(technicalIndicator.getEvaluationPeriod() + "_CACHE_UPDATED::"
+                                + technicalIndicator.getSymbol(), true);
 
                         technicalIndicator.getDetails().stream()
                                 .filter(detail -> detail.getChecked() < 100)
@@ -474,105 +452,105 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
-                        if (order.getStatus().name().equals("FILLED")) {
-                            if (t.getOrderSide().equals("BUY")) {
-                                switch (trade.getOrderSide()) {
-                                    case "Buy":
-                                        if (!trade.getIterations().equals("unlimited")) {
-                                            trade.setIterationsExecuted(trade.getIterationsExecuted() + 1);
-                                            if (trade.getIterationsExecuted() >= Integer
-                                                    .parseInt(trade.getIterations()))
-                                                trade.setStatus("Not Running");
-                                        }
-                                        t.setFilledAt(order.getFilledAt().toEpochSecond());
-                                        t.setAssetPrice(new BigDecimal(order.getAverageFillPrice()));
-                                        t.setStatus("FILLED");
-                                        t.setTrade(trade);
-                                        break;
-                                    case "Sell":
-                                        System.out.println("Unknown case");
-                                        break;
-                                    case "Bot":
-                                        BigDecimal orderQuantity = new BigDecimal(order.getQuantity());
-                                        trade.setAvailableBudget(trade.getAvailableBudget()
-                                                .subtract(orderQuantity
-                                                        .multiply(new BigDecimal(order.getAverageFillPrice())),
-                                                        MathContext.DECIMAL32)
-                                                .setScale(2, BigDecimal.ROUND_HALF_UP));
-                                        trade.setSharesHeld(trade.getSharesHeld().add(orderQuantity));
+                        if (!order.getStatus().name().equals("FILLED")) {
+                            return;
+                        }
+                        if (t.getOrderSide().equals("BUY")) {
+                            switch (trade.getOrderSide()) {
+                                case "Buy":
+                                    if (!trade.getIterations().equals("unlimited")) {
                                         trade.setIterationsExecuted(trade.getIterationsExecuted() + 1);
-                                        trade.setTotalValue(trade.getAvailableBudget().add(trade.getSharesHeld()
-                                                .multiply(tradeSignalCache.getRecentClosingPriceMap()
-                                                        .get("MINUTE::" + trade.getSymbol()))));
+                                        if (trade.getIterationsExecuted() >= Integer
+                                                .parseInt(trade.getIterations()))
+                                            trade.setStatus("Not Running");
+                                    }
+                                    t.setFilledAt(order.getFilledAt().toEpochSecond());
+                                    t.setAssetPrice(new BigDecimal(order.getAverageFillPrice()));
+                                    t.setStatus("FILLED");
+                                    t.setTrade(trade);
+                                    break;
+                                case "Sell":
+                                    System.out.println("Unknown case");
+                                    break;
+                                case "Bot":
+                                    BigDecimal orderQuantity = new BigDecimal(order.getQuantity());
+                                    trade.setAvailableBudget(trade.getAvailableBudget()
+                                            .subtract(orderQuantity
+                                                    .multiply(new BigDecimal(order.getAverageFillPrice())),
+                                                    MathContext.DECIMAL32)
+                                            .setScale(2, BigDecimal.ROUND_HALF_UP));
+                                    trade.setSharesHeld(trade.getSharesHeld().add(orderQuantity));
+                                    trade.setIterationsExecuted(trade.getIterationsExecuted() + 1);
+                                    trade.setTotalValue(trade.getAvailableBudget().add(trade.getSharesHeld()
+                                            .multiply(tradeSignalCache.getRecentClosingPriceMap()
+                                                    .get("MINUTE::" + trade.getSymbol()))));
 
-                                        t.setSharesHeld(trade.getSharesHeld());
-                                        t.setAvailableBudget(trade.getAvailableBudget());
-                                        t.setDollarAmount(orderQuantity
-                                                .multiply(new BigDecimal(order.getAverageFillPrice()),
-                                                        MathContext.DECIMAL32)
-                                                .setScale(2, BigDecimal.ROUND_HALF_UP));
-                                        t.setShareAmount(orderQuantity);
-                                        t.setFilledAt(order.getFilledAt().toEpochSecond());
-                                        t.setAssetPrice(new BigDecimal(order.getAverageFillPrice()));
-                                        t.setTotalValue(trade.getTotalValue());
-                                        t.setStatus("FILLED");
-                                        t.setTrade(trade);
-                                        break;
-                                    default:
-                                        System.out.println("Invalid orderside error");
-                                        break;
-                                }
+                                    t.setSharesHeld(trade.getSharesHeld());
+                                    t.setAvailableBudget(trade.getAvailableBudget());
+                                    t.setDollarAmount(orderQuantity
+                                            .multiply(new BigDecimal(order.getAverageFillPrice()),
+                                                    MathContext.DECIMAL32)
+                                            .setScale(2, BigDecimal.ROUND_HALF_UP));
+                                    t.setShareAmount(orderQuantity);
+                                    t.setFilledAt(order.getFilledAt().toEpochSecond());
+                                    t.setAssetPrice(new BigDecimal(order.getAverageFillPrice()));
+                                    t.setTotalValue(trade.getTotalValue());
+                                    t.setStatus("FILLED");
+                                    t.setTrade(trade);
+                                    break;
+                                default:
+                                    System.out.println("Invalid orderside error");
+                                    break;
                             }
-                            if (t.getOrderSide().equals("SELL")) {
-                                switch (trade.getOrderSide()) {
-                                    case "Buy":
-                                        t.setFilledAt(order.getFilledAt().toEpochSecond());
-                                        t.setAssetPrice(new BigDecimal(order.getAverageFillPrice()));
-                                        t.setStatus("FILLED");
-                                        t.setTrade(trade);
-                                        break;
-                                    case "Sell":
-                                        if (!trade.getIterations().equals("unlimited")) {
-                                            trade.setIterationsExecuted(trade.getIterationsExecuted() + 1);
-                                            if (trade.getIterationsExecuted() >= Integer
-                                                    .parseInt(trade.getIterations()))
-                                                trade.setStatus("Not Running");
-                                        }
-                                        t.setFilledAt(order.getFilledAt().toEpochSecond());
-                                        t.setAssetPrice(new BigDecimal(order.getAverageFillPrice()));
-                                        t.setStatus("FILLED");
-                                        t.setTrade(trade);
-                                        break;
-                                    case "Bot":
-                                        BigDecimal orderQuantity = new BigDecimal(order.getQuantity());
-                                        trade.setAvailableBudget(trade.getAvailableBudget()
-                                                .add(orderQuantity
-                                                        .multiply(new BigDecimal(order.getAverageFillPrice())),
-                                                        MathContext.DECIMAL32)
-                                                .setScale(2, BigDecimal.ROUND_HALF_DOWN));
-                                        trade.setSharesHeld(trade.getSharesHeld().subtract(orderQuantity));
-                                        trade.setTotalValue(trade.getAvailableBudget().add(trade.getSharesHeld()
-                                                .multiply(tradeSignalCache.getRecentClosingPriceMap()
-                                                        .get("MINUTE::" + trade.getSymbol()))));
-                                        t.setSharesHeld(trade.getSharesHeld());
-                                        t.setAvailableBudget(trade.getAvailableBudget());
-                                        t.setDollarAmount(orderQuantity
-                                                .multiply(new BigDecimal(order.getAverageFillPrice()),
-                                                        MathContext.DECIMAL32)
-                                                .setScale(2, BigDecimal.ROUND_HALF_UP));
-                                        t.setShareAmount(orderQuantity);
-                                        t.setFilledAt(order.getFilledAt().toEpochSecond());
-                                        t.setAssetPrice(new BigDecimal(order.getAverageFillPrice()));
-                                        t.setTotalValue(trade.getTotalValue());
-                                        t.setStatus("FILLED");
-                                        t.setTrade(trade);
-                                        break;
-                                    default:
-                                        System.out.println("Invalid orderside error");
-                                        break;
-                                }
+                        }
+                        if (t.getOrderSide().equals("SELL")) {
+                            switch (trade.getOrderSide()) {
+                                case "Buy":
+                                    t.setFilledAt(order.getFilledAt().toEpochSecond());
+                                    t.setAssetPrice(new BigDecimal(order.getAverageFillPrice()));
+                                    t.setStatus("FILLED");
+                                    t.setTrade(trade);
+                                    break;
+                                case "Sell":
+                                    if (!trade.getIterations().equals("unlimited")) {
+                                        trade.setIterationsExecuted(trade.getIterationsExecuted() + 1);
+                                        if (trade.getIterationsExecuted() >= Integer
+                                                .parseInt(trade.getIterations()))
+                                            trade.setStatus("Not Running");
+                                    }
+                                    t.setFilledAt(order.getFilledAt().toEpochSecond());
+                                    t.setAssetPrice(new BigDecimal(order.getAverageFillPrice()));
+                                    t.setStatus("FILLED");
+                                    t.setTrade(trade);
+                                    break;
+                                case "Bot":
+                                    BigDecimal orderQuantity = new BigDecimal(order.getQuantity());
+                                    trade.setAvailableBudget(trade.getAvailableBudget()
+                                            .add(orderQuantity
+                                                    .multiply(new BigDecimal(order.getAverageFillPrice())),
+                                                    MathContext.DECIMAL32)
+                                            .setScale(2, BigDecimal.ROUND_HALF_DOWN));
+                                    trade.setSharesHeld(trade.getSharesHeld().subtract(orderQuantity));
+                                    trade.setTotalValue(trade.getAvailableBudget().add(trade.getSharesHeld()
+                                            .multiply(tradeSignalCache.getRecentClosingPriceMap()
+                                                    .get("MINUTE::" + trade.getSymbol()))));
+                                    t.setSharesHeld(trade.getSharesHeld());
+                                    t.setAvailableBudget(trade.getAvailableBudget());
+                                    t.setDollarAmount(orderQuantity
+                                            .multiply(new BigDecimal(order.getAverageFillPrice()),
+                                                    MathContext.DECIMAL32)
+                                            .setScale(2, BigDecimal.ROUND_HALF_UP));
+                                    t.setShareAmount(orderQuantity);
+                                    t.setFilledAt(order.getFilledAt().toEpochSecond());
+                                    t.setAssetPrice(new BigDecimal(order.getAverageFillPrice()));
+                                    t.setTotalValue(trade.getTotalValue());
+                                    t.setStatus("FILLED");
+                                    t.setTrade(trade);
+                                    break;
+                                default:
+                                    System.out.println("Invalid orderside error");
+                                    break;
                             }
-
                         }
                     });
             try {
@@ -589,13 +567,22 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
     }
 
     private void checkMinuteTrades(Request request, Response response) {
-        try {
-            List<Trade> trades = tradeDao.getRunningMinuteTrades();
-            if (trades != null && trades.size() > 0) {
-                for (Trade trade : trades) {
 
+        List<Trade> trades = tradeDao.getRunningMinuteTrades();
+
+        if (trades == null || trades.size() == 0) {
+            System.out.println("No Minute trades to run");
+            return;
+        }
+
+        trades.stream()
+                .filter(trade -> ((request.getParam("MINUTE_CACHE_UPDATED::" + trade.getSymbol()) != null)
+                        && (boolean) request.getParam("MINUTE_CACHE_UPDATED::" + trade.getSymbol())))
+                .forEach(trade -> {
                     request.addParam(GlobalConstant.TRADE, trade);
+
                     System.out.println("Checking minute trade: " + trade.getName());
+
                     switch (trade.getOrderSide()) {
                         case Trade.BUY:
                             currentBuyTest(request, response);
@@ -611,51 +598,17 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                     }
 
                     request.addParam(GlobalConstant.ITEM, trade);
-                    tradeDao.save(request, response);
-                }
-            } else {
-                System.out.println("No Minute trades to run");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void checkDayTrades(Request request, Response response) {
-        try {
-            List<Trade> trades = tradeDao.getRunningDayTrades();
-            if (trades != null && trades.size() > 0) {
-                for (Trade trade : trades) {
-
-                    request.addParam(GlobalConstant.TRADE, trade);
-                    System.out.println("Checking day trade: " + trade.getName());
-                    switch (trade.getOrderSide()) {
-                        case Trade.BUY:
-                            currentBuyTest(request, response);
-                            break;
-                        case Trade.SELL:
-                            currentSellTest(request, response);
-                            break;
-                        case Trade.BOT:
-                            currentBotTest(request, response);
-                            break;
-                        default:
-                            return;
+                    try {
+                        tradeDao.save(request, response);
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
-
-                    request.addParam(GlobalConstant.ITEM, trade);
-                    tradeDao.save(request, response);
-                }
-            } else {
-                System.out.println("No Day trades to run");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+                });
     }
 
     public void currentBuyTest(Request request, Response response) {
         try {
+
             Trade trade = (Trade) request.getParam(GlobalConstant.TRADE);
 
             if (!trade.getIterations().equals("unlimited")
@@ -665,44 +618,55 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                 return;
             }
 
-            String buyCondition = trade.getBuyCondition().trim().replaceAll("//s+", "");
+            if (trade.getBuyCondition() == null) {
+                response.setStatus("Buy Condition is null in buy test for" + trade.getName());
+                return;
+            }
 
+            if (trade.getBuyCondition().equals("")) {
+                return;
+            }
+
+            List<String> buyReasons = new ArrayList<String>();
             String sellOrderCondition = "";
-            String buyOrderCondition = "";
 
-            request.getParams().remove(GlobalConstant.ITEMID);
-
-            String[] arr = buyCondition.split(" ");
-
-            String parseableBuyCondition = Stream.of(arr).map(string -> {
-                if (string.equals("and") || string.equals("or") || string.equals("&") || string.equals("|")) {
-                    return string;
+            String[] stringArr = trade.getParseableBuyCondition().split(" ");
+            stringArr = Stream.of(stringArr).map(s -> {
+                if (s.equals("(") || s.equals(")") || s.equals("||") || s.equals("&&")) {
+                    return s;
                 }
-                request.addParam("NAME", string);
-
+                request.addParam(GlobalConstant.ITEMID, s);
                 try {
                     customTechnicalIndicatorDao.item(request, response);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                CustomTechnicalIndicator technicalIndicator = (CustomTechnicalIndicator) response
-                        .getParam(GlobalConstant.ITEM);
 
-                return String.valueOf(tradeSignalCache.getTechnicalIndicatorMap()
-                        .get(technicalIndicator.getTechnicalIndicatorType() + "::"
-                                + technicalIndicator.getTechnicalIndicatorKey() + "::"
-                                + technicalIndicator.getEvaluationPeriod() + "::"
+                CustomTechnicalIndicator c = ((CustomTechnicalIndicator) response.getParam(GlobalConstant.ITEM));
+
+                boolean bool = tradeSignalCache.getTechnicalIndicatorMap()
+                        .get(c.getTechnicalIndicatorType() + "::"
+                                + c.getTechnicalIndicatorKey() + "::"
+                                + c.getEvaluationPeriod() + "::"
                                 + trade.getSymbol())
-                        .isFlashing());
+                        .isFlashing();
 
-            }).collect(Collectors.joining(" "));
+                if (bool) {
+                    buyReasons.add(c.getName());
+                }
 
-            if (parser.parseExpression(parseableBuyCondition).getValue(Boolean.class)) {
+                return String.valueOf(bool);
+            }).toArray(String[]::new);
+
+            String buyCondition = String.join(" ", stringArr);
+
+            if (parser.parseExpression(buyCondition).getValue(Boolean.class)) {
 
                 Order sellOrder = null;
                 Order buyOrder = null;
                 int truncatedSharesAmount = 0;
                 double profitLimitPrice = 0;
+
                 switch (trade.getCurrencyType()) {
                     case "Dollars":
                         truncatedSharesAmount = trade.getCurrencyAmount()
@@ -852,7 +816,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                     tradeDetail.setOrderID(buyOrder.getClientOrderId());
                     tradeDetail.setStatus(buyOrder.getStatus().name());
                     tradeDetail.setOrderSide("BUY");
-                    tradeDetail.setOrderCondition(buyOrderCondition);
+                    tradeDetail.setOrderCondition(String.join(",", buyReasons));
                     tradeDetail.setTrade(trade);
                     trade.getTradeDetails().add(tradeDetail);
                     if (trade.getFirstBuy() == 0)
@@ -884,106 +848,110 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
 
     public void currentSellTest(Request request, Response response) {
         try {
+
             Trade trade = (Trade) request.getParam(GlobalConstant.TRADE);
-            if (trade.getIterations().equals("unlimited")
-                    || trade.getIterationsExecuted() < Integer.parseInt(trade.getIterations())) {
-                String sellCondition = trade.getSellCondition();
-                String sellOrderCondition = "";
-                String parseableSellCondition = "";
 
-                if (sellCondition.equals("test")) {
-                    parseableSellCondition = "true";
-                    sellOrderCondition = "test";
-                } else {
-                    int trailingIndex = 0;
-                    int leadingIndex = 0;
-                    String evalStr = "";
-                    boolean tempBool = false;
+            if (!trade.getIterations().equals("unlimited")
+                    && trade.getIterationsExecuted() >= Integer.parseInt(trade.getIterations())) {
+                System.out.println("Trade frequency met - changing status to not running");
+                trade.setStatus("Not Running");
+                return;
+            }
 
-                    while (leadingIndex < sellCondition.length()) {
-                        if (sellCondition.indexOf((" "), trailingIndex + 1) == -1)
-                            leadingIndex = sellCondition.length();
-                        else
-                            leadingIndex = sellCondition.indexOf((" "), trailingIndex + 1);
+            if (trade.getSellCondition() == null) {
+                System.out.println("Sell Condition is null in buy test for" + trade.getName());
+                response.setStatus("Sell Condition is null in buy test for" + trade.getName());
+                return;
+            }
 
-                        evalStr = sellCondition.substring(trailingIndex, leadingIndex).trim();
-                        if (evalStr.equals("and") || evalStr.equals("or"))
-                            parseableSellCondition = parseableSellCondition.concat(" ".concat(evalStr).trim());
-                        else {
-                            System.out.println("NOT CONFIGURED YET");
-                            // tempBool = currentOrderSignals.process(evalStr, trade.getSymbol(),
-                            // trade.getEvaluationPeriod());
+            if (trade.getSellCondition().equals("")) {
+                return;
+            }
 
-                            if (tempBool) {
-                                if (sellOrderCondition.equals(""))
-                                    sellOrderCondition = sellOrderCondition.concat(evalStr);
-                                else
-                                    sellOrderCondition = sellOrderCondition.concat("&".concat(evalStr));
+            List<String> sellReasons = new ArrayList<String>();
 
-                            }
-                            parseableSellCondition = parseableSellCondition.concat(" ".concat(String.valueOf(tempBool)))
-                                    .trim();
+            String[] stringArr = trade.getParseableBuyCondition().split(" ");
+            stringArr = Stream.of(stringArr).map(s -> {
+                if (s.equals("(") || s.equals(")") || s.equals("||") || s.equals("&&")) {
+                    return s;
+                }
+                request.addParam(GlobalConstant.ITEMID, s);
+                try {
+                    customTechnicalIndicatorDao.item(request, response);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+                CustomTechnicalIndicator c = ((CustomTechnicalIndicator) response.getParam(GlobalConstant.ITEM));
+
+                boolean bool = tradeSignalCache.getTechnicalIndicatorMap()
+                        .get(c.getTechnicalIndicatorType() + "::"
+                                + c.getTechnicalIndicatorKey() + "::"
+                                + c.getEvaluationPeriod() + "::"
+                                + trade.getSymbol())
+                        .isFlashing();
+
+                if (bool) {
+                    sellReasons.add(c.getName());
+                }
+
+                return String.valueOf(bool);
+            }).toArray(String[]::new);
+
+            String parseableSellCondition = String.join(" ", stringArr);
+
+            if (parser.parseExpression(parseableSellCondition).getValue(Boolean.class)) {
+                Order sellOrder = null;
+
+                switch (trade.getOrderType()) {
+                    case "Market":
+
+                        switch (trade.getCurrencyType()) {
+
+                            case "Dollars":
+                                sellOrder = alpacaAPI.orders().requestNotionalMarketOrder(trade.getSymbol(),
+                                        trade.getCurrencyAmount().doubleValue(), OrderSide.SELL);
+                                break;
+                            case "Shares":
+                                sellOrder = alpacaAPI.orders().requestFractionalMarketOrder(trade.getSymbol(),
+                                        trade.getCurrencyAmount().doubleValue(), OrderSide.SELL);
+                                break;
+                            default:
+                                System.out.println("Currency type does not match");
+                                break;
                         }
-                        trailingIndex = leadingIndex;
+                        break;
+
+                    default:
+                        System.out.println("Case Not found!");
+                        break;
+
+                }
+                request.addParam("SELLORDER", sellOrder);
+                if (trade.getOrderSide().equals("Sell")) {
+                    trade.setIterationsExecuted(trade.getIterationsExecuted() + 1);
+
+                    if (!trade.getIterations().equals("unlimited")) {
+                        if (trade.getIterationsExecuted() >= Integer.parseInt(trade.getIterations()))
+                            trade.setStatus("Not Running");
                     }
                 }
 
-                if (parser.parseExpression(parseableSellCondition).getValue(Boolean.class)) {
-                    Order sellOrder = null;
+                if (sellOrder != null) {
+                    TradeDetail tradeDetail = new TradeDetail();
+                    tradeDetail.setPlacedAt(Instant.now().getEpochSecond());
+                    tradeDetail.setOrderID(sellOrder.getClientOrderId());
+                    tradeDetail.setStatus(sellOrder.getStatus().name());
+                    tradeDetail.setOrderSide("SELL");
+                    tradeDetail.setOrderCondition(String.join(",", sellReasons));
+                    tradeDetail.setTrade(trade);
+                    trade.getTradeDetails().add(tradeDetail);
+                }
+                System.out.println("Sell Order Placed!");
 
-                    switch (trade.getOrderType()) {
-                        case "Market":
+            } else
+                System.out.println(trade.getName() + ":Sell Condition not met");
 
-                            switch (trade.getCurrencyType()) {
-
-                                case "Dollars":
-                                    sellOrder = alpacaAPI.orders().requestNotionalMarketOrder(trade.getSymbol(),
-                                            trade.getCurrencyAmount().doubleValue(), OrderSide.SELL);
-                                    break;
-                                case "Shares":
-                                    sellOrder = alpacaAPI.orders().requestFractionalMarketOrder(trade.getSymbol(),
-                                            trade.getCurrencyAmount().doubleValue(), OrderSide.SELL);
-                                    break;
-                                default:
-                                    System.out.println("Currency type does not match");
-                                    break;
-                            }
-                            break;
-
-                        default:
-                            System.out.println("Case Not found!");
-                            break;
-
-                    }
-                    request.addParam("SELLORDER", sellOrder);
-                    if (trade.getOrderSide().equals("Sell")) {
-                        trade.setIterationsExecuted(trade.getIterationsExecuted() + 1);
-
-                        if (!trade.getIterations().equals("unlimited")) {
-                            if (trade.getIterationsExecuted() >= Integer.parseInt(trade.getIterations()))
-                                trade.setStatus("Not Running");
-                        }
-                    }
-
-                    if (sellOrder != null) {
-                        TradeDetail tradeDetail = new TradeDetail();
-                        tradeDetail.setPlacedAt(Instant.now().getEpochSecond());
-                        tradeDetail.setOrderID(sellOrder.getClientOrderId());
-                        tradeDetail.setStatus(sellOrder.getStatus().name());
-                        tradeDetail.setOrderSide("SELL");
-                        tradeDetail.setOrderCondition(sellOrderCondition);
-                        tradeDetail.setTrade(trade);
-                        trade.getTradeDetails().add(tradeDetail);
-                    }
-                    System.out.println("Sell Order Placed!");
-
-                } else
-                    System.out.println(trade.getName() + ":Sell Condition not met");
-
-            } else {
-                System.out.println("Trade frequency met - changing status to not running");
-                trade.setStatus("Not Running");
-            }
         } catch (Exception e) {
             System.out.println("Not Executed!");
             e.printStackTrace();

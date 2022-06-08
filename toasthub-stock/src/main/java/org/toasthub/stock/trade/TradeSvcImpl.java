@@ -1,6 +1,7 @@
 package org.toasthub.stock.trade;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -14,6 +15,9 @@ import javax.persistence.NoResultException;
 
 import org.hibernate.type.CurrencyType;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.expression.ExpressionParser;
+import org.springframework.expression.ParseException;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.stereotype.Service;
 import org.toasthub.model.CustomTechnicalIndicator;
 import org.toasthub.stock.custom_technical_indicator.CustomTechnicalIndicatorDao;
@@ -31,6 +35,8 @@ public class TradeSvcImpl implements TradeSvc {
 
 	@Autowired
 	private CustomTechnicalIndicatorDao customTechnicalIndicatorDao;
+
+	final ExpressionParser parser = new SpelExpressionParser();
 
 	final AtomicBoolean tradeAnalysisJobRunning = new AtomicBoolean(false);
 
@@ -88,44 +94,44 @@ public class TradeSvcImpl implements TradeSvc {
 		request.setParams(tempMap);
 
 		if (request.getParam("name") == null || ((String) request.getParam("name")).trim().isEmpty()) {
-			response.setStatus(Response.EMPTY);
+			response.setStatus("Name cannot be empty");
 			return;
 		}
 
 		if (request.getParam("orderSide") == null
 				|| !Arrays.asList(Trade.SUPPORTED_ORDER_SIDES).contains((String) request.getParam("orderSide"))) {
-			response.setStatus(Response.ERROR);
+			response.setStatus("Orderside cannot be empty");
 			return;
 		}
 
 		if (request.getParam("orderType") == null
 				|| !Arrays.asList(Trade.SUPPORTED_ORDER_TYPES).contains((String) request.getParam("orderType"))) {
-			response.setStatus(Response.ERROR);
+			response.setStatus("Ordertype is not supported");
 			return;
 		}
 
 		if (request.getParam("evaluationPeriod") == null) {
-			response.setStatus(Response.EMPTY);
+			response.setStatus("Evaluation period cannot be empty");
 			return;
 		}
 
 		if (request.getParam("symbol") == null) {
-			response.setStatus(Response.ERROR);
+			response.setStatus("Symbol cannot be empty");
 			return;
 		}
 
 		if (request.getParam("status") == null) {
-			response.setStatus(Response.EMPTY);
+			response.setStatus("Status cannot be empty");
 			return;
 		}
 
 		if (request.getParam("currencyType") == null) {
-			response.setStatus(Response.EMPTY);
+			response.setStatus("Currency type must be specified");
 			return;
 		}
 
 		if (request.getParam("currencyAmount") == null) {
-			response.setStatus(Response.EMPTY);
+			response.setStatus("Currency amount must be specified");
 			return;
 		}
 
@@ -175,7 +181,7 @@ public class TradeSvcImpl implements TradeSvc {
 				validateSellCondition(request, response);
 
 				if (request.getParam("budget") == null) {
-					response.setStatus(Response.ERROR);
+					response.setStatus("Budget cannot be empty");
 					return;
 				}
 				RequestValidation.validateBudget(request, response);
@@ -191,7 +197,7 @@ public class TradeSvcImpl implements TradeSvc {
 				request.addParam("ITERATIONS", request.getParam("iterations"));
 				break;
 			default:
-				response.setStatus(Response.ERROR);
+				response.setStatus("Invalid orderside");
 				return;
 		}
 
@@ -214,23 +220,26 @@ public class TradeSvcImpl implements TradeSvc {
 				tradeDao.item(request, response);
 			} catch (Exception e) {
 				e.printStackTrace();
+				return;
 			}
 			trade = (Trade) response.getParam(GlobalConstant.ITEM);
 		}
+
 		if (itemId == null) {
 			try {
 				tradeDao.itemCount(request, response);
 			} catch (Exception e) {
 				e.printStackTrace();
+				return;
 			}
 
 			if ((long) response.getParam(GlobalConstant.ITEMCOUNT) > 0) {
-				response.setStatus(Response.ERROR);
+				response.setStatus("Trade of the same name exists");
 				return;
 			}
 		}
 
-		if (response.getStatus().equals(Response.ERROR) || response.getStatus().equals(Response.EMPTY)) {
+		if (!response.getStatus().equals("Starting !")) {
 			return;
 		}
 
@@ -271,7 +280,7 @@ public class TradeSvcImpl implements TradeSvc {
 			trade.setParseableSellCondition((String) request.getParam("PARSEABLE_SELL_CONDITION"));
 		}
 
-		if (request.getParam("BUDGET") != null) {
+		if (request.getParam("BUDGET") != null && (trade.getStatus().equals("Not Running") || itemId == null)) {
 			trade.setBudget((BigDecimal) request.getParam("BUDGET"));
 		}
 
@@ -346,66 +355,84 @@ public class TradeSvcImpl implements TradeSvc {
 
 	public void validateBuyCondition(Request request, Response response) {
 		String initialString = "";
+
 		if (request.getParam("buyCondition") instanceof String) {
 			initialString = (String) request.getParam("buyCondition");
 		}
 
-		// "( Super_Golden_Cross_! ) &(lbb | ubb) -> initialString"
-		// " ( Super_Golden_Cross_! ) & ( lbb | ubb ) " -> paddedString
-		// "Super_Golden_Cross_! lbb ubb -> modifiedString
-		// "5 4 7 -> modifiedArr"
+		List<String> testStrings = new ArrayList<String>();
 
-		String paddedString = " "
-				+ initialString.replace("(", " ( ").replace(")", " ) ").replace("&", " & ").replace("|",
-						" | ")
-				+ " ";
-		String modifiedString = initialString.replace("(", " ").replace(")", " ").replace("&", " ").replace("|", " ")
-				.replace("//s+", " ").trim();
-		String[] initialArr = modifiedString.split(" ");
+		String str = initialString.replaceAll("\\s+", "");
 
-		String[] modifiedArr = Stream.of(initialArr).map(s -> {
-			if (s.equals("")) {
+		str = str.replaceAll("[&]+", " && ").replaceAll("[|]+", " || ").replace("(", " ( ").replace(")", " ) ")
+				.replaceAll("\\s+", " ").trim();
+
+		str = String.join(" ", Stream.of(str.split(" ")).map(s -> {
+
+			if (Arrays.asList("(", ")", "&&", "||").contains(s)) {
+				testStrings.add(s);
 				return s;
 			}
+
 			request.addParam("NAME", s);
 			try {
 				customTechnicalIndicatorDao.item(request, response);
 			} catch (NoResultException e) {
-				response.setStatus(Response.ERROR);
+				response.setStatus("Invalid technical indicator in buy condition");
+				testStrings.add("true");
 				return s;
 			}
-			long id = CustomTechnicalIndicator.class.cast(response.getParam(GlobalConstant.ITEM)).getId();
-			s = String.valueOf(id);
-			return s;
-		}).toArray(String[]::new);
 
-		for (int i = 0; i < initialArr.length; i++) {
-			paddedString = paddedString.replace(" " + initialArr[i] + " ", " " + modifiedArr[i] + " ");
+			CustomTechnicalIndicator c = CustomTechnicalIndicator.class.cast(response.getParam(GlobalConstant.ITEM));
+
+			if (!c.getEvaluationPeriod().equals((String) request.getParam("evaluationPeriod"))) {
+				response.setStatus("\"" + c.getName() + "\" does not support this trades evaluation period");
+			}
+
+			if(!c.getSymbols().stream().anyMatch(symbol->symbol.getSymbol().equals((String)request.getParam("symbol")))){
+				response.setStatus("\"" + c.getName() + "\" does not support "+(String)request.getParam("symbol"));
+			}
+
+			long id = c.getId();
+
+			s = String.valueOf(id);
+
+			testStrings.add("true");
+			return s;
+
+		}).toArray(String[]::new));
+
+		String testString = String.join(" ", testStrings);
+
+		if (!str.equals("")) {
+			try {
+				parser.parseExpression(testString).getValue(Boolean.class);
+			} catch (ParseException e) {
+				response.setStatus("Invalid logic in buy condition");
+				return;
+			}
 		}
 
-		paddedString = paddedString.replaceAll("//s+", "");
-
 		request.addParam("BUY_CONDITION", initialString);
-		request.addParam("PARSEABLE_BUY_CONDITION", paddedString);
+		request.addParam("PARSEABLE_BUY_CONDITION", str);
 	}
 
 	public void validateSellCondition(Request request, Response response) {
 		String initialString = "";
+
 		if (request.getParam("sellCondition") instanceof String) {
 			initialString = (String) request.getParam("sellCondition");
 		}
 
-		String paddedString = " "
-				+ initialString.replace("(", " ( ").replace(")", " ) ").replace("&", " & ").replace("|",
-						" | ")
-				+ " ";
-		String modifiedString = initialString.replace("(", " ").replace(")", " ").replace("&", " ").replace("|", " ")
-				.replace("//s+", " ").trim();
-		String[] initialArr = modifiedString.split(" ");
+		List<String> testStrings = new ArrayList<String>();
 
-		String[] modifiedArr = Stream.of(initialArr).map(s -> {
+		String str = initialString.replaceAll("\\s+", "");
+		str = str.replaceAll("[&]+", " && ").replaceAll("[|]+", " || ").replace("(", " ( ").replace(")", " ) ")
+				.replaceAll("\\s+", " ").trim();
+		str = String.join(" ", Stream.of(str.split(" ")).map(s -> {
 
-			if (s.equals("")) {
+			if (Arrays.asList("(", ")", "&&", "||", "").contains(s)) {
+				testStrings.add(s);
 				return s;
 			}
 
@@ -413,21 +440,42 @@ public class TradeSvcImpl implements TradeSvc {
 			try {
 				customTechnicalIndicatorDao.item(request, response);
 			} catch (NoResultException e) {
-				response.setStatus(Response.ERROR);
+				response.setStatus("Invalid technical indicator in sell condition");
+				testStrings.add("true");
 				return s;
 			}
-			long id = CustomTechnicalIndicator.class.cast(response.getParam(GlobalConstant.ITEM)).getId();
-			s = String.valueOf(id);
-			return s;
-		}).toArray(String[]::new);
 
-		for (int i = 0; i < initialArr.length; i++) {
-			paddedString = paddedString.replace(" " + initialArr[i] + " ", " " + modifiedArr[i] + " ");
+			CustomTechnicalIndicator c = CustomTechnicalIndicator.class.cast(response.getParam(GlobalConstant.ITEM));
+
+			if (!c.getEvaluationPeriod().equals((String) request.getParam("evaluationPeriod"))) {
+				response.setStatus("\"" + c.getName() + "\" does not support this trades evaluation period");
+			}
+
+			if(!c.getSymbols().stream().anyMatch(symbol->symbol.getSymbol().equals((String)request.getParam("symbol")))){
+				response.setStatus("\"" + c.getName() + "\" does not support "+(String)request.getParam("symbol"));
+			}
+
+			long id = c.getId();
+
+			s = String.valueOf(id);
+
+			testStrings.add("true");
+			return s;
+
+		}).toArray(String[]::new));
+
+		String testString = String.join(" ", testStrings);
+
+		if (!str.equals("")) {
+			try {
+				parser.parseExpression(testString).getValue(Boolean.class);
+			} catch (ParseException e) {
+				response.setStatus("Invalid logic in sell condition");
+				return;
+			}
 		}
 
-		paddedString = paddedString.replaceAll("//s+", "");
-
 		request.addParam("SELL_CONDITION", initialString);
-		request.addParam("PARSEABLE_SELL_CONDITION", paddedString);
+		request.addParam("PARSEABLE_SELL_CONDITION", str);
 	}
 }

@@ -17,6 +17,7 @@
 package org.toasthub.stock.trade;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.persistence.EntityManager;
@@ -159,16 +160,21 @@ public class TradeDaoImpl implements TradeDao {
 	}
 
 	@Override
-	@SuppressWarnings("unchecked")
 	public List<Trade> getRunningMinuteTrades() {
 		String queryStr = "SELECT DISTINCT x FROM Trade AS x WHERE x.status =:status AND x.evaluationPeriod =:evaluationPeriod";
 
 		Query query = entityManager.createQuery(queryStr);
 		query.setParameter("status", "Running");
-		query.setParameter("evaluationPeriod", "Minute");
-		List<Trade> trades = query.getResultList();
-		for (Trade trade : trades)
-			Hibernate.initialize(trade.getTradeDetails());
+		query.setParameter("evaluationPeriod", "MINUTE");
+
+		List<Trade> trades = new ArrayList<Trade>();
+		List<?> objects = query.getResultList();
+		for (Object o : objects) {
+			Trade t = Trade.class.cast(o);
+			Hibernate.initialize(t.getTradeDetails());
+			trades.add(t);
+		}
+
 		return trades;
 	}
 
@@ -202,16 +208,21 @@ public class TradeDaoImpl implements TradeDao {
 	}
 
 	@Override
-	@SuppressWarnings("unchecked")
 	public List<Trade> getRunningDayTrades() {
 		String queryStr = "SELECT DISTINCT x FROM Trade AS x WHERE x.status =:status AND x.evaluationPeriod =:evaluationPeriod";
 
 		Query query = entityManager.createQuery(queryStr);
 		query.setParameter("status", "Running");
-		query.setParameter("evaluationPeriod", "Day");
-		List<Trade> trades = query.getResultList();
-		for (Trade trade : trades)
-			Hibernate.initialize(trade.getTradeDetails());
+		query.setParameter("evaluationPeriod", "DAY");
+
+		List<Trade> trades = new ArrayList<Trade>();
+		List<?> objects = query.getResultList();
+		for (Object o : objects) {
+			Trade t = Trade.class.cast(o);
+			Hibernate.initialize(t.getTradeDetails());
+			trades.add(t);
+		}
+
 		return trades;
 	}
 

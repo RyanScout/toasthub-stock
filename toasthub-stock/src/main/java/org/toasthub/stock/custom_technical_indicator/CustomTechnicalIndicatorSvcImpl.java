@@ -48,7 +48,7 @@ public class CustomTechnicalIndicatorSvcImpl implements CustomTechnicalIndicator
 
     @Override
     public void save(Request request, Response response) {
-        response.setStatus("Starting!");
+        response.setStatus("Starting !");
 
         if ((!request.containsParam(GlobalConstant.ITEM)) || (request.getParam(GlobalConstant.ITEM) == null)) {
             response.setStatus(Response.ERROR);
@@ -69,23 +69,23 @@ public class CustomTechnicalIndicatorSvcImpl implements CustomTechnicalIndicator
         request.addParam(GlobalConstant.ITEMID, request.getParam("id"));
 
         if (request.getParam("technicalIndicatorType") == null) {
-            response.setStatus(Response.EMPTY);
+            response.setStatus("Technical indicator type cannot be null");
             return;
         }
 
         if (request.getParam("evaluationPeriod") == null) {
-            response.setStatus(Response.EMPTY);
+            response.setStatus("Evaluation period cannot be null");
             return;
         }
 
         if (!Arrays.asList(TechnicalIndicator.TECHNICALINDICATORTYPES)
                 .contains((String) request.getParam("technicalIndicatorType"))) {
-            response.setStatus(Response.ERROR);
+            response.setStatus("Technical indicator type is not valid");
             return;
         }
 
         if (request.getParam("name") == null) {
-            response.setStatus(Response.EMPTY);
+            response.setStatus("Name cannot be empty");
             return;
         }
 
@@ -122,7 +122,7 @@ public class CustomTechnicalIndicatorSvcImpl implements CustomTechnicalIndicator
             RequestValidation.validateStandardDeviations(request, response);
         }
 
-        if (response.getStatus().equals(Response.ERROR) || response.getStatus().equals(Response.EMPTY)) {
+        if (!response.getStatus().equals("Starting !")) {
             return;
         }
 

@@ -41,8 +41,8 @@ public class Trade extends BaseEntity {
 	public static final String BOT = "Bot";
 	public static final String BUY = "Buy";
 	public static final String SELL = "Sell";
-	public static final String[] SUPPORTED_ORDER_SIDES ={
-		BOT, BUY , SELL
+	public static final String[] SUPPORTED_ORDER_SIDES = {
+			BOT, BUY, SELL
 	};
 
 	public static final String MARKET = "Market";
@@ -50,7 +50,7 @@ public class Trade extends BaseEntity {
 	public static final String PROFIT_LIMIT = "Profit Limit";
 	public static final String TRAILING_STOP_PROFIT_LIMIT = "Trailing Stop and Profit Limit";
 	public static final String[] SUPPORTED_ORDER_TYPES = {
-		MARKET, TRAILING_STOP , PROFIT_LIMIT , TRAILING_STOP_PROFIT_LIMIT
+			MARKET, TRAILING_STOP, PROFIT_LIMIT, TRAILING_STOP_PROFIT_LIMIT
 	};
 
 	private String name;
@@ -196,12 +196,9 @@ public class Trade extends BaseEntity {
 
 	public void setBudget(BigDecimal budget) {
 		this.budget = budget;
-		if (availableBudget == null) {
-			this.availableBudget = budget;
-			this.totalValue = budget;
-		}
-		if (sharesHeld == null)
-			this.sharesHeld = BigDecimal.ZERO;
+		this.availableBudget = budget;
+		this.totalValue = budget;
+		this.sharesHeld = BigDecimal.ZERO;
 	}
 
 	public BigDecimal getAvailableBudget() {
