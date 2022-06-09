@@ -137,13 +137,13 @@ public class CacheSvcImpl implements CacheSvc {
             e.printStackTrace();
         }
 
-        List<CustomTechnicalIndicator> keys = new ArrayList<CustomTechnicalIndicator>();
+        List<CustomTechnicalIndicator> customTechnicalIndicators = new ArrayList<CustomTechnicalIndicator>();
 
         for (Object o : ArrayList.class.cast(response.getParam(GlobalConstant.ITEMS))) {
-            keys.add(CustomTechnicalIndicator.class.cast(o));
+            customTechnicalIndicators.add(CustomTechnicalIndicator.class.cast(o));
         }
 
-        keys.stream().forEach(item -> {
+        customTechnicalIndicators.stream().forEach(item -> {
             item.getSymbols().stream()
                     .map(symbol -> symbol.getSymbol())
                     .forEach(symbol -> {
@@ -155,6 +155,6 @@ public class CacheSvcImpl implements CacheSvc {
                     });
         });
 
-        response.addParam(GlobalConstant.ITEMS, keys);
+        response.addParam(GlobalConstant.ITEMS, customTechnicalIndicators);
     }
 }

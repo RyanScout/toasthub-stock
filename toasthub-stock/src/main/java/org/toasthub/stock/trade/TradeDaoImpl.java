@@ -18,7 +18,9 @@ package org.toasthub.stock.trade;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
@@ -28,6 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import org.toasthub.stock.model.Trade;
+import org.toasthub.stock.model.TradeDetail;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
@@ -198,7 +201,9 @@ public class TradeDaoImpl implements TradeDao {
 			trade.getTradeDetails().stream().forEach(t -> {
 				entityManager.remove(t);
 			});
-			trade.setTradeDetails(null);
+			
+			Set<TradeDetail> trades = new LinkedHashSet<TradeDetail>();
+			trade.setTradeDetails(trades);
 			trade.setAvailableBudget(trade.getBudget());
 			trade.setTotalValue(trade.getBudget());
 			trade.setSharesHeld(BigDecimal.ZERO);

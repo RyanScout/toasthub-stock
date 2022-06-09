@@ -271,17 +271,37 @@ public class TradeSvcImpl implements TradeSvc {
 		}
 
 		if (request.getParam("BUY_CONDITION") != null) {
-			trade.setBuyCondition((String) request.getParam("BUY_CONDITION"));
-			trade.setParseableBuyCondition((String) request.getParam("PARSEABLE_BUY_CONDITION"));
+			trade.setParseableBuyCondition((String) request.getParam("BUY_CONDITION"));
 		}
 
 		if (request.getParam("SELL_CONDITION") != null) {
-			trade.setSellCondition((String) request.getParam("SELL_CONDITION"));
-			trade.setParseableSellCondition((String) request.getParam("PARSEABLE_SELL_CONDITION"));
+			trade.setParseableSellCondition((String) request.getParam("SELL_CONDITION"));
 		}
 
-		if (request.getParam("BUDGET") != null && (trade.getStatus().equals("Not Running") || itemId == null)) {
+		if (request.getParam("BUDGET") != null && itemId != null) {
+
+			if (trade.getBudget().compareTo((BigDecimal) request.getParam("BUDGET")) != 0) {
+
+				if (!trade.getStatus().equals("Not Running")) {
+					response.setStatus("Cannot change budget while trade is running");
+					return;
+				}
+				if (trade.getTradeDetails().size() > 0) {
+					response.setStatus("Must reset trade before changing budget");
+					return;
+				}
+
+				trade.setAvailableBudget((BigDecimal) request.getParam("BUDGET"));
+				trade.setTotalValue((BigDecimal) request.getParam("BUDGET"));
+			}
+
 			trade.setBudget((BigDecimal) request.getParam("BUDGET"));
+		}
+
+		if (request.getParam("BUDGET") != null && itemId == null) {
+			trade.setBudget((BigDecimal) request.getParam("BUDGET"));
+			trade.setAvailableBudget((BigDecimal) request.getParam("BUDGET"));
+			trade.setTotalValue((BigDecimal) request.getParam("BUDGET"));
 		}
 
 		request.addParam(GlobalConstant.ITEM, trade);
@@ -299,10 +319,6 @@ public class TradeSvcImpl implements TradeSvc {
 	public void delete(Request request, Response response) {
 		try {
 			tradeDao.delete(request, response);
-			tradeDao.itemCount(request, response);
-			if ((Long) response.getParam(GlobalConstant.ITEMCOUNT) > 0) {
-				tradeDao.items(request, response);
-			}
 			response.setStatus(Response.SUCCESS);
 		} catch (Exception e) {
 			response.setStatus(Response.ACTIONFAILED);
@@ -314,10 +330,6 @@ public class TradeSvcImpl implements TradeSvc {
 	public void reset(Request request, Response response) {
 		try {
 			tradeDao.resetTrade(request, response);
-			tradeDao.itemCount(request, response);
-			if ((Long) response.getParam(GlobalConstant.ITEMCOUNT) > 0) {
-				tradeDao.items(request, response);
-			}
 			response.setStatus(Response.SUCCESS);
 		} catch (Exception e) {
 			response.setStatus(Response.ACTIONFAILED);
@@ -344,6 +356,52 @@ public class TradeSvcImpl implements TradeSvc {
 			tradeDao.itemCount(request, response);
 			if ((Long) response.getParam(GlobalConstant.ITEMCOUNT) > 0) {
 				tradeDao.items(request, response);
+
+				for (Object o : ArrayList.class.cast(response.getParam(GlobalConstant.TRADES))) {
+					Trade trade = Trade.class.cast(o);
+
+					String[] stringArr1 = trade.getParseableBuyCondition().split(" ");
+					stringArr1 = Stream.of(stringArr1).map(s -> {
+						if (s.equals("(") || s.equals(")") || s.equals("||") || s.equals("&&") || s.equals("")) {
+							return s;
+						}
+						request.addParam(GlobalConstant.ITEMID, s);
+						try {
+							customTechnicalIndicatorDao.item(request, response);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+
+						CustomTechnicalIndicator c = ((CustomTechnicalIndicator) response
+								.getParam(GlobalConstant.ITEM));
+
+						return String.valueOf(c.getName());
+
+					}).toArray(String[]::new);
+
+					trade.setBuyCondition(String.join(" ", stringArr1));
+
+					String[] stringArr2 = trade.getParseableSellCondition().split(" ");
+					stringArr2 = Stream.of(stringArr2).map(s -> {
+						if (s.equals("(") || s.equals(")") || s.equals("||") || s.equals("&&") || s.equals("")) {
+							return s;
+						}
+						request.addParam(GlobalConstant.ITEMID, s);
+						try {
+							customTechnicalIndicatorDao.item(request, response);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+
+						CustomTechnicalIndicator c = ((CustomTechnicalIndicator) response
+								.getParam(GlobalConstant.ITEM));
+
+						return String.valueOf(c.getName());
+
+					}).toArray(String[]::new);
+
+					trade.setSellCondition(String.join(" ", stringArr2));
+				}
 			}
 			response.setStatus(Response.SUCCESS);
 		} catch (Exception e) {
@@ -369,7 +427,7 @@ public class TradeSvcImpl implements TradeSvc {
 
 		str = String.join(" ", Stream.of(str.split(" ")).map(s -> {
 
-			if (Arrays.asList("(", ")", "&&", "||").contains(s)) {
+			if (Arrays.asList("(", ")", "&&", "||", "").contains(s)) {
 				testStrings.add(s);
 				return s;
 			}
@@ -389,8 +447,9 @@ public class TradeSvcImpl implements TradeSvc {
 				response.setStatus("\"" + c.getName() + "\" does not support this trades evaluation period");
 			}
 
-			if(!c.getSymbols().stream().anyMatch(symbol->symbol.getSymbol().equals((String)request.getParam("symbol")))){
-				response.setStatus("\"" + c.getName() + "\" does not support "+(String)request.getParam("symbol"));
+			if (!c.getSymbols().stream()
+					.anyMatch(symbol -> symbol.getSymbol().equals((String) request.getParam("symbol")))) {
+				response.setStatus("\"" + c.getName() + "\" does not support " + (String) request.getParam("symbol"));
 			}
 
 			long id = c.getId();
@@ -404,7 +463,7 @@ public class TradeSvcImpl implements TradeSvc {
 
 		String testString = String.join(" ", testStrings);
 
-		if (!str.equals("")) {
+		if (!testString.equals("")) {
 			try {
 				parser.parseExpression(testString).getValue(Boolean.class);
 			} catch (ParseException e) {
@@ -413,8 +472,7 @@ public class TradeSvcImpl implements TradeSvc {
 			}
 		}
 
-		request.addParam("BUY_CONDITION", initialString);
-		request.addParam("PARSEABLE_BUY_CONDITION", str);
+		request.addParam("BUY_CONDITION", str);
 	}
 
 	public void validateSellCondition(Request request, Response response) {
@@ -451,8 +509,9 @@ public class TradeSvcImpl implements TradeSvc {
 				response.setStatus("\"" + c.getName() + "\" does not support this trades evaluation period");
 			}
 
-			if(!c.getSymbols().stream().anyMatch(symbol->symbol.getSymbol().equals((String)request.getParam("symbol")))){
-				response.setStatus("\"" + c.getName() + "\" does not support "+(String)request.getParam("symbol"));
+			if (!c.getSymbols().stream()
+					.anyMatch(symbol -> symbol.getSymbol().equals((String) request.getParam("symbol")))) {
+				response.setStatus("\"" + c.getName() + "\" does not support " + (String) request.getParam("symbol"));
 			}
 
 			long id = c.getId();
@@ -466,7 +525,7 @@ public class TradeSvcImpl implements TradeSvc {
 
 		String testString = String.join(" ", testStrings);
 
-		if (!str.equals("")) {
+		if (!testString.equals("")) {
 			try {
 				parser.parseExpression(testString).getValue(Boolean.class);
 			} catch (ParseException e) {
@@ -475,7 +534,6 @@ public class TradeSvcImpl implements TradeSvc {
 			}
 		}
 
-		request.addParam("SELL_CONDITION", initialString);
-		request.addParam("PARSEABLE_SELL_CONDITION", str);
+		request.addParam("SELL_CONDITION", str);
 	}
 }

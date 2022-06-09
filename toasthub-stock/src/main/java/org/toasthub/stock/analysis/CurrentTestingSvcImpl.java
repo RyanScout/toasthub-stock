@@ -473,29 +473,43 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                                     System.out.println("Unknown case");
                                     break;
                                 case "Bot":
-                                    BigDecimal orderQuantity = new BigDecimal(order.getQuantity());
-                                    trade.setAvailableBudget(trade.getAvailableBudget()
-                                            .subtract(orderQuantity
-                                                    .multiply(new BigDecimal(order.getAverageFillPrice())),
-                                                    MathContext.DECIMAL32)
-                                            .setScale(2, BigDecimal.ROUND_HALF_UP));
+                                    BigDecimal orderQuantity = new BigDecimal(order.getFilledQuantity());
+                                    BigDecimal fillPrice = new BigDecimal(order.getAverageFillPrice());
+
+                                    trade.setAvailableBudget(
+                                            trade.getAvailableBudget()
+                                                    .subtract((orderQuantity.multiply(fillPrice)),
+                                                            MathContext.DECIMAL32)
+                                                    .setScale(2, BigDecimal.ROUND_HALF_UP));
+
                                     trade.setSharesHeld(trade.getSharesHeld().add(orderQuantity));
+
                                     trade.setIterationsExecuted(trade.getIterationsExecuted() + 1);
-                                    trade.setTotalValue(trade.getAvailableBudget().add(trade.getSharesHeld()
-                                            .multiply(tradeSignalCache.getRecentClosingPriceMap()
-                                                    .get("MINUTE::" + trade.getSymbol()))));
+
+                                    trade.setTotalValue(
+                                            trade.getAvailableBudget().add(
+                                                    trade.getSharesHeld()
+                                                            .multiply(tradeSignalCache.getRecentClosingPriceMap()
+                                                                    .get("MINUTE::" + trade.getSymbol()))));
 
                                     t.setSharesHeld(trade.getSharesHeld());
+
                                     t.setAvailableBudget(trade.getAvailableBudget());
-                                    t.setDollarAmount(orderQuantity
-                                            .multiply(new BigDecimal(order.getAverageFillPrice()),
-                                                    MathContext.DECIMAL32)
-                                            .setScale(2, BigDecimal.ROUND_HALF_UP));
+
+                                    t.setDollarAmount(
+                                            (orderQuantity.multiply(fillPrice, MathContext.DECIMAL32))
+                                                    .setScale(2, BigDecimal.ROUND_HALF_UP));
+
                                     t.setShareAmount(orderQuantity);
+
                                     t.setFilledAt(order.getFilledAt().toEpochSecond());
-                                    t.setAssetPrice(new BigDecimal(order.getAverageFillPrice()));
+
+                                    t.setAssetPrice(fillPrice);
+
                                     t.setTotalValue(trade.getTotalValue());
+
                                     t.setStatus("FILLED");
+
                                     t.setTrade(trade);
                                     break;
                                 default:
@@ -618,12 +632,12 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                 return;
             }
 
-            if (trade.getBuyCondition() == null) {
+            if (trade.getParseableBuyCondition() == null) {
                 response.setStatus("Buy Condition is null in buy test for" + trade.getName());
                 return;
             }
 
-            if (trade.getBuyCondition().equals("")) {
+            if (trade.getParseableBuyCondition().equals("")) {
                 return;
             }
 
@@ -660,184 +674,184 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
 
             String buyCondition = String.join(" ", stringArr);
 
-            if (parser.parseExpression(buyCondition).getValue(Boolean.class)) {
+            if (!parser.parseExpression(buyCondition).getValue(Boolean.class)) {
+                System.out.println(trade.getName() + ":Buy Condition not met");
+                return;
+            }
 
-                Order sellOrder = null;
-                Order buyOrder = null;
-                int truncatedSharesAmount = 0;
-                double profitLimitPrice = 0;
+            Order sellOrder = null;
+            Order buyOrder = null;
+            int truncatedSharesAmount = 0;
+            double profitLimitPrice = 0;
 
-                switch (trade.getCurrencyType()) {
-                    case "Dollars":
-                        truncatedSharesAmount = trade.getCurrencyAmount()
-                                .divide(tradeSignalCache.getRecentClosingPriceMap()
-                                        .get("MINUTE::" + trade.getSymbol()),
-                                        MathContext.DECIMAL32)
-                                .intValue();
-                        break;
-                    case "Shares":
-                        truncatedSharesAmount = trade.getCurrencyAmount().intValue();
-                        break;
-                    default:
-                        break;
-                }
-                switch (trade.getOrderType()) {
-                    case "Market":
+            switch (trade.getCurrencyType()) {
+                case "Dollars":
+                    truncatedSharesAmount = trade.getCurrencyAmount()
+                            .divide(tradeSignalCache.getRecentClosingPriceMap()
+                                    .get("MINUTE::" + trade.getSymbol()),
+                                    MathContext.DECIMAL32)
+                            .intValue();
+                    break;
+                case "Shares":
+                    truncatedSharesAmount = trade.getCurrencyAmount().intValue();
+                    break;
+                default:
+                    break;
+            }
+            switch (trade.getOrderType()) {
+                case "Market":
 
-                        switch (trade.getCurrencyType()) {
+                    switch (trade.getCurrencyType()) {
 
-                            case "Dollars":
-                                buyOrder = alpacaAPI.orders().requestNotionalMarketOrder(trade.getSymbol(),
-                                        trade.getCurrencyAmount().doubleValue(), OrderSide.BUY);
-                                break;
-                            case "Shares":
-                                buyOrder = alpacaAPI.orders().requestFractionalMarketOrder(trade.getSymbol(),
-                                        trade.getCurrencyAmount().doubleValue(), OrderSide.BUY);
-                                break;
-                            default:
-                                System.out.println("Currency type does not match");
-                                break;
-                        }
-                        break;
-
-                    case "Trailing Stop":
-                        switch (trade.getTrailingStopType()) {
-                            case "Trailing Stop Price":
-                                buyOrder = alpacaAPI.orders().requestTrailingStopPriceOrder(trade.getSymbol(),
-                                        truncatedSharesAmount, OrderSide.BUY,
-                                        OrderTimeInForce.DAY, trade.getTrailingStopAmount().doubleValue(),
-                                        false);
-                                break;
-                            case "Trailing Stop Percent":
-                                buyOrder = alpacaAPI.orders().requestTrailingStopPercentOrder(trade.getSymbol(),
-                                        truncatedSharesAmount, OrderSide.BUY,
-                                        OrderTimeInForce.DAY, trade.getTrailingStopAmount().doubleValue(),
-                                        false);
-                                break;
-                            default:
-                                System.out.println("Trailing stop type does not match");
-                                break;
-                        }
-                        break;
-
-                    case "Profit Limit":
-
-                        switch (trade.getProfitLimitType()) {
-                            case "Profit Limit Price":
-                                profitLimitPrice = trade.getProfitLimitAmount()
-                                        .add(tradeSignalCache.getRecentClosingPriceMap()
-                                                .get("MINUTE::" + trade.getSymbol()))
-                                        .doubleValue();
-                                break;
-                            case "Profit Limit Percent":
-                                profitLimitPrice = trade.getProfitLimitAmount().movePointLeft(2).add(BigDecimal.ONE)
-                                        .multiply(
-                                                tradeSignalCache.getRecentClosingPriceMap()
-                                                        .get("MINUTE::" + trade.getSymbol()))
-                                        .doubleValue();
-                                break;
-                            default:
-                                System.out.println("Profit limit type does not match");
-                                break;
-                        }
-                        buyOrder = alpacaAPI.orders().requestMarketOrder(trade.getSymbol(), truncatedSharesAmount,
-                                OrderSide.BUY, OrderTimeInForce.DAY);
-                        sellOrder = alpacaAPI.orders().requestLimitOrder(trade.getSymbol(), truncatedSharesAmount,
-                                OrderSide.SELL,
-                                OrderTimeInForce.DAY, profitLimitPrice, false);
-                        sellOrderCondition = "Profit Limit";
-                        break;
-
-                    case "Trailing Stop & Profit Limit":
-
-                        switch (trade.getTrailingStopType()) {
-                            case "Trailing Stop Price":
-                                buyOrder = alpacaAPI.orders().requestTrailingStopPriceOrder(trade.getSymbol(),
-                                        truncatedSharesAmount, OrderSide.BUY,
-                                        OrderTimeInForce.DAY, trade.getTrailingStopAmount().doubleValue(),
-                                        false);
-                                break;
-                            case "Trailing Stop Percent":
-                                buyOrder = alpacaAPI.orders().requestTrailingStopPercentOrder(trade.getSymbol(),
-                                        truncatedSharesAmount, OrderSide.BUY,
-                                        OrderTimeInForce.DAY, trade.getTrailingStopAmount().doubleValue(),
-                                        false);
-                                break;
-                            default:
-                                System.out.println("Trailing stop type does not match");
-                                break;
-                        }
-
-                        switch (trade.getProfitLimitType()) {
-                            case "Profit Limit Price":
-                                profitLimitPrice = trade.getProfitLimitAmount()
-                                        .add(tradeSignalCache.getRecentClosingPriceMap()
-                                                .get("MINUTE::" + trade.getSymbol()))
-                                        .doubleValue();
-                                break;
-                            case "Profit Limit Percent":
-                                profitLimitPrice = trade.getProfitLimitAmount().movePointLeft(2).add(BigDecimal.ONE)
-                                        .multiply(
-                                                tradeSignalCache.getRecentClosingPriceMap()
-                                                        .get("MINUTE::" + trade.getSymbol()))
-                                        .doubleValue();
-                                break;
-                            default:
-                                System.out.println("Profit limit type does not match");
-                                break;
-                        }
-
-                        sellOrder = alpacaAPI.orders().requestLimitOrder(trade.getSymbol(), truncatedSharesAmount,
-                                OrderSide.SELL,
-                                OrderTimeInForce.DAY, profitLimitPrice, false);
-                        sellOrderCondition = "Profit Limit";
-                        break;
-
-                    case "Cascading Trailing Stop":
-                        if (trade.getRecentBuyOrderID() == null) {
+                        case "Dollars":
                             buyOrder = alpacaAPI.orders().requestNotionalMarketOrder(trade.getSymbol(),
                                     trade.getCurrencyAmount().doubleValue(), OrderSide.BUY);
-                            trade.setRecentBuyOrderID(buyOrder.getClientOrderId());
-                        }
+                            break;
+                        case "Shares":
+                            buyOrder = alpacaAPI.orders().requestFractionalMarketOrder(trade.getSymbol(),
+                                    trade.getCurrencyAmount().doubleValue(), OrderSide.BUY);
+                            break;
+                        default:
+                            System.out.println("Currency type does not match");
+                            break;
+                    }
+                    break;
 
-                        break;
+                case "Trailing Stop":
+                    switch (trade.getTrailingStopType()) {
+                        case "Trailing Stop Price":
+                            buyOrder = alpacaAPI.orders().requestTrailingStopPriceOrder(trade.getSymbol(),
+                                    truncatedSharesAmount, OrderSide.BUY,
+                                    OrderTimeInForce.DAY, trade.getTrailingStopAmount().doubleValue(),
+                                    false);
+                            break;
+                        case "Trailing Stop Percent":
+                            buyOrder = alpacaAPI.orders().requestTrailingStopPercentOrder(trade.getSymbol(),
+                                    truncatedSharesAmount, OrderSide.BUY,
+                                    OrderTimeInForce.DAY, trade.getTrailingStopAmount().doubleValue(),
+                                    false);
+                            break;
+                        default:
+                            System.out.println("Trailing stop type does not match");
+                            break;
+                    }
+                    break;
 
-                    default:
-                        System.out.println("Case Not found!");
-                        break;
+                case "Profit Limit":
 
-                }
-                request.addParam("BUYORDER", buyOrder);
-                request.addParam("SELLORDER", sellOrder);
+                    switch (trade.getProfitLimitType()) {
+                        case "Profit Limit Price":
+                            profitLimitPrice = trade.getProfitLimitAmount()
+                                    .add(tradeSignalCache.getRecentClosingPriceMap()
+                                            .get("MINUTE::" + trade.getSymbol()))
+                                    .doubleValue();
+                            break;
+                        case "Profit Limit Percent":
+                            profitLimitPrice = trade.getProfitLimitAmount().movePointLeft(2).add(BigDecimal.ONE)
+                                    .multiply(
+                                            tradeSignalCache.getRecentClosingPriceMap()
+                                                    .get("MINUTE::" + trade.getSymbol()))
+                                    .doubleValue();
+                            break;
+                        default:
+                            System.out.println("Profit limit type does not match");
+                            break;
+                    }
+                    buyOrder = alpacaAPI.orders().requestMarketOrder(trade.getSymbol(), truncatedSharesAmount,
+                            OrderSide.BUY, OrderTimeInForce.DAY);
+                    sellOrder = alpacaAPI.orders().requestLimitOrder(trade.getSymbol(), truncatedSharesAmount,
+                            OrderSide.SELL,
+                            OrderTimeInForce.DAY, profitLimitPrice, false);
+                    sellOrderCondition = "Profit Limit";
+                    break;
 
-                if (buyOrder != null) {
-                    TradeDetail tradeDetail = new TradeDetail();
-                    tradeDetail.setPlacedAt(Instant.now().getEpochSecond());
-                    tradeDetail.setOrderID(buyOrder.getClientOrderId());
-                    tradeDetail.setStatus(buyOrder.getStatus().name());
-                    tradeDetail.setOrderSide("BUY");
-                    tradeDetail.setOrderCondition(String.join(",", buyReasons));
-                    tradeDetail.setTrade(trade);
-                    trade.getTradeDetails().add(tradeDetail);
-                    if (trade.getFirstBuy() == 0)
-                        trade.setFirstBuy(Instant.now().getEpochSecond());
-                }
+                case "Trailing Stop & Profit Limit":
 
-                if (sellOrder != null) {
-                    TradeDetail tradeDetail = new TradeDetail();
-                    tradeDetail.setPlacedAt(Instant.now().getEpochSecond());
-                    tradeDetail.setOrderID(buyOrder.getClientOrderId());
-                    tradeDetail.setStatus(buyOrder.getStatus().name());
-                    tradeDetail.setOrderSide("SELL");
-                    tradeDetail.setOrderCondition(sellOrderCondition);
-                    tradeDetail.setTrade(trade);
-                    trade.getTradeDetails().add(tradeDetail);
-                }
+                    switch (trade.getTrailingStopType()) {
+                        case "Trailing Stop Price":
+                            buyOrder = alpacaAPI.orders().requestTrailingStopPriceOrder(trade.getSymbol(),
+                                    truncatedSharesAmount, OrderSide.BUY,
+                                    OrderTimeInForce.DAY, trade.getTrailingStopAmount().doubleValue(),
+                                    false);
+                            break;
+                        case "Trailing Stop Percent":
+                            buyOrder = alpacaAPI.orders().requestTrailingStopPercentOrder(trade.getSymbol(),
+                                    truncatedSharesAmount, OrderSide.BUY,
+                                    OrderTimeInForce.DAY, trade.getTrailingStopAmount().doubleValue(),
+                                    false);
+                            break;
+                        default:
+                            System.out.println("Trailing stop type does not match");
+                            break;
+                    }
 
-                System.out.println(trade.getName() + ":Buy Order Placed!");
+                    switch (trade.getProfitLimitType()) {
+                        case "Profit Limit Price":
+                            profitLimitPrice = trade.getProfitLimitAmount()
+                                    .add(tradeSignalCache.getRecentClosingPriceMap()
+                                            .get("MINUTE::" + trade.getSymbol()))
+                                    .doubleValue();
+                            break;
+                        case "Profit Limit Percent":
+                            profitLimitPrice = trade.getProfitLimitAmount().movePointLeft(2).add(BigDecimal.ONE)
+                                    .multiply(
+                                            tradeSignalCache.getRecentClosingPriceMap()
+                                                    .get("MINUTE::" + trade.getSymbol()))
+                                    .doubleValue();
+                            break;
+                        default:
+                            System.out.println("Profit limit type does not match");
+                            break;
+                    }
 
-            } else
-                System.out.println(trade.getName() + ":Buy Condition not met");
+                    sellOrder = alpacaAPI.orders().requestLimitOrder(trade.getSymbol(), truncatedSharesAmount,
+                            OrderSide.SELL,
+                            OrderTimeInForce.DAY, profitLimitPrice, false);
+                    sellOrderCondition = "Profit Limit";
+                    break;
+
+                case "Cascading Trailing Stop":
+                    if (trade.getRecentBuyOrderID() == null) {
+                        buyOrder = alpacaAPI.orders().requestNotionalMarketOrder(trade.getSymbol(),
+                                trade.getCurrencyAmount().doubleValue(), OrderSide.BUY);
+                        trade.setRecentBuyOrderID(buyOrder.getClientOrderId());
+                    }
+
+                    break;
+
+                default:
+                    System.out.println("Case Not found!");
+                    break;
+
+            }
+
+            request.addParam("BOUGHT", true);
+
+            if (buyOrder != null) {
+                TradeDetail tradeDetail = new TradeDetail();
+                tradeDetail.setPlacedAt(Instant.now().getEpochSecond());
+                tradeDetail.setOrderID(buyOrder.getClientOrderId());
+                tradeDetail.setStatus(buyOrder.getStatus().name());
+                tradeDetail.setOrderSide("BUY");
+                tradeDetail.setOrderCondition(String.join(",", buyReasons));
+                tradeDetail.setTrade(trade);
+                trade.getTradeDetails().add(tradeDetail);
+                if (trade.getFirstBuy() == 0)
+                    trade.setFirstBuy(Instant.now().getEpochSecond());
+            }
+
+            if (sellOrder != null) {
+                TradeDetail tradeDetail = new TradeDetail();
+                tradeDetail.setPlacedAt(Instant.now().getEpochSecond());
+                tradeDetail.setOrderID(buyOrder.getClientOrderId());
+                tradeDetail.setStatus(buyOrder.getStatus().name());
+                tradeDetail.setOrderSide("SELL");
+                tradeDetail.setOrderCondition(sellOrderCondition);
+                tradeDetail.setTrade(trade);
+                trade.getTradeDetails().add(tradeDetail);
+            }
+
+            System.out.println(trade.getName() + ":Buy Order Placed!");
 
         } catch (Exception e) {
             System.out.println("Not Executed!");
@@ -858,19 +872,19 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                 return;
             }
 
-            if (trade.getSellCondition() == null) {
+            if (trade.getParseableSellCondition() == null) {
                 System.out.println("Sell Condition is null in buy test for" + trade.getName());
                 response.setStatus("Sell Condition is null in buy test for" + trade.getName());
                 return;
             }
 
-            if (trade.getSellCondition().equals("")) {
+            if (trade.getParseableSellCondition().equals("")) {
                 return;
             }
 
             List<String> sellReasons = new ArrayList<String>();
 
-            String[] stringArr = trade.getParseableBuyCondition().split(" ");
+            String[] stringArr = trade.getParseableSellCondition().split(" ");
             stringArr = Stream.of(stringArr).map(s -> {
                 if (s.equals("(") || s.equals(")") || s.equals("||") || s.equals("&&")) {
                     return s;
@@ -898,59 +912,58 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                 return String.valueOf(bool);
             }).toArray(String[]::new);
 
-            String parseableSellCondition = String.join(" ", stringArr);
+            String sellCondition = String.join(" ", stringArr);
 
-            if (parser.parseExpression(parseableSellCondition).getValue(Boolean.class)) {
-                Order sellOrder = null;
-
-                switch (trade.getOrderType()) {
-                    case "Market":
-
-                        switch (trade.getCurrencyType()) {
-
-                            case "Dollars":
-                                sellOrder = alpacaAPI.orders().requestNotionalMarketOrder(trade.getSymbol(),
-                                        trade.getCurrencyAmount().doubleValue(), OrderSide.SELL);
-                                break;
-                            case "Shares":
-                                sellOrder = alpacaAPI.orders().requestFractionalMarketOrder(trade.getSymbol(),
-                                        trade.getCurrencyAmount().doubleValue(), OrderSide.SELL);
-                                break;
-                            default:
-                                System.out.println("Currency type does not match");
-                                break;
-                        }
-                        break;
-
-                    default:
-                        System.out.println("Case Not found!");
-                        break;
-
-                }
-                request.addParam("SELLORDER", sellOrder);
-                if (trade.getOrderSide().equals("Sell")) {
-                    trade.setIterationsExecuted(trade.getIterationsExecuted() + 1);
-
-                    if (!trade.getIterations().equals("unlimited")) {
-                        if (trade.getIterationsExecuted() >= Integer.parseInt(trade.getIterations()))
-                            trade.setStatus("Not Running");
-                    }
-                }
-
-                if (sellOrder != null) {
-                    TradeDetail tradeDetail = new TradeDetail();
-                    tradeDetail.setPlacedAt(Instant.now().getEpochSecond());
-                    tradeDetail.setOrderID(sellOrder.getClientOrderId());
-                    tradeDetail.setStatus(sellOrder.getStatus().name());
-                    tradeDetail.setOrderSide("SELL");
-                    tradeDetail.setOrderCondition(String.join(",", sellReasons));
-                    tradeDetail.setTrade(trade);
-                    trade.getTradeDetails().add(tradeDetail);
-                }
-                System.out.println("Sell Order Placed!");
-
-            } else
+            if (!parser.parseExpression(sellCondition).getValue(Boolean.class)) {
                 System.out.println(trade.getName() + ":Sell Condition not met");
+                return;
+            }
+            Order sellOrder = null;
+
+            switch (trade.getOrderType()) {
+                case "Market":
+
+                    switch (trade.getCurrencyType()) {
+
+                        case "Dollars":
+                            sellOrder = alpacaAPI.orders().requestNotionalMarketOrder(trade.getSymbol(),
+                                    trade.getCurrencyAmount().doubleValue(), OrderSide.SELL);
+                            break;
+                        case "Shares":
+                            sellOrder = alpacaAPI.orders().requestFractionalMarketOrder(trade.getSymbol(),
+                                    trade.getCurrencyAmount().doubleValue(), OrderSide.SELL);
+                            break;
+                        default:
+                            System.out.println("Currency type does not match");
+                            break;
+                    }
+                    break;
+
+                default:
+                    System.out.println("Case Not found!");
+                    break;
+
+            }
+            if (trade.getOrderSide().equals("Sell")) {
+                trade.setIterationsExecuted(trade.getIterationsExecuted() + 1);
+
+                if (!trade.getIterations().equals("unlimited")) {
+                    if (trade.getIterationsExecuted() >= Integer.parseInt(trade.getIterations()))
+                        trade.setStatus("Not Running");
+                }
+            }
+
+            if (sellOrder != null) {
+                TradeDetail tradeDetail = new TradeDetail();
+                tradeDetail.setPlacedAt(Instant.now().getEpochSecond());
+                tradeDetail.setOrderID(sellOrder.getClientOrderId());
+                tradeDetail.setStatus(sellOrder.getStatus().name());
+                tradeDetail.setOrderSide("SELL");
+                tradeDetail.setOrderCondition(String.join(",", sellReasons));
+                tradeDetail.setTrade(trade);
+                trade.getTradeDetails().add(tradeDetail);
+            }
+            System.out.println("Sell Order Placed!");
 
         } catch (Exception e) {
             System.out.println("Not Executed!");
@@ -959,36 +972,36 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
     }
 
     public void currentBotTest(Request request, Response response) {
-        try {
-            Trade trade = (Trade) request.getParam(GlobalConstant.TRADE);
-            BigDecimal orderAmount = BigDecimal.ZERO;
+        request.addParam("BOUGHT", false);
 
-            switch (trade.getCurrencyType()) {
-                case "Dollars":
-                    orderAmount = trade.getCurrencyAmount();
-                    break;
-                case "Shares":
-                    orderAmount = trade.getCurrencyAmount()
-                            .multiply(tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + trade.getSymbol()));
-                    break;
-                default:
-                    System.out.println("Invalid currency type at current bot test");
-                    break;
-            }
+        Trade trade = (Trade) request.getParam(GlobalConstant.TRADE);
+        BigDecimal orderAmount = BigDecimal.ZERO;
 
-            if (trade.getAvailableBudget().compareTo(orderAmount.multiply(new BigDecimal(1.05))) > 0) {
-                currentBuyTest(request, response);
-            }
+        switch (trade.getCurrencyType()) {
+            case "Dollars":
+                orderAmount = trade.getCurrencyAmount();
+                break;
+            case "Shares":
+                orderAmount = trade.getCurrencyAmount()
+                        .multiply(tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + trade.getSymbol()));
+                break;
+            default:
+                System.out.println("Invalid currency type at current bot test");
+                break;
+        }
 
-            if (request.getParam("BUYORDER") == null
-                    && trade.getSharesHeld().multiply(BigDecimal.valueOf(1.05)).compareTo(orderAmount
-                            .divide(tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + trade.getSymbol()),
-                                    MathContext.DECIMAL32)) > 0) {
-                currentSellTest(request, response);
-            }
-        } catch (Exception e) {
-            System.out.println("Error at current bot test");
-            e.printStackTrace();
+        if (trade.getAvailableBudget().compareTo(orderAmount.multiply(new BigDecimal(1.05))) > 0) {
+            currentBuyTest(request, response);
+        }
+
+        if ((!(boolean) request.getParam("BOUGHT"))
+                && trade.getSharesHeld()
+                        .multiply(BigDecimal.valueOf(1.05))
+                        .compareTo(orderAmount
+                                .divide(tradeSignalCache.getRecentClosingPriceMap()
+                                        .get("MINUTE::" + trade.getSymbol()),
+                                        MathContext.DECIMAL32)) > 0) {
+            currentSellTest(request, response);
         }
     }
 }

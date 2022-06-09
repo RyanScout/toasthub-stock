@@ -22,6 +22,7 @@ package org.toasthub.stock.model;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 import javax.persistence.CascadeType;
@@ -63,11 +64,11 @@ public class Trade extends BaseEntity {
 	private String currencyType;
 	private BigDecimal currencyAmount;
 
-	private String buyCondition;
-	private String parseableBuyCondition;
+	private String buyCondition = "";
+	private String parseableBuyCondition = "";
 
-	private String sellCondition;
-	private String parseableSellCondition;
+	private String sellCondition = "";
+	private String parseableSellCondition = "";
 
 	private String trailingStopType;
 	private String profitLimitType;
@@ -76,17 +77,17 @@ public class Trade extends BaseEntity {
 	private BigDecimal profitLimitAmount;
 
 	private String iterations;
-	private int iterationsExecuted;
+	private int iterationsExecuted = 0;
 
 	private BigDecimal budget;
 	private BigDecimal availableBudget;
-	private BigDecimal sharesHeld;
+	private BigDecimal sharesHeld = BigDecimal.ZERO;
 	private BigDecimal totalValue;
 	private String recentBuyOrderID;
 	private String recentSellOrderID;
 	private long firstBuy;
 
-	private Set<TradeDetail> tradeDetails;
+	private Set<TradeDetail> tradeDetails = new LinkedHashSet<TradeDetail>();
 
 	// Constructors
 	public Trade() {
@@ -196,9 +197,6 @@ public class Trade extends BaseEntity {
 
 	public void setBudget(BigDecimal budget) {
 		this.budget = budget;
-		this.availableBudget = budget;
-		this.totalValue = budget;
-		this.sharesHeld = BigDecimal.ZERO;
 	}
 
 	public BigDecimal getAvailableBudget() {
