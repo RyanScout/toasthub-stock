@@ -68,6 +68,11 @@ public class TradeSvcImpl implements TradeSvc {
 				break;
 			case "RESET":
 				reset(request, response);
+				break;
+			case "SYMBOL_DATA":
+				getSymbolData(request, response);
+				break;
+
 			default:
 				break;
 		}
@@ -409,6 +414,14 @@ public class TradeSvcImpl implements TradeSvc {
 			e.printStackTrace();
 		}
 
+	}
+
+	public void getSymbolData(Request request, Response response) {
+		if (request.getParam("FIRST_POINT") == null || request.getParam("LAST_POINT") == null
+				|| request.getParam("SYMBOL") == null || request.getParam("EVALUATION_PERIOD") == null ) {
+			return;
+		}
+		tradeDao.getSymbolData(request, response);
 	}
 
 	public void validateBuyCondition(Request request, Response response) {

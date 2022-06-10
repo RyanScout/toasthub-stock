@@ -31,4 +31,6 @@ public interface TradeDao extends BaseDao {
     public List<Trade> getRunningDayTrades();
 
     public void resetTrade(Request request, Response response);
+
+    public void getSymbolData(Request request, Response response);
 }

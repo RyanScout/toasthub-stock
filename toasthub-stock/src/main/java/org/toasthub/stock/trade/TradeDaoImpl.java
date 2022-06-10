@@ -18,6 +18,7 @@ package org.toasthub.stock.trade;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -29,6 +30,7 @@ import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import org.toasthub.model.Symbol;
 import org.toasthub.stock.model.Trade;
 import org.toasthub.stock.model.TradeDetail;
 import org.toasthub.utils.GlobalConstant;
@@ -201,7 +203,7 @@ public class TradeDaoImpl implements TradeDao {
 			trade.getTradeDetails().stream().forEach(t -> {
 				entityManager.remove(t);
 			});
-			
+
 			Set<TradeDetail> trades = new LinkedHashSet<TradeDetail>();
 			trade.setTradeDetails(trades);
 			trade.setAvailableBudget(trade.getBudget());
@@ -231,4 +233,34 @@ public class TradeDaoImpl implements TradeDao {
 		return trades;
 	}
 
+	@Override
+	public void getSymbolData(Request request, Response response) {
+		String symbol = (String) request.getParam("SYMBOL");
+
+		if (!Arrays.asList(Symbol.SYMBOLS).contains(symbol)) {
+			return;
+		}
+
+		String evaluationPeriod = (String) request.getParam("EVALUATION_PERIOD");
+		String classStr = "";
+		Integer firstPoint = (Integer) request.getParam("FIRST_POINT");
+		Integer lastPoint = (Integer) request.getParam("LAST_POINT");
+
+		switch (evaluationPeriod) {
+			case "DAY":
+				classStr = "asset_day";
+				break;
+			case "MINUTE":
+				classStr = "asset_minute";
+				break;
+		}
+
+		String queryStr = "SELECT epoch_seconds , value FROM tradeanalyzer_main.ta_" + classStr
+				+ " AS x WHERE epoch_seconds >= "
+				+ firstPoint
+				+ " AND epoch_seconds <= " + lastPoint + " AND symbol = \"" + symbol + "\"";
+		Query query = entityManager.createNativeQuery(queryStr);
+
+		response.addParam("SYMBOLS", query.getResultList());
+	}
 }
