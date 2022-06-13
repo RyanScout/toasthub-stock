@@ -83,8 +83,6 @@ public class Trade extends BaseEntity {
 	private BigDecimal availableBudget;
 	private BigDecimal sharesHeld = BigDecimal.ZERO;
 	private BigDecimal totalValue;
-	private String recentBuyOrderID;
-	private String recentSellOrderID;
 	private long firstBuy;
 
 	private Set<TradeDetail> tradeDetails = new LinkedHashSet<TradeDetail>();
@@ -163,24 +161,6 @@ public class Trade extends BaseEntity {
 
 	public void setEvaluationPeriod(String evaluationPeriod) {
 		this.evaluationPeriod = evaluationPeriod;
-	}
-
-	@Column(name = "recent_sell_order_id")
-	public String getRecentSellOrderID() {
-		return recentSellOrderID;
-	}
-
-	public void setRecentSellOrderID(String recentSellOrderID) {
-		this.recentSellOrderID = recentSellOrderID;
-	}
-
-	@Column(name = "recent_buy_order_id")
-	public String getRecentBuyOrderID() {
-		return recentBuyOrderID;
-	}
-
-	public void setRecentBuyOrderID(String recentBuyOrderID) {
-		this.recentBuyOrderID = recentBuyOrderID;
 	}
 
 	public BigDecimal getSharesHeld() {

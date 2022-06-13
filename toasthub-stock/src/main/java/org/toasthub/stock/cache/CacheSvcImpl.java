@@ -120,7 +120,7 @@ public class CacheSvcImpl implements CacheSvc {
 
     @Override
     public void delete(Request request, Response response) {
-        // TODO Auto-generated method stub
+        
 
     }
 

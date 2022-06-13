@@ -15,8 +15,6 @@ import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
 
-import net.bytebuddy.agent.builder.AgentBuilder.CircularityLock.Global;
-
 @Repository("CustomTechnicalIndicatorDao")
 @Transactional()
 public class CustomTechnicalIndicatorDaoImpl implements CustomTechnicalIndicatorDao {
@@ -26,14 +24,19 @@ public class CustomTechnicalIndicatorDaoImpl implements CustomTechnicalIndicator
 
     @Override
     public void delete(Request request, Response response) throws Exception {
-        // TODO Auto-generated method stub
-        
+        if (request.containsParam(GlobalConstant.ITEMID) && !"".equals(request.getParam(GlobalConstant.ITEMID))) {
+
+            CustomTechnicalIndicator c = (CustomTechnicalIndicator) entityManager.getReference(
+                    CustomTechnicalIndicator.class,
+                    new Long((Integer) request.getParam(GlobalConstant.ITEMID)));
+            entityManager.remove(c);
+        }
     }
 
     @Override
     public void save(Request request, Response response) throws Exception {
-        entityManager.merge( (request.getParam(GlobalConstant.ITEM)) );
-        
+        entityManager.merge((request.getParam(GlobalConstant.ITEM)));
+
     }
 
     @Override
@@ -53,33 +56,33 @@ public class CustomTechnicalIndicatorDaoImpl implements CustomTechnicalIndicator
         query.setParameter("name", request.getParam("NAME"));
 
         Long count = (Long) query.getSingleResult();
-		if (count == null) {
-			count = 0l;
-		}
-		response.addParam(GlobalConstant.ITEMCOUNT, count);
+        if (count == null) {
+            count = 0l;
+        }
+        response.addParam(GlobalConstant.ITEMCOUNT, count);
     }
 
     @Override
     public void item(Request request, Response response) throws NoResultException {
-        if (request.containsParam(GlobalConstant.ITEMID) && (request.getParam(GlobalConstant.ITEMID)!= null)) {
-			String queryStr = "SELECT DISTINCT x FROM CustomTechnicalIndicator AS x WHERE x.id =:id";
-			Query query = entityManager.createQuery(queryStr);
+        if (request.containsParam(GlobalConstant.ITEMID) && (request.getParam(GlobalConstant.ITEMID) != null)) {
+            String queryStr = "SELECT DISTINCT x FROM CustomTechnicalIndicator AS x WHERE x.id =:id";
+            Query query = entityManager.createQuery(queryStr);
 
-            if(request.getParam(GlobalConstant.ITEMID)instanceof Integer){
+            if (request.getParam(GlobalConstant.ITEMID) instanceof Integer) {
                 query.setParameter("id", new Long((Integer) request.getParam(GlobalConstant.ITEMID)));
             }
 
-            if(request.getParam(GlobalConstant.ITEMID)instanceof Long){
+            if (request.getParam(GlobalConstant.ITEMID) instanceof Long) {
                 query.setParameter("id", (Long) request.getParam(GlobalConstant.ITEMID));
             }
-            
-            if(request.getParam(GlobalConstant.ITEMID)instanceof String){
+
+            if (request.getParam(GlobalConstant.ITEMID) instanceof String) {
                 query.setParameter("id", new Long((String) request.getParam(GlobalConstant.ITEMID)));
             }
 
             CustomTechnicalIndicator c = CustomTechnicalIndicator.class.cast(query.getSingleResult());
             Hibernate.initialize(c.getSymbols());
-			response.addParam(GlobalConstant.ITEM, c);
+            response.addParam(GlobalConstant.ITEM, c);
             return;
         }
 
@@ -91,5 +94,5 @@ public class CustomTechnicalIndicatorDaoImpl implements CustomTechnicalIndicator
         response.addParam(GlobalConstant.ITEM, query.getSingleResult());
         return;
     }
-    
+
 }

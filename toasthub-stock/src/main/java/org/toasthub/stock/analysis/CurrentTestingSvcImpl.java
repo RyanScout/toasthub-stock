@@ -304,6 +304,13 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                         return;
                     }
 
+                    if (tradeSignalCache.getRecentClosingPriceMap().get(evaluationPeriod + "::" + symbol) == null) {
+                        return;
+                    }
+
+                    BigDecimal currentPrice = tradeSignalCache.getRecentClosingPriceMap()
+                            .get(evaluationPeriod + "::" + symbol);
+
                     boolean flashing = false;
 
                     request.addParam(GlobalConstant.SYMBOL, symbol);
@@ -352,29 +359,19 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                                 .forEach(detail -> {
                                     detail.setChecked(detail.getChecked() + 1);
 
-                                    BigDecimal tempSuccessPercent = (tradeSignalCache.getRecentClosingPriceMap()
-                                            .get(evaluationPeriod + "::" + symbol)
+                                    BigDecimal tempSuccessPercent = (currentPrice
                                             .subtract(detail.getFlashPrice()))
                                             .divide(detail.getFlashPrice(), MathContext.DECIMAL32)
                                             .multiply(BigDecimal.valueOf(100));
 
                                     if (technicalIndicator.getTechnicalIndicatorType()
-                                            .equals(TechnicalIndicator.GOLDENCROSS)
-                                            || technicalIndicator.getTechnicalIndicatorType()
-                                                    .equals(TechnicalIndicator.LOWERBOLLINGERBAND)) {
-                                        if (detail.getSuccessPercent() == null
-                                                || detail.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
-                                            detail.setSuccessPercent(tempSuccessPercent);
-                                        }
+                                            .equals(TechnicalIndicator.UPPERBOLLINGERBAND)) {
+                                        tempSuccessPercent = tempSuccessPercent.negate();
                                     }
 
-                                    if (technicalIndicator.getTechnicalIndicatorType()
-                                            .equals(TechnicalIndicator.UPPERBOLLINGERBAND)) {
-                                        if (detail.getSuccessPercent() == null
-                                                || detail.getSuccessPercent()
-                                                        .compareTo(tempSuccessPercent.negate()) < 0) {
-                                            detail.setSuccessPercent(tempSuccessPercent.negate());
-                                        }
+                                    if (detail.getSuccessPercent() == null
+                                            || detail.getSuccessPercent().compareTo(tempSuccessPercent) < 0) {
+                                        detail.setSuccessPercent(tempSuccessPercent);
                                     }
 
                                     if (detail.isSuccess() == false && detail.getFlashPrice().compareTo(
@@ -472,7 +469,8 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                                     break;
                                 case "Bot":
                                     BigDecimal orderQuantity = new BigDecimal(order.getFilledQuantity());
-                                    BigDecimal fillPrice = new BigDecimal(order.getAverageFillPrice()).setScale(2, BigDecimal.ROUND_HALF_DOWN);
+                                    BigDecimal fillPrice = new BigDecimal(order.getAverageFillPrice()).setScale(2,
+                                            BigDecimal.ROUND_HALF_DOWN);
 
                                     trade.setAvailableBudget(
                                             trade.getAvailableBudget()
@@ -536,44 +534,45 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                                     t.setTrade(trade);
                                     break;
                                 case "Bot":
-                                BigDecimal orderQuantity = new BigDecimal(order.getFilledQuantity());
-                                BigDecimal fillPrice = new BigDecimal(order.getAverageFillPrice()).setScale(2, BigDecimal.ROUND_HALF_DOWN);
+                                    BigDecimal orderQuantity = new BigDecimal(order.getFilledQuantity());
+                                    BigDecimal fillPrice = new BigDecimal(order.getAverageFillPrice()).setScale(2,
+                                            BigDecimal.ROUND_HALF_DOWN);
 
-                                trade.setAvailableBudget(
-                                        trade.getAvailableBudget()
-                                                .add((orderQuantity.multiply(fillPrice)),
-                                                        MathContext.DECIMAL32)
-                                                .setScale(2, BigDecimal.ROUND_HALF_UP));
+                                    trade.setAvailableBudget(
+                                            trade.getAvailableBudget()
+                                                    .add((orderQuantity.multiply(fillPrice)),
+                                                            MathContext.DECIMAL32)
+                                                    .setScale(2, BigDecimal.ROUND_HALF_UP));
 
-                                trade.setSharesHeld(trade.getSharesHeld().subtract(orderQuantity));
+                                    trade.setSharesHeld(trade.getSharesHeld().subtract(orderQuantity));
 
-                                trade.setIterationsExecuted(trade.getIterationsExecuted() + 1);
+                                    trade.setIterationsExecuted(trade.getIterationsExecuted() + 1);
 
-                                trade.setTotalValue(
-                                        trade.getAvailableBudget().add(
-                                                trade.getSharesHeld()
-                                                        .multiply(tradeSignalCache.getRecentClosingPriceMap()
-                                                                .get("MINUTE::" + trade.getSymbol()))));
+                                    trade.setTotalValue(
+                                            trade.getAvailableBudget().add(
+                                                    trade.getSharesHeld()
+                                                            .multiply(tradeSignalCache.getRecentClosingPriceMap()
+                                                                    .get("MINUTE::" + trade.getSymbol()))));
 
-                                t.setSharesHeld(trade.getSharesHeld());
+                                    t.setSharesHeld(trade.getSharesHeld());
 
-                                t.setAvailableBudget(trade.getAvailableBudget());
+                                    t.setAvailableBudget(trade.getAvailableBudget());
 
-                                t.setDollarAmount(
-                                        (orderQuantity.multiply(fillPrice, MathContext.DECIMAL32))
-                                                .setScale(2, BigDecimal.ROUND_HALF_UP));
+                                    t.setDollarAmount(
+                                            (orderQuantity.multiply(fillPrice, MathContext.DECIMAL32))
+                                                    .setScale(2, BigDecimal.ROUND_HALF_UP));
 
-                                t.setShareAmount(orderQuantity);
+                                    t.setShareAmount(orderQuantity);
 
-                                t.setFilledAt(order.getFilledAt().toEpochSecond());
+                                    t.setFilledAt(order.getFilledAt().toEpochSecond());
 
-                                t.setAssetPrice(fillPrice);
+                                    t.setAssetPrice(fillPrice);
 
-                                t.setTotalValue(trade.getTotalValue());
+                                    t.setTotalValue(trade.getTotalValue());
 
-                                t.setStatus("FILLED");
+                                    t.setStatus("FILLED");
 
-                                t.setTrade(trade);
+                                    t.setTrade(trade);
                                     break;
                                 default:
                                     System.out.println("Invalid orderside error");
@@ -825,11 +824,6 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                     break;
 
                 case "Cascading Trailing Stop":
-                    if (trade.getRecentBuyOrderID() == null) {
-                        buyOrder = alpacaAPI.orders().requestNotionalMarketOrder(trade.getSymbol(),
-                                trade.getCurrencyAmount().doubleValue(), OrderSide.BUY);
-                        trade.setRecentBuyOrderID(buyOrder.getClientOrderId());
-                    }
 
                     break;
 

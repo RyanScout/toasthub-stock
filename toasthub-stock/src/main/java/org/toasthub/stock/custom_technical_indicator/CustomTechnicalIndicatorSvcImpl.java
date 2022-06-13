@@ -225,7 +225,14 @@ public class CustomTechnicalIndicatorSvcImpl implements CustomTechnicalIndicator
 
     @Override
     public void delete(Request request, Response response) {
-        // TODO Auto-generated method stub
+        try {
+			customTechnicalIndicatorDao.delete(request, response);
+			response.setStatus(Response.SUCCESS);
+		} catch (Exception e) {
+			response.setStatus(Response.ACTIONFAILED);
+			e.printStackTrace();
+		}
+
 
     }
 
