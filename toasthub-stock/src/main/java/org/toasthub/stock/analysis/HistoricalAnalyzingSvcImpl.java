@@ -45,11 +45,6 @@ public class HistoricalAnalyzingSvcImpl implements HistoricalAnalyzingSvc {
     }
 
     @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-    }
-
-    @Override
     public void process(Request request, Response response) {
         String action = (String) request.getParams().get("action");
         switch (action) {
@@ -85,16 +80,16 @@ public class HistoricalAnalyzingSvcImpl implements HistoricalAnalyzingSvc {
             if (((String) map.get("frequency")).equals("unlimited"))
                 frequency = -1;
             else
-                frequency = new Integer((String) map.get("frequency"));
+                frequency = Integer.valueOf((String) map.get("frequency"));
 
             historicalAnalysis.setStartTime(
                     ZonedDateTime.ofInstant(
-                            Instant.ofEpochSecond(new Long((Integer) (map.get("startTime")))),
+                            Instant.ofEpochSecond(Long.valueOf((Integer) (map.get("startTime")))),
                             ZoneId.of("America/New_York")).truncatedTo(ChronoUnit.DAYS).toEpochSecond());
 
             historicalAnalysis.setEndTime(
                     ZonedDateTime.ofInstant(
-                            Instant.ofEpochSecond(new Long((Integer) (map.get("endTime")))),
+                            Instant.ofEpochSecond(Long.valueOf((Integer) (map.get("endTime")))),
                             ZoneId.of("America/New_York")).truncatedTo(ChronoUnit.DAYS).toEpochSecond());
 
             String algorithm = (String) map.get("algorithm");

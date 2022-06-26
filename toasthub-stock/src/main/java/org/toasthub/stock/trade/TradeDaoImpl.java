@@ -49,7 +49,7 @@ public class TradeDaoImpl implements TradeDao {
 		if (request.containsParam(GlobalConstant.ITEMID) && !"".equals(request.getParam(GlobalConstant.ITEMID))) {
 
 			Trade trade = (Trade) entityManager.getReference(Trade.class,
-					new Long((Integer) request.getParam(GlobalConstant.ITEMID)));
+					Long.valueOf((Integer) request.getParam(GlobalConstant.ITEMID)));
 			entityManager.remove(trade);
 
 		} else {
@@ -152,7 +152,7 @@ public class TradeDaoImpl implements TradeDao {
 				query.setParameter("id", (Long) request.getParam(GlobalConstant.ITEMID));
 			}
 			if (request.getParam(GlobalConstant.ITEMID) instanceof Integer) {
-				query.setParameter("id", new Long((Integer) request.getParam(GlobalConstant.ITEMID)));
+				query.setParameter("id", Long.valueOf((Integer) request.getParam(GlobalConstant.ITEMID)));
 			}
 			Trade trade = (Trade) query.getSingleResult();
 
@@ -199,7 +199,7 @@ public class TradeDaoImpl implements TradeDao {
 		if (request.containsParam(GlobalConstant.ITEMID) && !"".equals(request.getParam(GlobalConstant.ITEMID))) {
 
 			Trade trade = (Trade) entityManager.getReference(Trade.class,
-					new Long((Integer) request.getParam(GlobalConstant.ITEMID)));
+					Long.valueOf((Integer) request.getParam(GlobalConstant.ITEMID)));
 			trade.getTradeDetails().stream().forEach(t -> {
 				entityManager.remove(t);
 			});

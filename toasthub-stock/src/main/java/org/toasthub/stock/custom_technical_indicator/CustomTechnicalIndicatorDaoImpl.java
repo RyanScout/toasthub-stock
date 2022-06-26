@@ -28,7 +28,7 @@ public class CustomTechnicalIndicatorDaoImpl implements CustomTechnicalIndicator
 
             CustomTechnicalIndicator c = (CustomTechnicalIndicator) entityManager.getReference(
                     CustomTechnicalIndicator.class,
-                    new Long((Integer) request.getParam(GlobalConstant.ITEMID)));
+                    Long.valueOf((Integer) request.getParam(GlobalConstant.ITEMID)));
             entityManager.remove(c);
         }
     }

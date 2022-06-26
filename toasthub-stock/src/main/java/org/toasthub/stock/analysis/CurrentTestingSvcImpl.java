@@ -3,6 +3,7 @@ package org.toasthub.stock.analysis;
 import java.io.File;
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -69,11 +70,6 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
 
     // Constructors
     public CurrentTestingSvcImpl() {
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
     }
 
     @Scheduled(cron = "30 * * * * ?")
@@ -470,13 +466,13 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                                 case "Bot":
                                     BigDecimal orderQuantity = new BigDecimal(order.getFilledQuantity());
                                     BigDecimal fillPrice = new BigDecimal(order.getAverageFillPrice()).setScale(2,
-                                            BigDecimal.ROUND_HALF_DOWN);
+                                    RoundingMode.HALF_UP);
 
                                     trade.setAvailableBudget(
                                             trade.getAvailableBudget()
                                                     .subtract((orderQuantity.multiply(fillPrice)),
                                                             MathContext.DECIMAL32)
-                                                    .setScale(2, BigDecimal.ROUND_HALF_UP));
+                                                    .setScale(2, RoundingMode.HALF_UP));
 
                                     trade.setSharesHeld(trade.getSharesHeld().add(orderQuantity));
 
@@ -494,7 +490,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
 
                                     t.setDollarAmount(
                                             (orderQuantity.multiply(fillPrice, MathContext.DECIMAL32))
-                                                    .setScale(2, BigDecimal.ROUND_HALF_UP));
+                                                    .setScale(2, RoundingMode.HALF_UP));
 
                                     t.setShareAmount(orderQuantity);
 
@@ -536,13 +532,13 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                                 case "Bot":
                                     BigDecimal orderQuantity = new BigDecimal(order.getFilledQuantity());
                                     BigDecimal fillPrice = new BigDecimal(order.getAverageFillPrice()).setScale(2,
-                                            BigDecimal.ROUND_HALF_DOWN);
+                                    RoundingMode.HALF_UP);
 
                                     trade.setAvailableBudget(
                                             trade.getAvailableBudget()
                                                     .add((orderQuantity.multiply(fillPrice)),
                                                             MathContext.DECIMAL32)
-                                                    .setScale(2, BigDecimal.ROUND_HALF_UP));
+                                                    .setScale(2, RoundingMode.HALF_UP));
 
                                     trade.setSharesHeld(trade.getSharesHeld().subtract(orderQuantity));
 
@@ -560,7 +556,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
 
                                     t.setDollarAmount(
                                             (orderQuantity.multiply(fillPrice, MathContext.DECIMAL32))
-                                                    .setScale(2, BigDecimal.ROUND_HALF_UP));
+                                                    .setScale(2, RoundingMode.HALF_UP));
 
                                     t.setShareAmount(orderQuantity);
 

@@ -46,7 +46,7 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 
 			HistoricalAnalysis historicalAnalysis = (HistoricalAnalysis) entityManager.getReference(
 					HistoricalAnalysis.class,
-					new Long((Integer) request.getParam(GlobalConstant.ITEMID)));
+					Long.valueOf(((int) request.getParam(GlobalConstant.ITEMID))));
 			entityManager.remove(historicalAnalysis);
 
 		} else {

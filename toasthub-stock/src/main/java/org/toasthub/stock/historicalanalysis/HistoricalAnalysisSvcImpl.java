@@ -30,12 +30,6 @@ public class HistoricalAnalysisSvcImpl implements HistoricalAnalysisSvc {
 	// Constructors
 	public HistoricalAnalysisSvcImpl() {
 	}
-	
-		
-	@Override
-	protected void finalize() throws Throwable {
-		super.finalize();
-	}
 
 	@Override
 	public void process(Request request, Response response) {

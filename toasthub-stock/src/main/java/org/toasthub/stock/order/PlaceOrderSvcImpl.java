@@ -19,12 +19,6 @@ public class PlaceOrderSvcImpl implements PlaceOrderSvc {
     // Constructors
 	public PlaceOrderSvcImpl() {
 	}
-	
-		
-	@Override
-	protected void finalize() throws Throwable {
-		super.finalize();
-	}
 
     @Override
 	public void process(Request request, Response response) {

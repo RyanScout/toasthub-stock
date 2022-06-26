@@ -45,11 +45,6 @@ public class TradeSvcImpl implements TradeSvc {
 	}
 
 	@Override
-	protected void finalize() throws Throwable {
-		super.finalize();
-	}
-
-	@Override
 	public void process(Request request, Response response) {
 		String action = (String) request.getParams().get("action");
 
@@ -177,7 +172,7 @@ public class TradeSvcImpl implements TradeSvc {
 		Long itemId = null;
 
 		if (request.getParam("id") instanceof Integer) {
-			itemId = new Long((Integer) request.getParams().remove("id"));
+			itemId = Long.valueOf((Integer) request.getParams().remove("id"));
 		}
 
 		switch ((String) request.getParam("orderSide")) {

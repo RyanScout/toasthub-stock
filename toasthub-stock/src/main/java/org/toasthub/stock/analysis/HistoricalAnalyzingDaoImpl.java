@@ -47,7 +47,7 @@ public class HistoricalAnalyzingDaoImpl implements HistoricalAnalyzingDao {
 		if (request.containsParam(GlobalConstant.ITEMID) && !"".equals(request.getParam(GlobalConstant.ITEMID))) {
 
 			HistoricalAnalysis historicalAnalysis = (HistoricalAnalysis) entityManager.getReference(HistoricalAnalysis.class,
-					new Long((Integer) request.getParam(GlobalConstant.ITEMID)));
+					Long.valueOf((Integer) request.getParam(GlobalConstant.ITEMID)));
 			entityManager.remove(historicalAnalysis);
 
 		} else {
