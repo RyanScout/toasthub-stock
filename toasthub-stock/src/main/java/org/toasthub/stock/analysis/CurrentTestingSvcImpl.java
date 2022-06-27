@@ -108,6 +108,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                 currentTestingDao.getRecentAssetDay(request, response);
                 recentAsesetDay = (AssetDay) response.getParam(GlobalConstant.ITEM);
             } catch (NoResultException e) {
+                System.out.println("No assetdays in database");
             }
 
             if (recentAsesetDay != null) {
@@ -123,6 +124,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                 currentTestingDao.getRecentAssetMinute(request, response);
                 recentAsesetMinute = (AssetMinute) response.getParam(GlobalConstant.ITEM);
             } catch (NoResultException e) {
+                System.out.println("No assetminutes in database");
             }
 
             if (recentAsesetMinute != null) {
