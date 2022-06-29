@@ -20,13 +20,6 @@ public class DashboardSvcImpl implements DashboardSvc {
 	// Constructors
 	public DashboardSvcImpl() {
 	}
-	
-		
-	@Override
-	protected void finalize() throws Throwable {
-		super.finalize();
-	}
-
 
 	@Override
 	public void process(Request request, Response response) {

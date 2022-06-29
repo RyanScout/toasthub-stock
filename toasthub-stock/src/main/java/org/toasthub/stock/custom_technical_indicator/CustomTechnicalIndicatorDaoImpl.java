@@ -69,7 +69,7 @@ public class CustomTechnicalIndicatorDaoImpl implements CustomTechnicalIndicator
             Query query = entityManager.createQuery(queryStr);
 
             if (request.getParam(GlobalConstant.ITEMID) instanceof Integer) {
-                query.setParameter("id", new Long((Integer) request.getParam(GlobalConstant.ITEMID)));
+                query.setParameter("id", Long.valueOf((Integer) request.getParam(GlobalConstant.ITEMID)));
             }
 
             if (request.getParam(GlobalConstant.ITEMID) instanceof Long) {
@@ -77,7 +77,7 @@ public class CustomTechnicalIndicatorDaoImpl implements CustomTechnicalIndicator
             }
 
             if (request.getParam(GlobalConstant.ITEMID) instanceof String) {
-                query.setParameter("id", new Long((String) request.getParam(GlobalConstant.ITEMID)));
+                query.setParameter("id", Long.valueOf((String) request.getParam(GlobalConstant.ITEMID)));
             }
 
             CustomTechnicalIndicator c = CustomTechnicalIndicator.class.cast(query.getSingleResult());

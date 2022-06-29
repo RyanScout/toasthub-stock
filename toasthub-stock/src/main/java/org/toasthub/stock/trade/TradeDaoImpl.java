@@ -165,12 +165,11 @@ public class TradeDaoImpl implements TradeDao {
 	}
 
 	@Override
-	public List<Trade> getRunningMinuteTrades() {
-		String queryStr = "SELECT DISTINCT x FROM Trade AS x WHERE x.status =:status AND x.evaluationPeriod =:evaluationPeriod";
+	public List<Trade> getRunningTrades() {
+		String queryStr = "SELECT DISTINCT x FROM Trade AS x WHERE x.status =:status";
 
 		Query query = entityManager.createQuery(queryStr);
 		query.setParameter("status", "Running");
-		query.setParameter("evaluationPeriod", "MINUTE");
 
 		List<Trade> trades = new ArrayList<Trade>();
 		List<?> objects = query.getResultList();

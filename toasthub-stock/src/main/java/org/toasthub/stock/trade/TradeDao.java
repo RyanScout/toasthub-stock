@@ -24,7 +24,7 @@ import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
 
 public interface TradeDao extends BaseDao {
-    public List<Trade> getRunningMinuteTrades();
+    public List<Trade> getRunningTrades();
 
     public List<Trade> getAllRunningTrades();
 

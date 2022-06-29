@@ -83,14 +83,32 @@ public class Trade extends BaseEntity {
 	private BigDecimal availableBudget;
 	private BigDecimal sharesHeld = BigDecimal.ZERO;
 	private BigDecimal totalValue;
-	private long firstBuy;
+
+	private long firstOrder = 0;
+	private long lastOrder = 0;
+	
+
+	public long getLastOrder() {
+		return lastOrder;
+	}
+
+	public void setLastOrder(long lastOrder) {
+		this.lastOrder = lastOrder;
+	}
+
+	public long getFirstOrder() {
+		return firstOrder;
+	}
+
+	public void setFirstOrder(long firstOrder) {
+		this.firstOrder = firstOrder;
+	}
 
 	private Set<TradeDetail> tradeDetails = new LinkedHashSet<TradeDetail>();
 
 	// Constructors
 	public Trade() {
 		super();
-		this.setFirstBuy(0);
 		this.setActive(true);
 		this.setArchive(false);
 		this.setLocked(false);
@@ -128,14 +146,6 @@ public class Trade extends BaseEntity {
 
 	public void setIterations(String iterations) {
 		this.iterations = iterations;
-	}
-
-	public long getFirstBuy() {
-		return firstBuy;
-	}
-
-	public void setFirstBuy(long firstBuy) {
-		this.firstBuy = firstBuy;
 	}
 
 	public BigDecimal getTotalValue() {
