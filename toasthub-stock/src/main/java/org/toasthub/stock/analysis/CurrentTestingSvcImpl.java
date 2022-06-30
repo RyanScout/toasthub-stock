@@ -39,7 +39,6 @@ import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
 
-import net.bytebuddy.agent.builder.AgentBuilder.CircularityLock.Global;
 import net.jacobpeterson.alpaca.AlpacaAPI;
 import net.jacobpeterson.alpaca.model.endpoint.orders.Order;
 import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderSide;
@@ -431,20 +430,42 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                 });
     }
 
+    // precautions in this method are taken to ensure technical indicator cannot
+    // access or view data it would not have access to at the date of backloading
     public void backloadTechnicalIndicator(final Request request, final Response response) {
 
-        TechnicalIndicator technicalIndicator = new TechnicalIndicator();
-        List<AssetDay> assetDays = new ArrayList<AssetDay>();
-
-        request.addParam(GlobalConstant.IDENTIFIER, "AssetDay");
-
         try {
-            algorithmCruncherDao.items(request, response);
-        } catch (Exception e) {
+            cacheDao.item(request, response);
+        } catch (final Exception e) {
             e.printStackTrace();
         }
 
-        for (Object o : ArrayList.class.cast(response.getParam(GlobalConstant.ITEMS))) {
+        final TechnicalIndicator technicalIndicator = (TechnicalIndicator) response.getParam(GlobalConstant.ITEM);
+
+        final List<AssetDay> assetDays = new ArrayList<AssetDay>();
+
+        final long endingEpochSeconds = technicalIndicator.getFirstCheck();
+
+        // backloading assumes a chronological order, so we make future history inacessible
+        // and add it back at the end of the method
+        final long lastCheck = technicalIndicator.getLastCheck();
+
+        technicalIndicator.setFirstCheck(0);
+        technicalIndicator.setLastCheck(0);
+
+        request.addParam(GlobalConstant.IDENTIFIER, "AssetDay");
+        request.addParam(GlobalConstant.SYMBOL, technicalIndicator.getSymbol());
+        request.addParam("STARTING_EPOCH_SECONDS",
+                endingEpochSeconds - ((int) request.getParam("DAYS_TO_BACKLOAD") * 60 * 60 * 24));
+        request.addParam("ENDING_EPOCH_SECONDS", endingEpochSeconds);
+
+        try {
+            algorithmCruncherDao.items(request, response);
+        } catch (final Exception e) {
+            e.printStackTrace();
+        }
+
+        for (final Object o : ArrayList.class.cast(response.getParam(GlobalConstant.ITEMS))) {
             assetDays.add((AssetDay) o);
         }
 
@@ -452,19 +473,25 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                 .sorted((a, b) -> (int) (a.getEpochSeconds() - b.getEpochSeconds()))
                 .forEach(assetDay -> {
 
-                    List<AssetMinute> assetMinutes = new ArrayList<AssetMinute>();
+                    final List<AssetMinute> assetMinutes = new ArrayList<AssetMinute>();
 
                     request.addParam("STARTING_EPOCH_SECONDS", assetDay.getEpochSeconds());
-                    request.addParam("ENDNG_EPOCH_SECONDS", assetDay.getEpochSeconds() + (60 * 60 * 24));
+                    request.addParam("ENDING_EPOCH_SECONDS", assetDay.getEpochSeconds() + (60 * 60 * 24));
+                    request.addParam(GlobalConstant.SYMBOL, technicalIndicator.getSymbol());
+
+                    if (assetDay.getEpochSeconds() + (60 * 60 * 24) > endingEpochSeconds) {
+                        request.addParam("ENDING_EPOCH_SECONDS", endingEpochSeconds);
+                    }
+
                     request.addParam(GlobalConstant.IDENTIFIER, "AssetMinute");
 
                     try {
                         algorithmCruncherDao.items(request, response);
-                    } catch (Exception e) {
+                    } catch (final Exception e) {
                         e.printStackTrace();
                     }
 
-                    for (Object o : ArrayList.class.cast(response.getParam(GlobalConstant.ITEMS))) {
+                    for (final Object o : ArrayList.class.cast(response.getParam(GlobalConstant.ITEMS))) {
                         assetMinutes.add((AssetMinute) o);
                     }
 
@@ -474,6 +501,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                                             .ofInstant(Instant.ofEpochSecond(assetMinute.getEpochSeconds()),
                                                     ZoneId.of("America/New_York"))
                                             .truncatedTo(ChronoUnit.DAYS).toEpochSecond())
+                            .sorted((a, b) -> (int) (a.getEpochSeconds() - b.getEpochSeconds()))
                             .forEach(assetMinute -> {
 
                                 final String symbol = technicalIndicator.getSymbol();
@@ -543,10 +571,10 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
 
                                     technicalIndicator.getDetails().stream()
                                             .filter(detail -> detail.getChecked() < 100)
+                                            .filter(detail -> detail.getFlashTime() < currentMinute)
                                             .forEach(detail -> {
 
                                                 if (!(dayBased && checkedToday)) {
-
                                                     detail.setChecked(detail.getChecked() + 1);
                                                 }
 
@@ -611,18 +639,17 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                                         technicalIndicator.getDetails().add(technicalIndicatorDetail);
                                     }
                                 }
-
-                                request.addParam(GlobalConstant.ITEM, technicalIndicator);
-
-                                try {
-                                    cacheDao.save(request, response);
-                                } catch (final Exception e) {
-                                    e.printStackTrace();
-                                }
-
                             });
                 });
 
+        technicalIndicator.setLastCheck(lastCheck);
+        request.addParam(GlobalConstant.ITEM, technicalIndicator);
+
+        try {
+            cacheDao.save(request, response);
+        } catch (final Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void updateTrades(final Request request, final Response response) {
@@ -1212,5 +1239,52 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
                                         MathContext.DECIMAL32)) > 0) {
             currentSellTest(request, response);
         }
+    }
+
+    @Override
+    public void process(final Request request, final Response response) {
+        final String action = (String) request.getParams().get("action");
+        switch (action) {
+            case "ITEM":
+                item(request, response);
+                break;
+            case "LIST":
+                items(request, response);
+                break;
+            case "SAVE":
+                save(request, response);
+                break;
+            case "DELETE":
+                delete(request, response);
+                break;
+            case "BACKLOAD":
+                backloadTechnicalIndicator(request, response);
+                break;
+        }
+
+    }
+
+    @Override
+    public void save(final Request request, final Response response) {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void delete(final Request request, final Response response) {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void item(final Request request, final Response response) {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void items(final Request request, final Response response) {
+        // TODO Auto-generated method stub
+
     }
 }

@@ -76,6 +76,27 @@ public class CacheDaoImpl implements CacheDao {
 
     @Override
     public void item(Request request, Response response) throws Exception {
+        if (request.containsParam(GlobalConstant.ITEMID) && (request.getParam(GlobalConstant.ITEMID) != null)) {
+            String queryStr = "SELECT DISTINCT x FROM TechnicalIndicator AS x WHERE x.id =:id";
+            Query query = entityManager.createQuery(queryStr);
+
+            if (request.getParam(GlobalConstant.ITEMID) instanceof Integer) {
+                query.setParameter("id", Long.valueOf((Integer) request.getParam(GlobalConstant.ITEMID)));
+            }
+
+            if (request.getParam(GlobalConstant.ITEMID) instanceof Long) {
+                query.setParameter("id", (Long) request.getParam(GlobalConstant.ITEMID));
+            }
+
+            if (request.getParam(GlobalConstant.ITEMID) instanceof String) {
+                query.setParameter("id", Long.valueOf((String) request.getParam(GlobalConstant.ITEMID)));
+            }
+
+            TechnicalIndicator t = TechnicalIndicator.class.cast(query.getSingleResult());
+            Hibernate.initialize(t.getDetails());
+            response.addParam(GlobalConstant.ITEM, t);
+            return;
+        }
         String queryStr = "SELECT DISTINCT x FROM TechnicalIndicator as x WHERE x.technicalIndicatorType =:technicalIndicatorType AND x.evaluationPeriod =:evaluationPeriod AND x.technicalIndicatorKey =:technicalIndicatorKey";
         Query query = entityManager.createQuery(queryStr);
         query.setParameter("technicalIndicatorType", (String) request.getParam("TECHNICAL_INDICATOR_TYPE"));

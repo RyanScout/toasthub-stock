@@ -34,8 +34,8 @@ public class CacheSvcImpl implements CacheSvc {
     protected TradeSignalCache tradeSignalCache;
 
     @Override
-    public void process(Request request, Response response) {
-        String action = (String) request.getParams().get("action");
+    public void process(final Request request, final Response response) {
+        final String action = (String) request.getParams().get("action");
         switch (action) {
             case "ITEM":
                 item(request, response);
@@ -54,10 +54,10 @@ public class CacheSvcImpl implements CacheSvc {
     }
 
     @Override
-    public void save(Request request, Response response) {
-        Collection<String> symbols = new ArrayList<String>();
+    public void save(final Request request, final Response response) {
+        final Collection<String> symbols = new ArrayList<String>();
 
-        for (Object o : ArrayList.class.cast(request.getParam("SYMBOLS"))) {
+        for (final Object o : ArrayList.class.cast(request.getParam("SYMBOLS"))) {
             symbols.add(String.class.cast(o));
         }
 
@@ -68,7 +68,7 @@ public class CacheSvcImpl implements CacheSvc {
                     request.addParam(GlobalConstant.SYMBOL, symbol);
                     try {
                         cacheDao.itemCount(request, response);
-                    } catch (Exception e) {
+                    } catch (final Exception e) {
                         e.printStackTrace();
                         return;
                     }
@@ -77,7 +77,7 @@ public class CacheSvcImpl implements CacheSvc {
                         return;
                     }
 
-                    TechnicalIndicator temp = new TechnicalIndicator();
+                    final TechnicalIndicator temp = new TechnicalIndicator();
 
                     temp.setEvaluationPeriod((String) request.getParam("EVALUATION_PERIOD"));
                     temp.setTechnicalIndicatorType((String) request.getParam("TECHNICAL_INDICATOR_TYPE"));
@@ -109,7 +109,7 @@ public class CacheSvcImpl implements CacheSvc {
 
                     try {
                         cacheDao.save(request, response);
-                    } catch (Exception e) {
+                    } catch (final Exception e) {
                         e.printStackTrace();
                     }
                 });
@@ -119,27 +119,27 @@ public class CacheSvcImpl implements CacheSvc {
     }
 
     @Override
-    public void delete(Request request, Response response) {
+    public void delete(final Request request, final Response response) {
         
 
     }
 
     @Override
-    public void item(Request request, Response response) {
+    public void item(final Request request, final Response response) {
         
     }
 
     @Override
-    public void items(Request request, Response response) {
+    public void items(final Request request, final Response response) {
         try {
             customTechnicalIndicatorDao.items(request, response);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             e.printStackTrace();
         }
 
-        List<CustomTechnicalIndicator> customTechnicalIndicators = new ArrayList<CustomTechnicalIndicator>();
+        final List<CustomTechnicalIndicator> customTechnicalIndicators = new ArrayList<CustomTechnicalIndicator>();
 
-        for (Object o : ArrayList.class.cast(response.getParam(GlobalConstant.ITEMS))) {
+        for (final Object o : ArrayList.class.cast(response.getParam(GlobalConstant.ITEMS))) {
             customTechnicalIndicators.add(CustomTechnicalIndicator.class.cast(o));
         }
 

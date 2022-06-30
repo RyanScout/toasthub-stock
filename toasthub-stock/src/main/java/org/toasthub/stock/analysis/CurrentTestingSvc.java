@@ -1,4 +1,6 @@
 package org.toasthub.stock.analysis;
 
-public interface CurrentTestingSvc {
+import org.toasthub.common.BaseSvc;
+
+public interface CurrentTestingSvc extends BaseSvc {
 }
