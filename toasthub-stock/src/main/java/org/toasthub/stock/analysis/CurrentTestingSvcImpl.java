@@ -15,6 +15,8 @@ import java.util.stream.Stream;
 import javax.persistence.NoResultException;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -72,32 +74,6 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
 
     final AtomicBoolean tradeAnalysisJobRunning = new AtomicBoolean(false);
 
-    @Scheduled(cron = "30 * * * * ?")
-    public void tradeAnalysisTask() {
-
-        if (tradeAnalysisJobRunning.get()) {
-            System.out.println("Trade analysis is currently running ,  skipping this time");
-            return;
-        }
-
-        new Thread(() -> {
-            tradeAnalysisJobRunning.set(true);
-
-            final Request request = new Request();
-            final Response response = new Response();
-
-            updateRawData(request, response);
-
-            updateTechnicalIndicatorCache(request, response);
-
-            updateTrades(request, response);
-
-            checkTrades(request, response);
-
-            tradeAnalysisJobRunning.set(false);
-        }).start();
-    }
-
     public void updateRawData(final Request request, final Response response) {
         Stream.of(Symbol.SYMBOLS).forEach(symbol -> {
 
@@ -106,7 +82,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
             AssetDay recentAsesetDay = null;
 
             try {
-                currentTestingDao.getRecentAssetDay(request, response);
+                currentTestingDao.getLatestAssetDay(request, response);
                 recentAsesetDay = (AssetDay) response.getParam(GlobalConstant.ITEM);
             } catch (final NoResultException e) {
                 System.out.println("No assetdays in database");
@@ -122,7 +98,7 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
             AssetMinute recentAsesetMinute = null;
 
             try {
-                currentTestingDao.getRecentAssetMinute(request, response);
+                currentTestingDao.getLatestAssetMinute(request, response);
                 recentAsesetMinute = (AssetMinute) response.getParam(GlobalConstant.ITEM);
             } catch (final NoResultException e) {
                 System.out.println("No assetminutes in database");
@@ -1287,4 +1263,5 @@ public class CurrentTestingSvcImpl implements CurrentTestingSvc {
         // TODO Auto-generated method stub
 
     }
+
 }

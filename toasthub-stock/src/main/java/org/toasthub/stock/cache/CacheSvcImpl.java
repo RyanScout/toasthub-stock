@@ -25,13 +25,16 @@ import org.toasthub.utils.Response;
 public class CacheSvcImpl implements CacheSvc {
 
     @Autowired
-    protected CacheDao cacheDao;
+    private CacheDao cacheDao;
 
     @Autowired
     private CustomTechnicalIndicatorDao customTechnicalIndicatorDao;
 
     @Autowired
-    protected TradeSignalCache tradeSignalCache;
+    private TradeSignalCache tradeSignalCache;
+
+    @Autowired
+    private CacheManager cacheManager;
 
     @Override
     public void process(final Request request, final Response response) {
@@ -49,6 +52,8 @@ public class CacheSvcImpl implements CacheSvc {
             case "DELETE":
                 delete(request, response);
                 break;
+            case "BACKLOAD":
+                cacheManager.backloadTechnicalIndicator(request, response);
         }
 
     }
@@ -120,13 +125,12 @@ public class CacheSvcImpl implements CacheSvc {
 
     @Override
     public void delete(final Request request, final Response response) {
-        
 
     }
 
     @Override
     public void item(final Request request, final Response response) {
-        
+
     }
 
     @Override

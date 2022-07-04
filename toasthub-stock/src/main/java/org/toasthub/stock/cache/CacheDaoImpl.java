@@ -5,12 +5,14 @@ import java.util.Arrays;
 import java.util.List;
 
 import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
 import javax.persistence.Query;
 
 import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import org.toasthub.model.Symbol;
 import org.toasthub.model.TechnicalIndicator;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
@@ -34,18 +36,19 @@ public class CacheDaoImpl implements CacheDao {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public void saveAll(Request request, Response response) throws Exception {
-        for (Object obj : (List<Object>) request.getParam(GlobalConstant.ITEMS)) {
-            entityManager.merge(obj);
+        for (Object o : ArrayList.class.cast(request.getParam(GlobalConstant.ITEMS))) {
+            entityManager.merge(o);
         }
     }
 
     @Override
     public void items(Request request, Response response) {
-        String queryStr = "SELECT DISTINCT x FROM TechnicalIndicator as x";
+        String queryStr = "SELECT DISTINCT x FROM TechnicalIndicator as x WHERE x.updating=:updating";
 
         Query query = entityManager.createQuery(queryStr);
+
+        query.setParameter("updating", false);
 
         List<TechnicalIndicator> technicalIndicators = new ArrayList<TechnicalIndicator>();
 
@@ -97,6 +100,7 @@ public class CacheDaoImpl implements CacheDao {
             response.addParam(GlobalConstant.ITEM, t);
             return;
         }
+
         String queryStr = "SELECT DISTINCT x FROM TechnicalIndicator as x WHERE x.technicalIndicatorType =:technicalIndicatorType AND x.evaluationPeriod =:evaluationPeriod AND x.technicalIndicatorKey =:technicalIndicatorKey";
         Query query = entityManager.createQuery(queryStr);
         query.setParameter("technicalIndicatorType", (String) request.getParam("TECHNICAL_INDICATOR_TYPE"));
@@ -104,5 +108,74 @@ public class CacheDaoImpl implements CacheDao {
         query.setParameter("technicalIndicatorKey", (String) request.getParam("TECHNICAL_INDICATOR_KEY"));
 
         response.addParam(GlobalConstant.ITEM, query.getSingleResult());
+    }
+
+    @Override
+    public void getLatestAssetDay(Request request, Response response) throws NoResultException {
+        String x = (String) request.getParam(GlobalConstant.SYMBOL);
+
+        if (!Arrays.asList(Symbol.SYMBOLS).contains(x)) {
+            System.out.println("Symbol does not match symbols");
+            return;
+        }
+
+        String queryStr = "SELECT DISTINCT x FROM AssetDay x WHERE (SELECT MAX(x.epochSeconds) FROM AssetDay x WHERE x.symbol = : symbol) = x.epochSeconds AND x.symbol =: symbol";
+        Query query = entityManager.createQuery(queryStr);
+        query.setParameter("symbol", x);
+        response.addParam(GlobalConstant.ITEM, query.getSingleResult());
+
+    }
+
+    @Override
+    public void getLatestAssetMinute(Request request, Response response) throws NoResultException {
+        String x = (String) request.getParam(GlobalConstant.SYMBOL);
+
+        if (!Arrays.asList(Symbol.SYMBOLS).contains(x)) {
+            System.out.println("Symbol does not match symbols");
+            return;
+        }
+
+        String queryStr = "SELECT DISTINCT x FROM AssetMinute x WHERE (SELECT MAX(x.epochSeconds) FROM AssetMinute x WHERE x.symbol = : symbol) = x.epochSeconds AND x.symbol =: symbol";
+        Query query = entityManager.createQuery(queryStr);
+        query.setParameter("symbol", x);
+        response.addParam(GlobalConstant.ITEM, query.getSingleResult());
+    }
+
+    @Override
+    public void getSMA(Request request, Response response) throws NoResultException{
+        String queryStr = "SELECT DISTINCT x FROM SMA AS x WHERE x.epochSeconds =:epochSeconds AND x.type =: type AND x.symbol =:symbol";
+
+        Query query = entityManager.createQuery(queryStr);
+		query.setParameter("epochSeconds", request.getParam(GlobalConstant.EPOCHSECONDS));
+		query.setParameter("type", request.getParam(GlobalConstant.TYPE));
+		query.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
+
+		response.addParam(GlobalConstant.ITEM, query.getSingleResult());
+    }
+
+    @Override
+    public void getLBB(Request request, Response response) throws NoResultException{
+        String queryStr = "SELECT DISTINCT x FROM LBB AS x WHERE x.epochSeconds =:epochSeconds AND x.type =: type AND x.symbol =:symbol AND x.standardDeviations =: standardDeviations";
+
+        Query query = entityManager.createQuery(queryStr);
+		query.setParameter("epochSeconds", request.getParam(GlobalConstant.EPOCHSECONDS));
+		query.setParameter("type", request.getParam(GlobalConstant.TYPE));
+		query.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
+		query.setParameter("standardDeviations", request.getParam("STANDARD_DEVIATIONS"));
+
+		response.addParam(GlobalConstant.ITEM, query.getSingleResult());
+    }
+    
+    @Override
+    public void getUBB(Request request, Response response) throws NoResultException{
+        String queryStr = "SELECT DISTINCT x FROM UBB AS x WHERE x.epochSeconds =:epochSeconds AND x.type =: type AND x.symbol =:symbol AND x.standardDeviations =: standardDeviations";
+
+        Query query = entityManager.createQuery(queryStr);
+		query.setParameter("epochSeconds", request.getParam(GlobalConstant.EPOCHSECONDS));
+		query.setParameter("type", request.getParam(GlobalConstant.TYPE));
+		query.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
+		query.setParameter("standardDeviations", request.getParam("STANDARD_DEVIATIONS"));
+
+		response.addParam(GlobalConstant.ITEM, query.getSingleResult());
     }
 }

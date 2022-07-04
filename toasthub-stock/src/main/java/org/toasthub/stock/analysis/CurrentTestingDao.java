@@ -23,7 +23,7 @@ import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
 
 public interface CurrentTestingDao extends BaseDao {
-	public void getRecentAssetDay(Request request, Response response) throws NoResultException;
+	public void getLatestAssetDay(Request request, Response response) throws NoResultException;
 
-	public void getRecentAssetMinute(Request request, Response response) throws NoResultException;
+	public void getLatestAssetMinute(Request request, Response response) throws NoResultException;
 }

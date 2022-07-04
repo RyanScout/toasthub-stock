@@ -268,7 +268,7 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 	}
 
 	@Override
-	public void getRecentAssetDay(Request request, Response response) throws NoResultException {
+	public void getLatestAssetDay(Request request, Response response) throws NoResultException {
 		String x = (String) request.getParam(GlobalConstant.SYMBOL);
 
 		if (Arrays.asList(Symbol.SYMBOLS).contains(x)) {
@@ -281,7 +281,7 @@ public class CurrentTestingDaoImpl implements CurrentTestingDao {
 	}
 
 	@Override
-	public void getRecentAssetMinute(Request request, Response response) throws NoResultException {
+	public void getLatestAssetMinute(Request request, Response response) throws NoResultException {
 		String x = (String) request.getParam(GlobalConstant.SYMBOL);
 
 		if (Arrays.asList(Symbol.SYMBOLS).contains(x)) {

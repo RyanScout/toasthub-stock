@@ -1,9 +1,17 @@
 package org.toasthub.stock.cache;
 
+import javax.persistence.NoResultException;
+
 import org.toasthub.common.BaseDao;
 import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
 
 public interface CacheDao extends BaseDao {
     public void saveAll(Request request, Response response) throws Exception;
+    public void getLatestAssetDay(Request request, Response response) throws NoResultException;
+	public void getLatestAssetMinute(Request request, Response response) throws NoResultException;
+    public void getSMA(Request request, Response response) throws NoResultException;
+    public void getLBB(Request request, Response response) throws NoResultException;
+    public void getUBB(Request request, Response response) throws NoResultException;
+
 }
