@@ -119,9 +119,11 @@ public class CacheDaoImpl implements CacheDao {
             return;
         }
 
-        String queryStr = "SELECT DISTINCT x FROM AssetDay x WHERE (SELECT MAX(x.epochSeconds) FROM AssetDay x WHERE x.symbol = : symbol) = x.epochSeconds AND x.symbol =: symbol";
-        Query query = entityManager.createQuery(queryStr);
-        query.setParameter("symbol", x);
+        String queryStr = "SELECT DISTINCT x FROM AssetDay x WHERE x.symbol =: symbol ORDER BY x.epochSeconds DESC";
+        Query query = entityManager.createQuery(queryStr)
+                .setParameter("symbol", x)
+                .setMaxResults(1);
+
         response.addParam(GlobalConstant.ITEM, query.getSingleResult());
 
     }
@@ -135,9 +137,11 @@ public class CacheDaoImpl implements CacheDao {
             return;
         }
 
-        String queryStr = "SELECT DISTINCT x FROM AssetMinute x WHERE (SELECT MAX(x.epochSeconds) FROM AssetMinute x WHERE x.symbol = : symbol) = x.epochSeconds AND x.symbol =: symbol";
-        Query query = entityManager.createQuery(queryStr);
-        query.setParameter("symbol", x);
+        String queryStr = "SELECT DISTINCT x FROM AssetMinute x WHERE x.symbol =: symbol ORDER BY x.epochSeconds DESC";
+        Query query = entityManager.createQuery(queryStr)
+                .setParameter("symbol", x)
+                .setMaxResults(1);
+
         response.addParam(GlobalConstant.ITEM, query.getSingleResult());
     }
 

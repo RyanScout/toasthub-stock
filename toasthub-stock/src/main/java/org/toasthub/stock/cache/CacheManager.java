@@ -651,6 +651,7 @@ public class CacheManager {
                             .println("Querying data for day took roughly "
                                     + queryTimer.getTotalTimeMillis() / queryTimer.getTaskCount()
                                     + " milliseconds per minute");
+
                     System.out.println("This day had " + Runtime.getRuntime().freeMemory() / (1024 * 1024)
                             + " megabytes of free memory available to use");
                 });
