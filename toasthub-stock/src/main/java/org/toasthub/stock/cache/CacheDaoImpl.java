@@ -32,7 +32,7 @@ public class CacheDaoImpl implements CacheDao {
 
     @Override
     public void save(Request request, Response response) throws Exception {
-        entityManager.merge((Object) request.getParam(GlobalConstant.ITEM));
+        entityManager.merge(request.getParam(GlobalConstant.ITEM));
     }
 
     @Override
