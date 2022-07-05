@@ -14,6 +14,7 @@ import javax.persistence.NoResultException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StopWatch;
 import org.toasthub.analysis.algorithm.AlgorithmCruncherDao;
 import org.toasthub.analysis.model.AssetDay;
 import org.toasthub.analysis.model.AssetMinute;
@@ -27,6 +28,7 @@ import org.toasthub.stock.model.TradeSignalCache;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Component
 public class CacheManager {
@@ -40,9 +42,11 @@ public class CacheManager {
     @Autowired
     private AlgorithmCruncherDao algorithmCruncherDao;
 
+    private final AtomicBoolean updatingTechnicalIndicator = new AtomicBoolean(false);
+
     public void initializeCache() {
-        Request request = new Request();
-        Response response = new Response();
+        final Request request = new Request();
+        final Response response = new Response();
         try {
             cacheDao.items(request, response);
         } catch (final Exception e) {
@@ -152,26 +156,26 @@ public class CacheManager {
         request.addParam(GlobalConstant.TYPE, shortSMAType);
 
         try {
-            cacheDao.getSMA(request, response);
+            cacheDao.getSMAValue(request, response);
         } catch (final NoResultException e) {
             response.addParam("INSUFFICIENT_DATA", true);
             return result;
         }
 
-        final SMA shortSMA = (SMA) response.getParam(GlobalConstant.ITEM);
+        final BigDecimal shortSMAValue = (BigDecimal) response.getParam(GlobalConstant.ITEM);
 
         request.addParam(GlobalConstant.TYPE, longSMAType);
 
         try {
-            cacheDao.getSMA(request, response);
+            cacheDao.getSMAValue(request, response);
         } catch (final NoResultException e) {
             response.addParam("INSUFFICIENT_DATA", true);
             return result;
         }
 
-        final SMA longSMA = (SMA) response.getParam(GlobalConstant.ITEM);
+        final BigDecimal longSMAValue = (BigDecimal) response.getParam(GlobalConstant.ITEM);
 
-        if (shortSMA.getValue().compareTo(longSMA.getValue()) > 0) {
+        if (shortSMAValue.compareTo(longSMAValue) > 0) {
             result = true;
         }
         return result;
@@ -234,6 +238,17 @@ public class CacheManager {
     }
 
     public void updateTechnicalIndicatorCache(final Request request, final Response response) {
+
+        while (updatingTechnicalIndicator.get()) {
+            try {
+                Thread.sleep(1000);
+            } catch (final Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        updatingTechnicalIndicator.set(true);
+
         try {
             cacheDao.items(request, response);
         } catch (final Exception e) {
@@ -399,6 +414,8 @@ public class CacheManager {
                     }
 
                 });
+
+        updatingTechnicalIndicator.set(false);
     }
 
     public void backloadTechnicalIndicator(final Request request, final Response response) {
@@ -409,22 +426,17 @@ public class CacheManager {
             e.printStackTrace();
         }
 
-        final TechnicalIndicator technicalIndicator = (TechnicalIndicator) response.getParam(GlobalConstant.ITEM);
+        final TechnicalIndicator currentTechnicalIndicator = (TechnicalIndicator) response
+                .getParam(GlobalConstant.ITEM);
+
+        final long endingEpochSeconds = currentTechnicalIndicator.getFirstCheck();
+
+        final TechnicalIndicator backloadedTechnicalIndicator = new TechnicalIndicator();
 
         final List<AssetDay> assetDays = new ArrayList<AssetDay>();
 
-        final long endingEpochSeconds = technicalIndicator.getFirstCheck();
-
-        // backloading assumes a chronological order, so we make future history
-        // inacessible
-        // and add it back at the end of the method
-        final long lastCheck = technicalIndicator.getLastCheck();
-
-        technicalIndicator.setFirstCheck(0);
-        technicalIndicator.setLastCheck(0);
-
         request.addParam(GlobalConstant.IDENTIFIER, "AssetDay");
-        request.addParam(GlobalConstant.SYMBOL, technicalIndicator.getSymbol());
+        request.addParam(GlobalConstant.SYMBOL, currentTechnicalIndicator.getSymbol());
         request.addParam("STARTING_EPOCH_SECONDS",
                 endingEpochSeconds - ((int) request.getParam("DAYS_TO_BACKLOAD") * 60 * 60 * 24));
         request.addParam("ENDING_EPOCH_SECONDS", endingEpochSeconds);
@@ -439,6 +451,9 @@ public class CacheManager {
             assetDays.add((AssetDay) o);
         }
 
+        final StopWatch minuteTimer = new StopWatch();
+        final StopWatch queryTimer = new StopWatch();
+
         assetDays.stream()
                 .sorted((a, b) -> (int) (a.getEpochSeconds() - b.getEpochSeconds()))
                 .forEach(assetDay -> {
@@ -447,7 +462,7 @@ public class CacheManager {
 
                     request.addParam("STARTING_EPOCH_SECONDS", assetDay.getEpochSeconds());
                     request.addParam("ENDING_EPOCH_SECONDS", assetDay.getEpochSeconds() + (60 * 60 * 24));
-                    request.addParam(GlobalConstant.SYMBOL, technicalIndicator.getSymbol());
+                    request.addParam(GlobalConstant.SYMBOL, currentTechnicalIndicator.getSymbol());
 
                     if (assetDay.getEpochSeconds() + (60 * 60 * 24) > endingEpochSeconds) {
                         request.addParam("ENDING_EPOCH_SECONDS", endingEpochSeconds);
@@ -474,7 +489,9 @@ public class CacheManager {
                             .sorted((a, b) -> (int) (a.getEpochSeconds() - b.getEpochSeconds()))
                             .forEach(assetMinute -> {
 
-                                final String symbol = technicalIndicator.getSymbol();
+                                minuteTimer.start();
+
+                                final String symbol = currentTechnicalIndicator.getSymbol();
 
                                 final long currentMinute = assetMinute.getEpochSeconds();
 
@@ -487,59 +504,69 @@ public class CacheManager {
                                 boolean flashing = false;
 
                                 request.addParam(GlobalConstant.SYMBOL, symbol);
-                                request.addParam("EVALUATION_PERIOD", technicalIndicator.getEvaluationPeriod());
+                                request.addParam("EVALUATION_PERIOD", currentTechnicalIndicator.getEvaluationPeriod());
                                 response.getParams().remove("INSUFFICIENT_DATA");
 
-                                switch (technicalIndicator.getTechnicalIndicatorType()) {
+                                queryTimer.start();
+
+                                switch (currentTechnicalIndicator.getTechnicalIndicatorType()) {
                                     case TechnicalIndicator.GOLDENCROSS:
                                         request.addParam(GlobalConstant.EPOCHSECONDS, currentMinute);
-                                        request.addParam("SHORT_SMA_TYPE", technicalIndicator.getShortSMAType());
-                                        request.addParam("LONG_SMA_TYPE", technicalIndicator.getLongSMAType());
+                                        request.addParam("SHORT_SMA_TYPE", currentTechnicalIndicator.getShortSMAType());
+                                        request.addParam("LONG_SMA_TYPE", currentTechnicalIndicator.getLongSMAType());
                                         flashing = goldenCrossIsFlashing(request, response);
                                         break;
                                     case TechnicalIndicator.LOWERBOLLINGERBAND:
                                         request.addParam(GlobalConstant.EPOCHSECONDS, currentMinute);
-                                        request.addParam("LBB_TYPE", technicalIndicator.getLBBType());
+                                        request.addParam("LBB_TYPE", currentTechnicalIndicator.getLBBType());
                                         request.addParam("STANDARD_DEVIATIONS",
-                                                technicalIndicator.getStandardDeviations());
+                                                currentTechnicalIndicator.getStandardDeviations());
                                         flashing = lowerBollingerBandIsFlashing(request, response);
                                         break;
                                     case TechnicalIndicator.UPPERBOLLINGERBAND:
                                         request.addParam(GlobalConstant.EPOCHSECONDS, currentMinute);
-                                        request.addParam("UBB_TYPE", technicalIndicator.getUBBType());
+                                        request.addParam("UBB_TYPE", currentTechnicalIndicator.getUBBType());
                                         request.addParam("STANDARD_DEVIATIONS",
-                                                technicalIndicator.getStandardDeviations());
+                                                currentTechnicalIndicator.getStandardDeviations());
                                         flashing = upperBollingerBandIsFlashing(request, response);
                                         break;
                                     default:
                                         System.out.print(
                                                 "Invalid technical indicator type in current testing service- update technical indicator cache method");
                                 }
+                                queryTimer.stop();
 
                                 if (response.getParam("INSUFFICIENT_DATA") != null
                                         && (boolean) response.getParam("INSUFFICIENT_DATA") == true) {
+                                    System.out.println("Insufficient Data");
+                                    minuteTimer.stop();
                                     return;
                                 }
 
-                                technicalIndicator.setFlashing(flashing);
+                                backloadedTechnicalIndicator.setFlashing(flashing);
 
-                                if (technicalIndicator.getLastCheck() < currentMinute) {
+                                if (backloadedTechnicalIndicator.getLastCheck() < currentMinute) {
 
-                                    final boolean dayBased = technicalIndicator.getEvaluationPeriod().equals("DAY");
-                                    final boolean checkedToday = technicalIndicator.getLastCheck() > currentDay;
-                                    final boolean flashedToday = technicalIndicator.getLastFlash() > currentDay;
+                                    final boolean dayBased = currentTechnicalIndicator.getEvaluationPeriod()
+                                            .equals("DAY");
+
+                                    final boolean checkedToday = backloadedTechnicalIndicator
+                                            .getLastCheck() > currentDay;
+                                    final boolean flashedToday = backloadedTechnicalIndicator
+                                            .getLastFlash() > currentDay;
 
                                     if (!(dayBased && checkedToday)) {
-                                        technicalIndicator.setChecked(technicalIndicator.getChecked() + 1);
+                                        backloadedTechnicalIndicator
+                                                .setChecked(backloadedTechnicalIndicator.getChecked() + 1);
                                     }
 
-                                    if (technicalIndicator.getFirstCheck() == 0) {
-                                        technicalIndicator.setFirstCheck(currentMinute);
+                                    if (backloadedTechnicalIndicator.getFirstCheck() == 0) {
+                                        backloadedTechnicalIndicator.setFirstCheck(currentMinute);
                                     }
 
-                                    technicalIndicator.setLastCheck(currentMinute);
+                                    backloadedTechnicalIndicator.setLastCheck(currentMinute);
 
-                                    technicalIndicator.getDetails().stream()
+                                    backloadedTechnicalIndicator.getDetails().stream()
                                             .filter(detail -> detail.getChecked() < 100)
                                             .filter(detail -> detail.getFlashTime() < currentMinute)
                                             .forEach(detail -> {
@@ -553,7 +580,7 @@ public class CacheManager {
                                                         .divide(detail.getFlashPrice(), MathContext.DECIMAL32)
                                                         .multiply(BigDecimal.valueOf(100));
 
-                                                if (technicalIndicator.getTechnicalIndicatorType()
+                                                if (currentTechnicalIndicator.getTechnicalIndicatorType()
                                                         .equals(TechnicalIndicator.UPPERBOLLINGERBAND)) {
                                                     tempSuccessPercent = tempSuccessPercent.negate();
                                                 }
@@ -567,18 +594,20 @@ public class CacheManager {
                                                 if (detail.isSuccess() == false
                                                         && detail.getFlashPrice().compareTo(currentPrice) < 0) {
                                                     detail.setSuccess(true);
-                                                    technicalIndicator
-                                                            .setSuccesses(technicalIndicator.getSuccesses() + 1);
+                                                    backloadedTechnicalIndicator
+                                                            .setSuccesses(
+                                                                    backloadedTechnicalIndicator.getSuccesses() + 1);
                                                 }
                                             });
 
-                                    if (technicalIndicator.isFlashing() && !(dayBased && flashedToday)) {
+                                    if (backloadedTechnicalIndicator.isFlashing() && !(dayBased && flashedToday)) {
 
                                         long volume = 0;
                                         BigDecimal vWap = BigDecimal.ZERO;
 
                                         // bug ! - since minute based records of assetDays are not kept , all day based
-                                        // volume data will be equivalent across a day.
+                                        // volume data will be equivalent across a day. I really dont care about volume
+                                        // data tho
                                         if (dayBased) {
                                             volume = assetDay.getVolume();
 
@@ -590,13 +619,14 @@ public class CacheManager {
                                             vWap = assetMinute.getVwap();
                                         }
 
-                                        technicalIndicator.setLastFlash(currentMinute);
+                                        backloadedTechnicalIndicator.setLastFlash(currentMinute);
 
-                                        technicalIndicator.setFlashed(technicalIndicator.getFlashed() + 1);
+                                        backloadedTechnicalIndicator
+                                                .setFlashed(backloadedTechnicalIndicator.getFlashed() + 1);
 
                                         final TechnicalIndicatorDetail technicalIndicatorDetail = new TechnicalIndicatorDetail();
 
-                                        technicalIndicatorDetail.setTechnicalIndicator(technicalIndicator);
+                                        technicalIndicatorDetail.setTechnicalIndicator(backloadedTechnicalIndicator);
 
                                         technicalIndicatorDetail.setFlashTime(currentMinute);
 
@@ -606,20 +636,69 @@ public class CacheManager {
 
                                         technicalIndicatorDetail.setVwap(vWap);
 
-                                        technicalIndicator.getDetails().add(technicalIndicatorDetail);
+                                        backloadedTechnicalIndicator.getDetails().add(technicalIndicatorDetail);
                                     }
                                 }
+
+                                minuteTimer.stop();
+
                             });
+                    System.out
+                            .println("Backloading day of technical indicator took roughly "
+                                    + minuteTimer.getTotalTimeMillis() / minuteTimer.getTaskCount()
+                                    + " milliseconds per minute");
+                    System.out
+                            .println("Querying data for day took roughly "
+                                    + queryTimer.getTotalTimeMillis() / queryTimer.getTaskCount()
+                                    + " milliseconds per minute");
+                    System.out.println("This day had " + Runtime.getRuntime().freeMemory() / (1024 * 1024)
+                            + " megabytes of free memory available to use");
                 });
 
-        technicalIndicator.setLastCheck(lastCheck);
-        request.addParam(GlobalConstant.ITEM, technicalIndicator);
+        while (updatingTechnicalIndicator.get()) {
+            try {
+                Thread.sleep(1000);
+            } catch (final Exception e) {
+                e.printStackTrace();
+            }
+        }
 
+        updatingTechnicalIndicator.set(true);
+
+        minuteTimer.start();
+
+        try {
+            cacheDao.item(request, response);
+        } catch (final Exception e) {
+            e.printStackTrace();
+        }
+
+        final TechnicalIndicator temp = (TechnicalIndicator) response.getParam(GlobalConstant.ITEM);
+
+        temp.setFirstCheck(backloadedTechnicalIndicator.getFirstCheck());
+        temp.setChecked(temp.getChecked() + backloadedTechnicalIndicator.getChecked());
+        temp.setFlashed(temp.getFlashed() + backloadedTechnicalIndicator.getFlashed());
+        temp.setSuccesses(temp.getSuccesses() + backloadedTechnicalIndicator.getSuccesses());
+
+        backloadedTechnicalIndicator.getDetails().stream().forEach(detail -> {
+            detail.setTechnicalIndicator(temp);
+        });
+        temp.getDetails().addAll(backloadedTechnicalIndicator.getDetails());
+
+        request.addParam(GlobalConstant.ITEM, temp);
         try {
             cacheDao.save(request, response);
         } catch (final Exception e) {
             e.printStackTrace();
         }
+
+        updatingTechnicalIndicator.set(false);
+
+        minuteTimer.stop();
+        System.out.println(
+                "Merging and saving technical indicator took" + minuteTimer.getLastTaskTimeMillis() + " milliseconds");
+
+        response.setStatus(Response.SUCCESS);
     }
 
 }

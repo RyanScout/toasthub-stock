@@ -54,6 +54,10 @@ public class CacheSvcImpl implements CacheSvc {
                 break;
             case "BACKLOAD":
                 cacheManager.backloadTechnicalIndicator(request, response);
+                break;
+            default:
+                System.out.println(action + "is not recognized as an action as cachesvc");
+                return;
         }
 
     }

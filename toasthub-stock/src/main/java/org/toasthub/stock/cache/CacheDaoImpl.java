@@ -142,40 +142,40 @@ public class CacheDaoImpl implements CacheDao {
     }
 
     @Override
-    public void getSMA(Request request, Response response) throws NoResultException{
-        String queryStr = "SELECT DISTINCT x FROM SMA AS x WHERE x.epochSeconds =:epochSeconds AND x.type =: type AND x.symbol =:symbol";
+    public void getSMAValue(Request request, Response response) throws NoResultException {
+        String queryStr = "SELECT x.value FROM SMA x WHERE x.epochSeconds =:epochSeconds AND x.type =: type AND x.symbol =:symbol";
 
-        Query query = entityManager.createQuery(queryStr);
-		query.setParameter("epochSeconds", request.getParam(GlobalConstant.EPOCHSECONDS));
-		query.setParameter("type", request.getParam(GlobalConstant.TYPE));
-		query.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
+        Query query = entityManager.createQuery(queryStr)
+                .setParameter("epochSeconds", request.getParam(GlobalConstant.EPOCHSECONDS))
+                .setParameter("type", request.getParam(GlobalConstant.TYPE))
+                .setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
 
-		response.addParam(GlobalConstant.ITEM, query.getSingleResult());
+        response.addParam(GlobalConstant.ITEM, query.getSingleResult());
     }
 
     @Override
-    public void getLBB(Request request, Response response) throws NoResultException{
+    public void getLBB(Request request, Response response) throws NoResultException {
         String queryStr = "SELECT DISTINCT x FROM LBB AS x WHERE x.epochSeconds =:epochSeconds AND x.type =: type AND x.symbol =:symbol AND x.standardDeviations =: standardDeviations";
 
         Query query = entityManager.createQuery(queryStr);
-		query.setParameter("epochSeconds", request.getParam(GlobalConstant.EPOCHSECONDS));
-		query.setParameter("type", request.getParam(GlobalConstant.TYPE));
-		query.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
-		query.setParameter("standardDeviations", request.getParam("STANDARD_DEVIATIONS"));
+        query.setParameter("epochSeconds", request.getParam(GlobalConstant.EPOCHSECONDS));
+        query.setParameter("type", request.getParam(GlobalConstant.TYPE));
+        query.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
+        query.setParameter("standardDeviations", request.getParam("STANDARD_DEVIATIONS"));
 
-		response.addParam(GlobalConstant.ITEM, query.getSingleResult());
+        response.addParam(GlobalConstant.ITEM, query.getSingleResult());
     }
-    
+
     @Override
-    public void getUBB(Request request, Response response) throws NoResultException{
+    public void getUBB(Request request, Response response) throws NoResultException {
         String queryStr = "SELECT DISTINCT x FROM UBB AS x WHERE x.epochSeconds =:epochSeconds AND x.type =: type AND x.symbol =:symbol AND x.standardDeviations =: standardDeviations";
 
         Query query = entityManager.createQuery(queryStr);
-		query.setParameter("epochSeconds", request.getParam(GlobalConstant.EPOCHSECONDS));
-		query.setParameter("type", request.getParam(GlobalConstant.TYPE));
-		query.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
-		query.setParameter("standardDeviations", request.getParam("STANDARD_DEVIATIONS"));
+        query.setParameter("epochSeconds", request.getParam(GlobalConstant.EPOCHSECONDS));
+        query.setParameter("type", request.getParam(GlobalConstant.TYPE));
+        query.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
+        query.setParameter("standardDeviations", request.getParam("STANDARD_DEVIATIONS"));
 
-		response.addParam(GlobalConstant.ITEM, query.getSingleResult());
+        response.addParam(GlobalConstant.ITEM, query.getSingleResult());
     }
 }
