@@ -13,5 +13,6 @@ public interface CacheDao extends BaseDao {
     public void getSMAValue(Request request, Response response) throws NoResultException;
     public void getLBB(Request request, Response response) throws NoResultException;
     public void getUBB(Request request, Response response) throws NoResultException;
-
+    public void getAssetDays(Request request, Response response);
+    public void getAssetMinutes(Request request, Response response);
 }

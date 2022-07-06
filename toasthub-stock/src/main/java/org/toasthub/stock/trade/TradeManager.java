@@ -220,10 +220,11 @@ public class TradeManager {
                 .toEpochSecond();
 
         trades.stream()
-                .filter(trade -> ((request.getParam(trade.getSymbol() + "::CACHE_UPDATED") != null)
-                        && (boolean) request.getParam(trade.getSymbol() + "::CACHE_UPDATED")))
+                .filter(trade -> request.getParam(trade.getSymbol() + "::CACHE_UPDATED") != null)
+                .filter(trade -> (boolean) request.getParam(trade.getSymbol() + "::CACHE_UPDATED"))
                 .filter(trade -> !(trade.getEvaluationPeriod().equals("DAY") && trade.getLastOrder() > today))
                 .forEach(trade -> {
+
                     request.addParam(GlobalConstant.TRADE, trade);
 
                     System.out.println("Checking trade: " + trade.getName());
