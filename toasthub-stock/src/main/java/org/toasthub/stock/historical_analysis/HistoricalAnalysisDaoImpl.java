@@ -42,7 +42,7 @@ public class HistoricalAnalysisDaoImpl implements HistoricalAnalysisDao {
 		if (request.containsParam(GlobalConstant.ITEMID) && !"".equals(request.getParam(GlobalConstant.ITEMID))) {
 
 			HistoricalAnalysis historicalAnalysis = (HistoricalAnalysis) entityManager.getReference(HistoricalAnalysis.class,
-					new Long((Integer) request.getParam(GlobalConstant.ITEMID)));
+					Long.valueOf((Integer) request.getParam(GlobalConstant.ITEMID)));
 			entityManager.remove(historicalAnalysis);
 
 		} else {
@@ -87,7 +87,7 @@ public class HistoricalAnalysisDaoImpl implements HistoricalAnalysisDao {
 			String queryStr = "SELECT x FROM Trade AS x WHERE x.id =:id";
 			Query query = entityManager.createQuery(queryStr);
 
-			query.setParameter("id", new Long((Integer) request.getParam(GlobalConstant.ITEMID)));
+			query.setParameter("id", Long.valueOf((Integer) request.getParam(GlobalConstant.ITEMID)));
 			Trade trade = (Trade) query.getSingleResult();
 
 			response.addParam("item", trade);

@@ -1,13 +1,10 @@
 package org.toasthub.stock.historical_analysis;
 
 
-import java.math.BigDecimal;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.toasthub.stock.model.Trade;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
@@ -56,7 +53,6 @@ public class HistoricalAnalysisSvcImpl implements HistoricalAnalysisSvc {
 
 
 	@Override
-	@SuppressWarnings("unchecked")
 	public void save(Request request, Response response) {
 		// try {
 		// 	Trade trade =  null;

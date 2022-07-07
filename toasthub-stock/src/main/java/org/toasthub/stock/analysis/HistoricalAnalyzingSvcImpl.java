@@ -202,7 +202,6 @@ public class HistoricalAnalyzingSvcImpl implements HistoricalAnalyzingSvc {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private void historicallyAnalyzeDayTrade(Request request, Response response) {
         // Map<String, ?> map = (Map<String, ?>) request.getParam("ITEM");
         // HistoricalAnalysis historicalAnalysis = new HistoricalAnalysis();
