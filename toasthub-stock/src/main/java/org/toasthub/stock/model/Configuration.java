@@ -1,4 +1,4 @@
-package org.toasthub.core.model;
+package org.toasthub.stock.model;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;

@@ -14,8 +14,8 @@ import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.toasthub.algorithm.model.AssetDay;
-import org.toasthub.stock.historicalanalysis.HistoricalAnalysisDao;
+import org.toasthub.stock.historical_analysis.HistoricalAnalysisDao;
+import org.toasthub.stock.model.AssetDay;
 import org.toasthub.stock.model.HistoricalAnalysis;
 import org.toasthub.stock.model.HistoricalDetail;
 import org.toasthub.stock.model.Order;

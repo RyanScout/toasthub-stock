@@ -18,7 +18,7 @@
  * @author Edward H. Seufert
  */
 
-package org.toasthub.algorithm.model;
+package org.toasthub.stock.model;
 
 import java.math.BigDecimal;
 import java.math.MathContext;

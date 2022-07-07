@@ -1,4 +1,4 @@
-package org.toasthub.algorithm.model;
+package org.toasthub.stock.model;
 
 import java.math.BigDecimal;
 
@@ -66,6 +66,8 @@ public abstract class BaseAlg extends BaseEntity {
 
     private BigDecimal value = BigDecimal.ZERO;
     private String type = "";
+    private String evaluationPeriod = "";
+    private int evaluationDuration = 0;
     private long epochSeconds = 0;
     private long correspondingDay = 0;
 
