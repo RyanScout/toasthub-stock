@@ -12,8 +12,8 @@ import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import org.toasthub.model.Symbol;
-import org.toasthub.model.TechnicalIndicator;
+import org.toasthub.core.model.Symbol;
+import org.toasthub.core.model.TechnicalIndicator;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
@@ -31,6 +31,11 @@ public class CacheDaoImpl implements CacheDao {
     }
 
     @Override
+    public void refresh(final Request request, final Response response) {
+        entityManager.refresh(request.getParam(GlobalConstant.ITEM));
+    }
+
+    @Override
     public void save(final Request request, final Response response) throws Exception {
         entityManager.merge(request.getParam(GlobalConstant.ITEM));
     }
@@ -44,11 +49,9 @@ public class CacheDaoImpl implements CacheDao {
 
     @Override
     public void items(final Request request, final Response response) {
-        final String queryStr = "SELECT DISTINCT x FROM TechnicalIndicator as x WHERE x.updating=:updating";
+        final String queryStr = "SELECT DISTINCT x FROM TechnicalIndicator as x";
 
         final Query query = entityManager.createQuery(queryStr);
-
-        query.setParameter("updating", false);
 
         final List<TechnicalIndicator> technicalIndicators = new ArrayList<TechnicalIndicator>();
 
@@ -125,6 +128,42 @@ public class CacheDaoImpl implements CacheDao {
         final String queryStr = "SELECT DISTINCT x FROM AssetDay x WHERE x.symbol =: symbol ORDER BY x.epochSeconds DESC";
         final Query query = entityManager.createQuery(queryStr)
                 .setParameter("symbol", x)
+                .setMaxResults(1);
+
+        response.addParam(GlobalConstant.ITEM, query.getSingleResult());
+    }
+
+    @Override
+    public void getEarliestAlgTime(final Request request, final Response response) throws NoResultException {
+        String x = "";
+        switch ((String) request.getParam(GlobalConstant.IDENTIFIER)) {
+            case "SMA":
+                x = "SMA";
+                break;
+            case "EMA":
+                x = "EMA";
+                break;
+            case "LBB":
+                x = "LBB";
+                break;
+            case "UBB":
+                x = "UBB";
+                break;
+            case "MACD":
+                x = "MACD";
+                break;
+            case "SL":
+                x = "SL";
+                break;
+            default:
+                System.out.println("Algorithm not recognized ast cachedaoimpl");
+                return;
+        }
+
+        final String queryStr = "SELECT x.epochSeconds FROM "
+                + x + " x WHERE x.symbol =: symbol ORDER BY x.epochSeconds ASC";
+        final Query query = entityManager.createQuery(queryStr)
+                .setParameter("symbol", request.getParam(GlobalConstant.SYMBOL))
                 .setMaxResults(1);
 
         response.addParam(GlobalConstant.ITEM, query.getSingleResult());

@@ -19,12 +19,12 @@ import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.ParseException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.stereotype.Service;
-import org.toasthub.model.CustomTechnicalIndicator;
+import org.toasthub.core.model.CustomTechnicalIndicator;
+import org.toasthub.core.model.RequestValidation;
 import org.toasthub.stock.custom_technical_indicator.CustomTechnicalIndicatorDao;
 import org.toasthub.stock.model.Trade;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
-import org.toasthub.utils.RequestValidation;
 import org.toasthub.utils.Response;
 
 @Service("TradeSvc")

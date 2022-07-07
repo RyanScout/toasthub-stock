@@ -15,4 +15,6 @@ public interface CacheDao extends BaseDao {
     public void getUBB(Request request, Response response) throws NoResultException;
     public void getAssetDays(Request request, Response response);
     public void getAssetMinutes(Request request, Response response);
+    public void refresh(Request request, Response response);
+    public void getEarliestAlgTime(final Request request, final Response response) throws NoResultException;
 }

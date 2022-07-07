@@ -1,4 +1,4 @@
-package org.toasthub.stock.model;
+package org.toasthub.core.model;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -6,7 +6,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
-import org.toasthub.model.TechnicalIndicator;
 
 @Component
 @Scope("singleton")
@@ -62,5 +61,11 @@ public class TradeSignalCache {
         this.recentVwapMap = recentVwapMap;
     }
 
+    public void insertTechnicalIndicator(TechnicalIndicator technicalIndicator) {
+        technicalIndicatorMap.put(technicalIndicator.getTechnicalIndicatorType() + "::"
+                + technicalIndicator.getTechnicalIndicatorKey() + "::"
+                + technicalIndicator.getEvaluationPeriod() + "::"
+                + technicalIndicator.getSymbol(), technicalIndicator);
+    }
 
 }

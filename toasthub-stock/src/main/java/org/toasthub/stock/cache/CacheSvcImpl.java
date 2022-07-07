@@ -12,11 +12,12 @@ import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.toasthub.model.CustomTechnicalIndicator;
-import org.toasthub.model.Symbol;
-import org.toasthub.model.TechnicalIndicator;
+import org.toasthub.core.model.CustomTechnicalIndicator;
+import org.toasthub.core.model.Symbol;
+import org.toasthub.core.model.TechnicalIndicator;
+import org.toasthub.core.model.TradeSignalCache;
+import org.toasthub.stock.algorithm.AlgorithmCruncherSvc;
 import org.toasthub.stock.custom_technical_indicator.CustomTechnicalIndicatorDao;
-import org.toasthub.stock.model.TradeSignalCache;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
@@ -36,6 +37,9 @@ public class CacheSvcImpl implements CacheSvc {
     @Autowired
     private CacheManager cacheManager;
 
+    @Autowired
+    private AlgorithmCruncherSvc algorithmCruncherSvc;
+
     @Override
     public void process(final Request request, final Response response) {
         final String action = (String) request.getParams().get("action");
@@ -53,7 +57,9 @@ public class CacheSvcImpl implements CacheSvc {
                 delete(request, response);
                 break;
             case "BACKLOAD":
+                algorithmCruncherSvc.backloadAlg(request, response);
                 cacheManager.backloadTechnicalIndicator(request, response);
+                response.setStatus(Response.SUCCESS);
                 break;
             default:
                 System.out.println(action + "is not recognized as an action as cachesvc");

@@ -4,10 +4,10 @@ import java.math.BigDecimal;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.toasthub.analysis.model.LBB;
-import org.toasthub.analysis.model.MACD;
-import org.toasthub.analysis.model.SL;
-import org.toasthub.analysis.model.SMA;
+import org.toasthub.algorithm.model.LBB;
+import org.toasthub.algorithm.model.MACD;
+import org.toasthub.algorithm.model.SL;
+import org.toasthub.algorithm.model.SMA;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;

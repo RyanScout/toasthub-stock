@@ -9,13 +9,13 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.toasthub.model.CustomTechnicalIndicator;
-import org.toasthub.model.Symbol;
-import org.toasthub.model.TechnicalIndicator;
+import org.toasthub.core.model.CustomTechnicalIndicator;
+import org.toasthub.core.model.RequestValidation;
+import org.toasthub.core.model.Symbol;
+import org.toasthub.core.model.TechnicalIndicator;
 import org.toasthub.stock.cache.CacheSvc;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
-import org.toasthub.utils.RequestValidation;
 import org.toasthub.utils.Response;
 
 @Service("CustomTechnicalIndicatorSvc")

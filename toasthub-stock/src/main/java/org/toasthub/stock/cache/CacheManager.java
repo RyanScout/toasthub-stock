@@ -15,14 +15,14 @@ import javax.persistence.NoResultException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StopWatch;
-import org.toasthub.analysis.model.AssetDay;
-import org.toasthub.analysis.model.AssetMinute;
-import org.toasthub.analysis.model.LBB;
-import org.toasthub.analysis.model.UBB;
-import org.toasthub.model.Symbol;
-import org.toasthub.model.TechnicalIndicator;
-import org.toasthub.model.TechnicalIndicatorDetail;
-import org.toasthub.stock.model.TradeSignalCache;
+import org.toasthub.algorithm.model.AssetDay;
+import org.toasthub.algorithm.model.AssetMinute;
+import org.toasthub.algorithm.model.LBB;
+import org.toasthub.algorithm.model.UBB;
+import org.toasthub.core.model.Symbol;
+import org.toasthub.core.model.TechnicalIndicator;
+import org.toasthub.core.model.TechnicalIndicatorDetail;
+import org.toasthub.core.model.TradeSignalCache;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
@@ -44,6 +44,7 @@ public class CacheManager {
     public void initializeCache() {
         final Request request = new Request();
         final Response response = new Response();
+
         try {
             cacheDao.items(request, response);
         } catch (final Exception e) {
@@ -261,22 +262,11 @@ public class CacheManager {
         technicalIndicators.stream()
                 .forEach(technicalIndicator -> {
 
+                    tradeSignalCache.insertTechnicalIndicator(technicalIndicator);
+
                     final String symbol = technicalIndicator.getSymbol();
+
                     final String evaluationPeriod = technicalIndicator.getEvaluationPeriod();
-
-                    tradeSignalCache.getTechnicalIndicatorMap()
-                            .put(technicalIndicator.getTechnicalIndicatorType() + "::"
-                                    + technicalIndicator.getTechnicalIndicatorKey() + "::"
-                                    + evaluationPeriod + "::"
-                                    + symbol, technicalIndicator);
-
-                    if (tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol) == null) {
-                        return;
-                    }
-
-                    if (tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol) == null) {
-                        return;
-                    }
 
                     final long currentMinute = tradeSignalCache.getRecentEpochSecondsMap()
                             .get("MINUTE::" + symbol);
@@ -288,52 +278,23 @@ public class CacheManager {
                     final BigDecimal currentPrice = tradeSignalCache.getRecentClosingPriceMap()
                             .get("MINUTE::" + symbol);
 
-                    boolean flashing = false;
-
-                    request.addParam(GlobalConstant.SYMBOL, symbol);
-                    request.addParam("EVALUATION_PERIOD", evaluationPeriod);
-                    response.getParams().remove("INSUFFICIENT_DATA");
-
-                    switch (technicalIndicator.getTechnicalIndicatorType()) {
-                        case TechnicalIndicator.GOLDENCROSS:
-                            request.addParam(GlobalConstant.EPOCHSECONDS, currentMinute);
-                            request.addParam("SHORT_SMA_TYPE", technicalIndicator.getShortSMAType());
-                            request.addParam("LONG_SMA_TYPE", technicalIndicator.getLongSMAType());
-                            flashing = goldenCrossIsFlashing(request, response);
-                            break;
-                        case TechnicalIndicator.LOWERBOLLINGERBAND:
-                            request.addParam(GlobalConstant.EPOCHSECONDS, currentMinute);
-                            request.addParam("LBB_TYPE", technicalIndicator.getLBBType());
-                            request.addParam("STANDARD_DEVIATIONS", technicalIndicator.getStandardDeviations());
-                            flashing = lowerBollingerBandIsFlashing(request, response);
-                            break;
-                        case TechnicalIndicator.UPPERBOLLINGERBAND:
-                            request.addParam(GlobalConstant.EPOCHSECONDS, currentMinute);
-                            request.addParam("UBB_TYPE", technicalIndicator.getUBBType());
-                            request.addParam("STANDARD_DEVIATIONS", technicalIndicator.getStandardDeviations());
-                            flashing = upperBollingerBandIsFlashing(request, response);
-                            break;
-                        default:
-                            System.out.print(
-                                    "Invalid technical indicator type in current testing service- update technical indicator cache method");
-                    }
-
-                    if (response.getParam("INSUFFICIENT_DATA") != null
-                            && (boolean) response.getParam("INSUFFICIENT_DATA") == true) {
+                    if (tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol) == null) {
                         return;
                     }
 
-                    technicalIndicator.setFlashing(flashing);
+                    if (tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol) == null) {
+                        return;
+                    }
 
                     if (technicalIndicator.getLastCheck() < currentMinute) {
 
                         request.addParam(technicalIndicator.getSymbol() + "::CACHE_UPDATED", true);
 
                         final boolean dayBased = evaluationPeriod.equals("DAY");
-                        final boolean checkedToday = technicalIndicator.getLastCheck() > currentDay;
-                        final boolean flashedToday = technicalIndicator.getLastFlash() > currentDay;
+                        final boolean checkedToday = technicalIndicator.getLastCheck() >= currentDay;
+                        final boolean flashedToday = technicalIndicator.getLastFlash() >= currentDay;
 
-                        if (!(dayBased && checkedToday)) {
+                        if (!dayBased || !checkedToday) {
                             technicalIndicator.setChecked(technicalIndicator.getChecked() + 1);
                         }
 
@@ -347,7 +308,7 @@ public class CacheManager {
                                 .filter(detail -> detail.getChecked() < 100)
                                 .forEach(detail -> {
 
-                                    if (!(dayBased && checkedToday)) {
+                                    if (!(!dayBased || !checkedToday)) {
 
                                         detail.setChecked(detail.getChecked() + 1);
                                     }
@@ -374,7 +335,44 @@ public class CacheManager {
                                     }
                                 });
 
-                        if (technicalIndicator.isFlashing() && !(dayBased && flashedToday)) {
+                        boolean flashing = false;
+
+                        request.addParam(GlobalConstant.SYMBOL, symbol);
+                        request.addParam("EVALUATION_PERIOD", evaluationPeriod);
+                        response.getParams().remove("INSUFFICIENT_DATA");
+
+                        switch (technicalIndicator.getTechnicalIndicatorType()) {
+                            case TechnicalIndicator.GOLDENCROSS:
+                                request.addParam(GlobalConstant.EPOCHSECONDS, currentMinute);
+                                request.addParam("SHORT_SMA_TYPE", technicalIndicator.getShortSMAType());
+                                request.addParam("LONG_SMA_TYPE", technicalIndicator.getLongSMAType());
+                                flashing = goldenCrossIsFlashing(request, response);
+                                break;
+                            case TechnicalIndicator.LOWERBOLLINGERBAND:
+                                request.addParam(GlobalConstant.EPOCHSECONDS, currentMinute);
+                                request.addParam("LBB_TYPE", technicalIndicator.getLBBType());
+                                request.addParam("STANDARD_DEVIATIONS", technicalIndicator.getStandardDeviations());
+                                flashing = lowerBollingerBandIsFlashing(request, response);
+                                break;
+                            case TechnicalIndicator.UPPERBOLLINGERBAND:
+                                request.addParam(GlobalConstant.EPOCHSECONDS, currentMinute);
+                                request.addParam("UBB_TYPE", technicalIndicator.getUBBType());
+                                request.addParam("STANDARD_DEVIATIONS", technicalIndicator.getStandardDeviations());
+                                flashing = upperBollingerBandIsFlashing(request, response);
+                                break;
+                            default:
+                                System.out.print(
+                                        "Invalid technical indicator type in current testing service- update technical indicator cache method");
+                        }
+
+                        if (response.getParam("INSUFFICIENT_DATA") != null
+                                && (boolean) response.getParam("INSUFFICIENT_DATA") == true) {
+                            return;
+                        }
+
+                        technicalIndicator.setFlashing(flashing);
+
+                        if (technicalIndicator.isFlashing() && (!dayBased || !flashedToday)) {
 
                             final long volume = tradeSignalCache.getRecentVolumeMap()
                                     .get(evaluationPeriod + "::" + symbol);
@@ -417,6 +415,12 @@ public class CacheManager {
 
     public void backloadTechnicalIndicator(final Request request, final Response response) {
 
+        if (request.getParam(GlobalConstant.ITEMID) == null) {
+            response.setStatus(Response.ERROR);
+            System.out.println("No item id given at backload technical indicator");
+            return;
+        }
+
         try {
             cacheDao.item(request, response);
         } catch (final Exception e) {
@@ -426,15 +430,19 @@ public class CacheManager {
         final TechnicalIndicator currentTechnicalIndicator = (TechnicalIndicator) response
                 .getParam(GlobalConstant.ITEM);
 
-        final long endingEpochSeconds = currentTechnicalIndicator.getFirstCheck();
+        request.addParam(GlobalConstant.SYMBOL, currentTechnicalIndicator.getSymbol());
+
+        final long endingEpochSeconds = currentTechnicalIndicator.getLastCheck();
+
+        final long startingEpochSeconds = endingEpochSeconds
+                - ((int) request.getParam("DAYS_TO_BACKLOAD") * 60 * 60 * 24);
 
         final TechnicalIndicator backloadedTechnicalIndicator = new TechnicalIndicator();
 
         final List<AssetDay> assetDays = new ArrayList<AssetDay>();
 
         request.addParam(GlobalConstant.SYMBOL, currentTechnicalIndicator.getSymbol());
-        request.addParam("STARTING_EPOCH_SECONDS",
-                endingEpochSeconds - ((int) request.getParam("DAYS_TO_BACKLOAD") * 60 * 60 * 24));
+        request.addParam("STARTING_EPOCH_SECONDS", startingEpochSeconds);
         request.addParam("ENDING_EPOCH_SECONDS", endingEpochSeconds);
 
         cacheDao.getAssetDays(request, response);
@@ -492,6 +500,70 @@ public class CacheManager {
 
                                     final BigDecimal currentPrice = assetMinute.getValue();
 
+                                    final boolean dayBased = currentTechnicalIndicator.getEvaluationPeriod()
+                                            .equals("DAY");
+
+                                    final boolean checkedToday = backloadedTechnicalIndicator
+                                            .getLastCheck() >= currentDay;
+                                    final boolean flashedToday = backloadedTechnicalIndicator
+                                            .getLastFlash() >= currentDay;
+
+                                    if (backloadedTechnicalIndicator.getLastCheck() >= currentMinute) {
+                                        minuteTimer.stop();
+                                        return;
+                                    }
+
+                                    if (backloadedTechnicalIndicator.getFirstCheck() == 0) {
+                                        backloadedTechnicalIndicator.setFirstCheck(currentMinute);
+                                    }
+
+                                    backloadedTechnicalIndicator.setLastCheck(currentMinute);
+
+                                    backloadedTechnicalIndicator.getDetails().stream()
+                                            .filter(detail -> detail.getChecked() < 100)
+                                            .filter(detail -> detail.getFlashTime() < currentMinute)
+                                            .forEach(detail -> {
+
+                                                if (!dayBased || !checkedToday) {
+                                                    detail.setChecked(detail.getChecked() + 1);
+                                                }
+
+                                                BigDecimal tempSuccessPercent = (currentPrice
+                                                        .subtract(detail.getFlashPrice()))
+                                                        .divide(detail.getFlashPrice(), MathContext.DECIMAL32)
+                                                        .multiply(BigDecimal.valueOf(100));
+
+                                                if (currentTechnicalIndicator.getTechnicalIndicatorType()
+                                                        .equals(TechnicalIndicator.UPPERBOLLINGERBAND)) {
+                                                    tempSuccessPercent = tempSuccessPercent.negate();
+                                                }
+
+                                                if (detail.getSuccessPercent() == null
+                                                        || detail.getSuccessPercent()
+                                                                .compareTo(tempSuccessPercent) < 0) {
+                                                    detail.setSuccessPercent(tempSuccessPercent);
+                                                }
+
+                                                if (detail.isSuccess() == false
+                                                        && detail.getFlashPrice().compareTo(currentPrice) < 0) {
+                                                    detail.setSuccess(true);
+                                                    backloadedTechnicalIndicator
+                                                            .setSuccesses(
+                                                                    backloadedTechnicalIndicator.getSuccesses()
+                                                                            + 1);
+                                                }
+                                            });
+
+                                    if (currentMinute >= currentTechnicalIndicator.getFirstCheck()) {
+                                        minuteTimer.stop();
+                                        return;
+                                    }
+
+                                    if (!dayBased || !checkedToday) {
+                                        backloadedTechnicalIndicator
+                                                .setChecked(backloadedTechnicalIndicator.getChecked() + 1);
+                                    }
+
                                     boolean flashing = false;
 
                                     request.addParam(GlobalConstant.SYMBOL, symbol);
@@ -528,124 +600,80 @@ public class CacheManager {
                                             System.out.print(
                                                     "Invalid technical indicator type in current testing service- update technical indicator cache method");
                                     }
+
                                     queryTimer.stop();
 
                                     if (response.getParam("INSUFFICIENT_DATA") != null
                                             && (boolean) response.getParam("INSUFFICIENT_DATA") == true) {
-                                        System.out.println("Insufficient Data");
                                         minuteTimer.stop();
                                         return;
                                     }
 
                                     backloadedTechnicalIndicator.setFlashing(flashing);
 
-                                    if (backloadedTechnicalIndicator.getLastCheck() < currentMinute) {
+                                    if (backloadedTechnicalIndicator.isFlashing() && (!dayBased || !flashedToday)) {
 
-                                        final boolean dayBased = currentTechnicalIndicator.getEvaluationPeriod()
-                                                .equals("DAY");
+                                        long volume = 0;
+                                        BigDecimal vWap = BigDecimal.ZERO;
 
-                                        final boolean checkedToday = backloadedTechnicalIndicator
-                                                .getLastCheck() > currentDay;
-                                        final boolean flashedToday = backloadedTechnicalIndicator
-                                                .getLastFlash() > currentDay;
+                                        if (dayBased) {
+                                            volume = assetDay.getVolume();
 
-                                        if (!(dayBased && checkedToday)) {
-                                            backloadedTechnicalIndicator
-                                                    .setChecked(backloadedTechnicalIndicator.getChecked() + 1);
+                                            vWap = assetDay.getVwap();
+                                        }
+                                        if (!dayBased) {
+                                            volume = assetMinute.getVolume();
+
+                                            vWap = assetMinute.getVwap();
                                         }
 
-                                        if (backloadedTechnicalIndicator.getFirstCheck() == 0) {
-                                            backloadedTechnicalIndicator.setFirstCheck(currentMinute);
-                                        }
+                                        backloadedTechnicalIndicator.setLastFlash(currentMinute);
 
-                                        backloadedTechnicalIndicator.setLastCheck(currentMinute);
+                                        backloadedTechnicalIndicator
+                                                .setFlashed(backloadedTechnicalIndicator.getFlashed() + 1);
 
-                                        backloadedTechnicalIndicator.getDetails().stream()
-                                                .filter(detail -> detail.getChecked() < 100)
-                                                .filter(detail -> detail.getFlashTime() < currentMinute)
-                                                .forEach(detail -> {
+                                        final TechnicalIndicatorDetail technicalIndicatorDetail = new TechnicalIndicatorDetail();
 
-                                                    if (!(dayBased && checkedToday)) {
-                                                        detail.setChecked(detail.getChecked() + 1);
-                                                    }
+                                        technicalIndicatorDetail
+                                                .setTechnicalIndicator(backloadedTechnicalIndicator);
 
-                                                    BigDecimal tempSuccessPercent = (currentPrice
-                                                            .subtract(detail.getFlashPrice()))
-                                                            .divide(detail.getFlashPrice(), MathContext.DECIMAL32)
-                                                            .multiply(BigDecimal.valueOf(100));
+                                        technicalIndicatorDetail.setFlashTime(currentMinute);
 
-                                                    if (currentTechnicalIndicator.getTechnicalIndicatorType()
-                                                            .equals(TechnicalIndicator.UPPERBOLLINGERBAND)) {
-                                                        tempSuccessPercent = tempSuccessPercent.negate();
-                                                    }
+                                        technicalIndicatorDetail.setFlashPrice(currentPrice);
 
-                                                    if (detail.getSuccessPercent() == null
-                                                            || detail.getSuccessPercent()
-                                                                    .compareTo(tempSuccessPercent) < 0) {
-                                                        detail.setSuccessPercent(tempSuccessPercent);
-                                                    }
+                                        technicalIndicatorDetail.setVolume(volume);
 
-                                                    if (detail.isSuccess() == false
-                                                            && detail.getFlashPrice().compareTo(currentPrice) < 0) {
-                                                        detail.setSuccess(true);
-                                                        backloadedTechnicalIndicator
-                                                                .setSuccesses(
-                                                                        backloadedTechnicalIndicator.getSuccesses()
-                                                                                + 1);
-                                                    }
-                                                });
+                                        technicalIndicatorDetail.setVwap(vWap);
 
-                                        if (backloadedTechnicalIndicator.isFlashing() && !(dayBased && flashedToday)) {
-
-                                            long volume = 0;
-                                            BigDecimal vWap = BigDecimal.ZERO;
-
-                                            if (dayBased) {
-                                                volume = assetDay.getVolume();
-
-                                                vWap = assetDay.getVwap();
-                                            }
-                                            if (!dayBased) {
-                                                volume = assetMinute.getVolume();
-
-                                                vWap = assetMinute.getVwap();
-                                            }
-
-                                            backloadedTechnicalIndicator.setLastFlash(currentMinute);
-
-                                            backloadedTechnicalIndicator
-                                                    .setFlashed(backloadedTechnicalIndicator.getFlashed() + 1);
-
-                                            final TechnicalIndicatorDetail technicalIndicatorDetail = new TechnicalIndicatorDetail();
-
-                                            technicalIndicatorDetail
-                                                    .setTechnicalIndicator(backloadedTechnicalIndicator);
-
-                                            technicalIndicatorDetail.setFlashTime(currentMinute);
-
-                                            technicalIndicatorDetail.setFlashPrice(currentPrice);
-
-                                            technicalIndicatorDetail.setVolume(volume);
-
-                                            technicalIndicatorDetail.setVwap(vWap);
-
-                                            backloadedTechnicalIndicator.getDetails().add(technicalIndicatorDetail);
-                                        }
+                                        backloadedTechnicalIndicator.getDetails().add(technicalIndicatorDetail);
                                     }
+
                                     minuteTimer.stop();
+
                                 });
-                        System.out
-                                .println("Backloading day of technical indicator took roughly "
-                                        + minuteTimer.getTotalTimeMillis() / minuteTimer.getTaskCount()
-                                        + " milliseconds per minute");
-                        System.out
-                                .println("Querying data for day took roughly "
-                                        + queryTimer.getTotalTimeMillis() / queryTimer.getTaskCount()
-                                        + " milliseconds per minute");
+                                
+                        if (minuteTimer.getTaskCount() == 0) {
+                            System.out.println("No minutes in assetminutes");
+                        } else {
+                            System.out
+                                    .println("Backloading day of technical indicator took roughly "
+                                            + minuteTimer.getTotalTimeMillis() / minuteTimer.getTaskCount()
+                                            + " milliseconds per minute");
+                        }
+
+                        if (queryTimer.getTaskCount() == 0) {
+                            System.out.println("No queries were done for this day");
+                        } else {
+                            System.out
+                                    .println("Querying data for day took roughly "
+                                            + queryTimer.getTotalTimeMillis() / queryTimer.getTaskCount()
+                                            + " milliseconds per minute");
+                        }
 
                         System.out.println("Iterations in this day - " + minuteTimer.getTaskCount());
-                        System.out.println("Query calls in this day - " + minuteTimer.getTaskCount());
+                        System.out.println("Query calls in this day - " + queryTimer.getTaskCount());
                         System.out.println("Epoch seconds for this assetday- " + assetDay.getEpochSeconds());
+
                     })).get();
 
             customThreadPool.shutdown();
@@ -654,7 +682,6 @@ public class CacheManager {
             e.printStackTrace();
         }
 
-        System.out.println("TECHNICAL INDICATOR FINALLY BACKLOADED !!!!");
         while (updatingTechnicalIndicator.get()) {
             try {
                 Thread.sleep(1000);
@@ -665,26 +692,321 @@ public class CacheManager {
 
         updatingTechnicalIndicator.set(true);
 
+        request.addParam(GlobalConstant.ITEM, currentTechnicalIndicator);
+
+        cacheDao.refresh(request, response);
+
+        currentTechnicalIndicator.setFirstCheck(backloadedTechnicalIndicator.getFirstCheck());
+
+        currentTechnicalIndicator
+                .setChecked(currentTechnicalIndicator.getChecked() + backloadedTechnicalIndicator.getChecked());
+
+        currentTechnicalIndicator
+                .setFlashed(currentTechnicalIndicator.getFlashed() + backloadedTechnicalIndicator.getFlashed());
+
+        currentTechnicalIndicator
+                .setSuccesses(currentTechnicalIndicator.getSuccesses() + backloadedTechnicalIndicator.getSuccesses());
+
+        backloadedTechnicalIndicator.getDetails().stream()
+                .forEach(detail -> detail.setTechnicalIndicator(currentTechnicalIndicator));
+
+        currentTechnicalIndicator.getDetails().addAll(backloadedTechnicalIndicator.getDetails());
+
+        currentTechnicalIndicator.setUpdating(false);
+
+        request.addParam(GlobalConstant.ITEM, currentTechnicalIndicator);
+
+        try {
+            cacheDao.save(request, response);
+        } catch (final Exception e) {
+            e.printStackTrace();
+        }
+
+        tradeSignalCache.insertTechnicalIndicator(currentTechnicalIndicator);
+
+        updatingTechnicalIndicator.set(false);
+
+        response.setStatus(Response.SUCCESS);
+    }
+
+    public void backloadTechnicalIndicatorNoStreams(final Request request, final Response response) {
+
+        if (request.getParam(GlobalConstant.ITEMID) == null) {
+            response.setStatus(Response.ERROR);
+            System.out.println("No item id given at backload technical indicator");
+            return;
+        }
+
         try {
             cacheDao.item(request, response);
         } catch (final Exception e) {
             e.printStackTrace();
         }
 
-        final TechnicalIndicator temp = (TechnicalIndicator) response.getParam(GlobalConstant.ITEM);
+        final TechnicalIndicator currentTechnicalIndicator = (TechnicalIndicator) response
+                .getParam(GlobalConstant.ITEM);
 
-        temp.setFirstCheck(backloadedTechnicalIndicator.getFirstCheck());
-        temp.setChecked(temp.getChecked() + backloadedTechnicalIndicator.getChecked());
-        temp.setFlashed(temp.getFlashed() + backloadedTechnicalIndicator.getFlashed());
-        temp.setSuccesses(temp.getSuccesses() + backloadedTechnicalIndicator.getSuccesses());
+        request.addParam(GlobalConstant.SYMBOL, currentTechnicalIndicator.getSymbol());
 
-        backloadedTechnicalIndicator.getDetails().stream().forEach(detail -> {
-            detail.setTechnicalIndicator(temp);
-        });
+        final long endingEpochSeconds = currentTechnicalIndicator.getFirstCheck();
 
-        temp.getDetails().addAll(backloadedTechnicalIndicator.getDetails());
+        final long startingEpochSeconds = endingEpochSeconds
+                - ((int) request.getParam("DAYS_TO_BACKLOAD") * 60 * 60 * 24);
 
-        request.addParam(GlobalConstant.ITEM, temp);
+        final TechnicalIndicator backloadedTechnicalIndicator = new TechnicalIndicator();
+
+        final List<AssetDay> assetDays = new ArrayList<AssetDay>();
+
+        request.addParam(GlobalConstant.SYMBOL, currentTechnicalIndicator.getSymbol());
+        request.addParam("STARTING_EPOCH_SECONDS", startingEpochSeconds);
+        request.addParam("ENDING_EPOCH_SECONDS", endingEpochSeconds);
+
+        cacheDao.getAssetDays(request, response);
+
+        for (final Object o : ArrayList.class.cast(response.getParam(GlobalConstant.ITEMS))) {
+            assetDays.add((AssetDay) o);
+        }
+
+        assetDays.sort((a, b) -> (int) (a.getEpochSeconds() - b.getEpochSeconds()));
+
+        for (AssetDay assetDay : assetDays) {
+
+            final StopWatch minuteTimer = new StopWatch();
+            final StopWatch queryTimer = new StopWatch();
+
+            final List<AssetMinute> assetMinutes = new ArrayList<AssetMinute>();
+
+            request.addParam("STARTING_EPOCH_SECONDS", assetDay.getEpochSeconds());
+            request.addParam("ENDING_EPOCH_SECONDS", assetDay.getEpochSeconds() + (60 * 60 * 24));
+            request.addParam(GlobalConstant.SYMBOL, currentTechnicalIndicator.getSymbol());
+
+            if (assetDay.getEpochSeconds() + (60 * 60 * 24) > endingEpochSeconds) {
+                request.addParam("ENDING_EPOCH_SECONDS", endingEpochSeconds);
+            }
+
+            cacheDao.getAssetMinutes(request, response);
+
+            for (final Object o : ArrayList.class.cast(response.getParam(GlobalConstant.ITEMS))) {
+                assetMinutes.add((AssetMinute) o);
+            }
+
+            assetMinutes.removeIf(assetMinute -> assetDay
+                    .getEpochSeconds() != ZonedDateTime
+                            .ofInstant(Instant.ofEpochSecond(assetMinute.getEpochSeconds()),
+                                    ZoneId.of("America/New_York"))
+                            .truncatedTo(ChronoUnit.DAYS).toEpochSecond());
+
+            assetMinutes.sort((a, b) -> (int) (a.getEpochSeconds() - b.getEpochSeconds()));
+
+            for (AssetMinute assetMinute : assetMinutes) {
+
+                minuteTimer.start();
+
+                final String symbol = currentTechnicalIndicator.getSymbol();
+
+                final long currentMinute = assetMinute.getEpochSeconds();
+
+                final long currentDay = ZonedDateTime
+                        .ofInstant(Instant.ofEpochSecond(currentMinute),
+                                ZoneId.of("America/New_York"))
+                        .truncatedTo(ChronoUnit.DAYS).toEpochSecond();
+
+                final BigDecimal currentPrice = assetMinute.getValue();
+
+                boolean flashing = false;
+
+                request.addParam(GlobalConstant.SYMBOL, symbol);
+                request.addParam("EVALUATION_PERIOD",
+                        currentTechnicalIndicator.getEvaluationPeriod());
+                response.getParams().remove("INSUFFICIENT_DATA");
+
+                queryTimer.start();
+
+                switch (currentTechnicalIndicator.getTechnicalIndicatorType()) {
+                    case TechnicalIndicator.GOLDENCROSS:
+                        request.addParam(GlobalConstant.EPOCHSECONDS, currentMinute);
+                        request.addParam("SHORT_SMA_TYPE",
+                                currentTechnicalIndicator.getShortSMAType());
+                        request.addParam("LONG_SMA_TYPE",
+                                currentTechnicalIndicator.getLongSMAType());
+                        flashing = goldenCrossIsFlashing(request, response);
+                        break;
+                    case TechnicalIndicator.LOWERBOLLINGERBAND:
+                        request.addParam(GlobalConstant.EPOCHSECONDS, currentMinute);
+                        request.addParam("LBB_TYPE", currentTechnicalIndicator.getLBBType());
+                        request.addParam("STANDARD_DEVIATIONS",
+                                currentTechnicalIndicator.getStandardDeviations());
+                        flashing = lowerBollingerBandIsFlashing(request, response);
+                        break;
+                    case TechnicalIndicator.UPPERBOLLINGERBAND:
+                        request.addParam(GlobalConstant.EPOCHSECONDS, currentMinute);
+                        request.addParam("UBB_TYPE", currentTechnicalIndicator.getUBBType());
+                        request.addParam("STANDARD_DEVIATIONS",
+                                currentTechnicalIndicator.getStandardDeviations());
+                        flashing = upperBollingerBandIsFlashing(request, response);
+                        break;
+                    default:
+                        System.out.print(
+                                "Invalid technical indicator type in current testing service- update technical indicator cache method");
+                }
+
+                queryTimer.stop();
+
+                if (response.getParam("INSUFFICIENT_DATA") != null
+                        && (boolean) response.getParam("INSUFFICIENT_DATA") == true) {
+                    minuteTimer.stop();
+                    return;
+                }
+
+                backloadedTechnicalIndicator.setFlashing(flashing);
+
+                if (backloadedTechnicalIndicator.getLastCheck() < currentMinute) {
+
+                    final boolean dayBased = currentTechnicalIndicator.getEvaluationPeriod()
+                            .equals("DAY");
+
+                    final boolean checkedToday = backloadedTechnicalIndicator
+                            .getLastCheck() >= currentDay;
+                    final boolean flashedToday = backloadedTechnicalIndicator
+                            .getLastFlash() >= currentDay;
+
+                    if (!(dayBased && checkedToday)) {
+                        backloadedTechnicalIndicator
+                                .setChecked(backloadedTechnicalIndicator.getChecked() + 1);
+                    }
+
+                    if (backloadedTechnicalIndicator.getFirstCheck() == 0) {
+                        backloadedTechnicalIndicator.setFirstCheck(currentMinute);
+                    }
+
+                    backloadedTechnicalIndicator.setLastCheck(currentMinute);
+
+                    for (TechnicalIndicatorDetail detail : backloadedTechnicalIndicator.getDetails()) {
+                        if (detail.getChecked() < 100) {
+                            return;
+                        }
+                        if (detail.getFlashTime() < currentMinute) {
+                            return;
+                        }
+
+                        if (!(dayBased && checkedToday)) {
+                            detail.setChecked(detail.getChecked() + 1);
+                        }
+
+                        BigDecimal tempSuccessPercent = (currentPrice
+                                .subtract(detail.getFlashPrice()))
+                                .divide(detail.getFlashPrice(), MathContext.DECIMAL32)
+                                .multiply(BigDecimal.valueOf(100));
+
+                        if (currentTechnicalIndicator.getTechnicalIndicatorType()
+                                .equals(TechnicalIndicator.UPPERBOLLINGERBAND)) {
+                            tempSuccessPercent = tempSuccessPercent.negate();
+                        }
+
+                        if (detail.getSuccessPercent() == null
+                                || detail.getSuccessPercent()
+                                        .compareTo(tempSuccessPercent) < 0) {
+                            detail.setSuccessPercent(tempSuccessPercent);
+                        }
+
+                        if (detail.isSuccess() == false
+                                && detail.getFlashPrice().compareTo(currentPrice) < 0) {
+                            detail.setSuccess(true);
+                            backloadedTechnicalIndicator
+                                    .setSuccesses(
+                                            backloadedTechnicalIndicator.getSuccesses()
+                                                    + 1);
+                        }
+                    }
+
+                    if (backloadedTechnicalIndicator.isFlashing() && !(dayBased && flashedToday)) {
+
+                        long volume = 0;
+                        BigDecimal vWap = BigDecimal.ZERO;
+
+                        if (dayBased) {
+                            volume = assetDay.getVolume();
+
+                            vWap = assetDay.getVwap();
+                        }
+                        if (!dayBased) {
+                            volume = assetMinute.getVolume();
+
+                            vWap = assetMinute.getVwap();
+                        }
+
+                        backloadedTechnicalIndicator.setLastFlash(currentMinute);
+
+                        backloadedTechnicalIndicator
+                                .setFlashed(backloadedTechnicalIndicator.getFlashed() + 1);
+
+                        final TechnicalIndicatorDetail technicalIndicatorDetail = new TechnicalIndicatorDetail();
+
+                        technicalIndicatorDetail
+                                .setTechnicalIndicator(backloadedTechnicalIndicator);
+
+                        technicalIndicatorDetail.setFlashTime(currentMinute);
+
+                        technicalIndicatorDetail.setFlashPrice(currentPrice);
+
+                        technicalIndicatorDetail.setVolume(volume);
+
+                        technicalIndicatorDetail.setVwap(vWap);
+
+                        backloadedTechnicalIndicator.getDetails().add(technicalIndicatorDetail);
+                    }
+                }
+                minuteTimer.stop();
+            }
+
+            System.out
+                    .println("Backloading day of technical indicator took roughly "
+                            + minuteTimer.getTotalTimeMillis() / minuteTimer.getTaskCount()
+                            + " milliseconds per minute");
+            System.out
+                    .println("Querying data for day took roughly "
+                            + queryTimer.getTotalTimeMillis() / queryTimer.getTaskCount()
+                            + " milliseconds per minute");
+
+            System.out.println("Iterations in this day - " + minuteTimer.getTaskCount());
+
+            System.out.println("Query calls in this day - " + minuteTimer.getTaskCount());
+
+            System.out.println("Epoch seconds for this assetday- " + assetDay.getEpochSeconds());
+        }
+
+        while (updatingTechnicalIndicator.get()) {
+            try {
+                Thread.sleep(1000);
+            } catch (final Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        updatingTechnicalIndicator.set(true);
+
+        request.addParam(GlobalConstant.ITEM, currentTechnicalIndicator);
+
+        cacheDao.refresh(request, response);
+
+        currentTechnicalIndicator.setFirstCheck(backloadedTechnicalIndicator.getFirstCheck());
+
+        currentTechnicalIndicator
+                .setChecked(currentTechnicalIndicator.getChecked() + backloadedTechnicalIndicator.getChecked());
+
+        currentTechnicalIndicator
+                .setFlashed(currentTechnicalIndicator.getFlashed() + backloadedTechnicalIndicator.getFlashed());
+
+        currentTechnicalIndicator
+                .setSuccesses(currentTechnicalIndicator.getSuccesses() + backloadedTechnicalIndicator.getSuccesses());
+
+        for (TechnicalIndicatorDetail t : backloadedTechnicalIndicator.getDetails()) {
+            t.setTechnicalIndicator(currentTechnicalIndicator);
+        }
+
+        currentTechnicalIndicator.getDetails().addAll(backloadedTechnicalIndicator.getDetails());
+
+        request.addParam(GlobalConstant.ITEM, currentTechnicalIndicator);
 
         try {
             cacheDao.save(request, response);
