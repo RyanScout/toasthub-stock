@@ -1,4 +1,4 @@
-package org.toasthub.stock.historicalanalysis;
+package org.toasthub.stock.historical_analysis;
 
 import org.toasthub.common.BaseSvc;
 

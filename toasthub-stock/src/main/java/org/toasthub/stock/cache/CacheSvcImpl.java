@@ -12,12 +12,12 @@ import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.toasthub.core.model.CustomTechnicalIndicator;
-import org.toasthub.core.model.Symbol;
-import org.toasthub.core.model.TechnicalIndicator;
-import org.toasthub.core.model.TradeSignalCache;
 import org.toasthub.stock.algorithm.AlgorithmCruncherSvc;
 import org.toasthub.stock.custom_technical_indicator.CustomTechnicalIndicatorDao;
+import org.toasthub.stock.model.CustomTechnicalIndicator;
+import org.toasthub.stock.model.Symbol;
+import org.toasthub.stock.model.TechnicalIndicator;
+import org.toasthub.stock.model.TradeSignalCache;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;

@@ -1,4 +1,4 @@
-package org.toasthub.core.model;
+package org.toasthub.stock.model;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -25,7 +25,7 @@ public class TradeSignalCache {
         return recentEpochSecondsMap;
     }
 
-    public void setRecentEpochSecondsMap(Map<String, Long> recentEpochSecondsMap) {
+    public void setRecentEpochSecondsMap(final Map<String, Long> recentEpochSecondsMap) {
         this.recentEpochSecondsMap = recentEpochSecondsMap;
     }
 
@@ -33,7 +33,7 @@ public class TradeSignalCache {
         return recentClosingPriceMap;
     }
 
-    public void setRecentClosingPriceMap(Map<String, BigDecimal> recentClosingPriceMap) {
+    public void setRecentClosingPriceMap(final Map<String, BigDecimal> recentClosingPriceMap) {
         this.recentClosingPriceMap = recentClosingPriceMap;
     }
 
@@ -41,7 +41,7 @@ public class TradeSignalCache {
         return technicalIndicatorMap;
     }
 
-    public void setTechnicalIndicatorMap(Map<String, TechnicalIndicator> technicalIndicatorMap) {
+    public void setTechnicalIndicatorMap(final Map<String, TechnicalIndicator> technicalIndicatorMap) {
         this.technicalIndicatorMap = technicalIndicatorMap;
     }
 
@@ -49,7 +49,7 @@ public class TradeSignalCache {
         return recentVolumeMap;
     }
 
-    public void setRecentVolumeMap(Map<String, Long> recentVolumeMap) {
+    public void setRecentVolumeMap(final Map<String, Long> recentVolumeMap) {
         this.recentVolumeMap = recentVolumeMap;
     }
 
@@ -57,11 +57,11 @@ public class TradeSignalCache {
         return recentVwapMap;
     }
 
-    public void setRecentVwapMap(Map<String, BigDecimal> recentVwapMap) {
+    public void setRecentVwapMap(final Map<String, BigDecimal> recentVwapMap) {
         this.recentVwapMap = recentVwapMap;
     }
 
-    public void insertTechnicalIndicator(TechnicalIndicator technicalIndicator) {
+    public void insertTechnicalIndicator(final TechnicalIndicator technicalIndicator) {
         technicalIndicatorMap.put(technicalIndicator.getTechnicalIndicatorType() + "::"
                 + technicalIndicator.getTechnicalIndicatorKey() + "::"
                 + technicalIndicator.getEvaluationPeriod() + "::"
