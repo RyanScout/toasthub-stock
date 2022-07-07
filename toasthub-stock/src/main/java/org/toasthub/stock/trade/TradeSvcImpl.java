@@ -7,21 +7,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.persistence.NoResultException;
 
-import org.hibernate.type.CurrencyType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.ParseException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.stereotype.Service;
-import org.toasthub.core.model.CustomTechnicalIndicator;
-import org.toasthub.core.model.RequestValidation;
 import org.toasthub.stock.custom_technical_indicator.CustomTechnicalIndicatorDao;
+import org.toasthub.stock.model.CustomTechnicalIndicator;
+import org.toasthub.stock.model.RequestValidation;
 import org.toasthub.stock.model.Trade;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
@@ -45,8 +42,8 @@ public class TradeSvcImpl implements TradeSvc {
 	}
 
 	@Override
-	public void process(Request request, Response response) {
-		String action = (String) request.getParams().get("action");
+	public void process(final Request request, final Response response) {
+		final String action = (String) request.getParams().get("action");
 
 		switch (action) {
 			case "ITEM":
@@ -75,7 +72,7 @@ public class TradeSvcImpl implements TradeSvc {
 	}
 
 	@Override
-	public void save(Request request, Response response) {
+	public void save(final Request request, final Response response) {
 		if ((!request.containsParam(GlobalConstant.ITEM)) || (request.getParam(GlobalConstant.ITEM) == null)) {
 			response.setStatus(Response.ERROR);
 			return;
@@ -83,11 +80,11 @@ public class TradeSvcImpl implements TradeSvc {
 
 		response.setStatus("Starting !");
 
-		Map<?, ?> m = Map.class.cast(request.getParam(GlobalConstant.ITEM));
+		final Map<?, ?> m = Map.class.cast(request.getParam(GlobalConstant.ITEM));
 
-		Map<String, Object> tempMap = new HashMap<String, Object>();
+		final Map<String, Object> tempMap = new HashMap<String, Object>();
 
-		for (Object o : m.keySet()) {
+		for (final Object o : m.keySet()) {
 			tempMap.put(String.class.cast(o), m.get(String.class.cast(o)));
 		}
 
@@ -218,7 +215,7 @@ public class TradeSvcImpl implements TradeSvc {
 			request.addParam(GlobalConstant.ITEMID, itemId);
 			try {
 				tradeDao.item(request, response);
-			} catch (Exception e) {
+			} catch (final Exception e) {
 				e.printStackTrace();
 				return;
 			}
@@ -228,7 +225,7 @@ public class TradeSvcImpl implements TradeSvc {
 		if (itemId == null) {
 			try {
 				tradeDao.itemCount(request, response);
-			} catch (Exception e) {
+			} catch (final Exception e) {
 				e.printStackTrace();
 				return;
 			}
@@ -308,7 +305,7 @@ public class TradeSvcImpl implements TradeSvc {
 
 		try {
 			tradeDao.save(request, response);
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			e.printStackTrace();
 		}
 
@@ -316,22 +313,22 @@ public class TradeSvcImpl implements TradeSvc {
 	}
 
 	@Override
-	public void delete(Request request, Response response) {
+	public void delete(final Request request, final Response response) {
 		try {
 			tradeDao.delete(request, response);
 			response.setStatus(Response.SUCCESS);
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			response.setStatus(Response.ACTIONFAILED);
 			e.printStackTrace();
 		}
 
 	}
 
-	public void reset(Request request, Response response) {
+	public void reset(final Request request, final Response response) {
 		try {
 			tradeDao.resetTrade(request, response);
 			response.setStatus(Response.SUCCESS);
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			response.setStatus(Response.ACTIONFAILED);
 			e.printStackTrace();
 		}
@@ -339,11 +336,11 @@ public class TradeSvcImpl implements TradeSvc {
 	}
 
 	@Override
-	public void item(Request request, Response response) {
+	public void item(final Request request, final Response response) {
 		try {
 			tradeDao.item(request, response);
 			response.setStatus(Response.SUCCESS);
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			response.setStatus(Response.ACTIONFAILED);
 			e.printStackTrace();
 		}
@@ -351,14 +348,14 @@ public class TradeSvcImpl implements TradeSvc {
 	}
 
 	@Override
-	public void items(Request request, Response response) {
+	public void items(final Request request, final Response response) {
 		try {
 			tradeDao.itemCount(request, response);
 			if ((Long) response.getParam(GlobalConstant.ITEMCOUNT) > 0) {
 				tradeDao.items(request, response);
 
-				for (Object o : ArrayList.class.cast(response.getParam(GlobalConstant.TRADES))) {
-					Trade trade = Trade.class.cast(o);
+				for (final Object o : ArrayList.class.cast(response.getParam(GlobalConstant.TRADES))) {
+					final Trade trade = Trade.class.cast(o);
 
 					String[] stringArr1 = trade.getParseableBuyCondition().split(" ");
 					stringArr1 = Stream.of(stringArr1).map(s -> {
@@ -368,11 +365,11 @@ public class TradeSvcImpl implements TradeSvc {
 						request.addParam(GlobalConstant.ITEMID, s);
 						try {
 							customTechnicalIndicatorDao.item(request, response);
-						} catch (Exception e) {
+						} catch (final Exception e) {
 							e.printStackTrace();
 						}
 
-						CustomTechnicalIndicator c = ((CustomTechnicalIndicator) response
+						final CustomTechnicalIndicator c = ((CustomTechnicalIndicator) response
 								.getParam(GlobalConstant.ITEM));
 
 						return String.valueOf(c.getName());
@@ -389,11 +386,11 @@ public class TradeSvcImpl implements TradeSvc {
 						request.addParam(GlobalConstant.ITEMID, s);
 						try {
 							customTechnicalIndicatorDao.item(request, response);
-						} catch (Exception e) {
+						} catch (final Exception e) {
 							e.printStackTrace();
 						}
 
-						CustomTechnicalIndicator c = ((CustomTechnicalIndicator) response
+						final CustomTechnicalIndicator c = ((CustomTechnicalIndicator) response
 								.getParam(GlobalConstant.ITEM));
 
 						return String.valueOf(c.getName());
@@ -404,14 +401,14 @@ public class TradeSvcImpl implements TradeSvc {
 				}
 			}
 			response.setStatus(Response.SUCCESS);
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			response.setStatus(Response.ACTIONFAILED);
 			e.printStackTrace();
 		}
 
 	}
 
-	public void getSymbolData(Request request, Response response) {
+	public void getSymbolData(final Request request, final Response response) {
 		if (request.getParam("FIRST_POINT") == null || request.getParam("LAST_POINT") == null
 				|| request.getParam("SYMBOL") == null || request.getParam("EVALUATION_PERIOD") == null ) {
 			return;
@@ -419,14 +416,14 @@ public class TradeSvcImpl implements TradeSvc {
 		tradeDao.getSymbolData(request, response);
 	}
 
-	public void validateBuyCondition(Request request, Response response) {
+	public void validateBuyCondition(final Request request, final Response response) {
 		String initialString = "";
 
 		if (request.getParam("buyCondition") instanceof String) {
 			initialString = (String) request.getParam("buyCondition");
 		}
 
-		List<String> testStrings = new ArrayList<String>();
+		final List<String> testStrings = new ArrayList<String>();
 
 		String str = initialString.replaceAll("\\s+", "");
 
@@ -443,13 +440,13 @@ public class TradeSvcImpl implements TradeSvc {
 			request.addParam("NAME", s);
 			try {
 				customTechnicalIndicatorDao.item(request, response);
-			} catch (NoResultException e) {
+			} catch (final NoResultException e) {
 				response.setStatus("Invalid technical indicator in buy condition");
 				testStrings.add("true");
 				return s;
 			}
 
-			CustomTechnicalIndicator c = CustomTechnicalIndicator.class.cast(response.getParam(GlobalConstant.ITEM));
+			final CustomTechnicalIndicator c = CustomTechnicalIndicator.class.cast(response.getParam(GlobalConstant.ITEM));
 
 			if (!c.getEvaluationPeriod().equals((String) request.getParam("evaluationPeriod"))) {
 				response.setStatus("\"" + c.getName() + "\" does not support this trades evaluation period");
@@ -460,7 +457,7 @@ public class TradeSvcImpl implements TradeSvc {
 				response.setStatus("\"" + c.getName() + "\" does not support " + (String) request.getParam("symbol"));
 			}
 
-			long id = c.getId();
+			final long id = c.getId();
 
 			s = String.valueOf(id);
 
@@ -469,12 +466,12 @@ public class TradeSvcImpl implements TradeSvc {
 
 		}).toArray(String[]::new));
 
-		String testString = String.join(" ", testStrings);
+		final String testString = String.join(" ", testStrings);
 
 		if (!testString.equals("")) {
 			try {
 				parser.parseExpression(testString).getValue(Boolean.class);
-			} catch (ParseException e) {
+			} catch (final ParseException e) {
 				response.setStatus("Invalid logic in buy condition");
 				return;
 			}
@@ -483,14 +480,14 @@ public class TradeSvcImpl implements TradeSvc {
 		request.addParam("BUY_CONDITION", str);
 	}
 
-	public void validateSellCondition(Request request, Response response) {
+	public void validateSellCondition(final Request request, final Response response) {
 		String initialString = "";
 
 		if (request.getParam("sellCondition") instanceof String) {
 			initialString = (String) request.getParam("sellCondition");
 		}
 
-		List<String> testStrings = new ArrayList<String>();
+		final List<String> testStrings = new ArrayList<String>();
 
 		String str = initialString.replaceAll("\\s+", "");
 		str = str.replaceAll("[&]+", " && ").replaceAll("[|]+", " || ").replace("(", " ( ").replace(")", " ) ")
@@ -505,13 +502,13 @@ public class TradeSvcImpl implements TradeSvc {
 			request.addParam("NAME", s);
 			try {
 				customTechnicalIndicatorDao.item(request, response);
-			} catch (NoResultException e) {
+			} catch (final NoResultException e) {
 				response.setStatus("Invalid technical indicator in sell condition");
 				testStrings.add("true");
 				return s;
 			}
 
-			CustomTechnicalIndicator c = CustomTechnicalIndicator.class.cast(response.getParam(GlobalConstant.ITEM));
+			final CustomTechnicalIndicator c = CustomTechnicalIndicator.class.cast(response.getParam(GlobalConstant.ITEM));
 
 			if (!c.getEvaluationPeriod().equals((String) request.getParam("evaluationPeriod"))) {
 				response.setStatus("\"" + c.getName() + "\" does not support this trades evaluation period");
@@ -522,7 +519,7 @@ public class TradeSvcImpl implements TradeSvc {
 				response.setStatus("\"" + c.getName() + "\" does not support " + (String) request.getParam("symbol"));
 			}
 
-			long id = c.getId();
+			final long id = c.getId();
 
 			s = String.valueOf(id);
 
@@ -531,12 +528,12 @@ public class TradeSvcImpl implements TradeSvc {
 
 		}).toArray(String[]::new));
 
-		String testString = String.join(" ", testStrings);
+		final String testString = String.join(" ", testStrings);
 
 		if (!testString.equals("")) {
 			try {
 				parser.parseExpression(testString).getValue(Boolean.class);
-			} catch (ParseException e) {
+			} catch (final ParseException e) {
 				response.setStatus("Invalid logic in sell condition");
 				return;
 			}

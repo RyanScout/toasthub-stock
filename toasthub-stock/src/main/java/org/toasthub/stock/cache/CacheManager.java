@@ -8,6 +8,8 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
 import javax.persistence.NoResultException;
@@ -15,20 +17,17 @@ import javax.persistence.NoResultException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StopWatch;
-import org.toasthub.algorithm.model.AssetDay;
-import org.toasthub.algorithm.model.AssetMinute;
-import org.toasthub.algorithm.model.LBB;
-import org.toasthub.algorithm.model.UBB;
-import org.toasthub.core.model.Symbol;
-import org.toasthub.core.model.TechnicalIndicator;
-import org.toasthub.core.model.TechnicalIndicatorDetail;
-import org.toasthub.core.model.TradeSignalCache;
+import org.toasthub.stock.model.AssetDay;
+import org.toasthub.stock.model.AssetMinute;
+import org.toasthub.stock.model.LBB;
+import org.toasthub.stock.model.Symbol;
+import org.toasthub.stock.model.TechnicalIndicator;
+import org.toasthub.stock.model.TechnicalIndicatorDetail;
+import org.toasthub.stock.model.TradeSignalCache;
+import org.toasthub.stock.model.UBB;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
-
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @Component
 public class CacheManager {
@@ -451,7 +450,7 @@ public class CacheManager {
             assetDays.add((AssetDay) o);
         }
 
-        ForkJoinPool customThreadPool = new ForkJoinPool(2);
+        final ForkJoinPool customThreadPool = new ForkJoinPool(2);
 
         try {
             customThreadPool.submit(() -> assetDays.stream()
@@ -678,7 +677,7 @@ public class CacheManager {
 
             customThreadPool.shutdown();
 
-        } catch (Exception e) {
+        } catch (final Exception e) {
             e.printStackTrace();
         }
 
@@ -769,7 +768,7 @@ public class CacheManager {
 
         assetDays.sort((a, b) -> (int) (a.getEpochSeconds() - b.getEpochSeconds()));
 
-        for (AssetDay assetDay : assetDays) {
+        for (final AssetDay assetDay : assetDays) {
 
             final StopWatch minuteTimer = new StopWatch();
             final StopWatch queryTimer = new StopWatch();
@@ -798,7 +797,7 @@ public class CacheManager {
 
             assetMinutes.sort((a, b) -> (int) (a.getEpochSeconds() - b.getEpochSeconds()));
 
-            for (AssetMinute assetMinute : assetMinutes) {
+            for (final AssetMinute assetMinute : assetMinutes) {
 
                 minuteTimer.start();
 
@@ -881,7 +880,7 @@ public class CacheManager {
 
                     backloadedTechnicalIndicator.setLastCheck(currentMinute);
 
-                    for (TechnicalIndicatorDetail detail : backloadedTechnicalIndicator.getDetails()) {
+                    for (final TechnicalIndicatorDetail detail : backloadedTechnicalIndicator.getDetails()) {
                         if (detail.getChecked() < 100) {
                             return;
                         }
@@ -1000,7 +999,7 @@ public class CacheManager {
         currentTechnicalIndicator
                 .setSuccesses(currentTechnicalIndicator.getSuccesses() + backloadedTechnicalIndicator.getSuccesses());
 
-        for (TechnicalIndicatorDetail t : backloadedTechnicalIndicator.getDetails()) {
+        for (final TechnicalIndicatorDetail t : backloadedTechnicalIndicator.getDetails()) {
             t.setTechnicalIndicator(currentTechnicalIndicator);
         }
 

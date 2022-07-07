@@ -18,7 +18,7 @@
  * @author Edward H. Seufert
  */
 
-package org.toasthub.algorithm.model;
+package org.toasthub.stock.model;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -27,23 +27,24 @@ import javax.persistence.Entity;
 import javax.persistence.Table;
 
 @Entity
-@Table(name = "ta_UBB")
+@Table(name = "ta_LBB")
 // Lower Bollinger Band
-public class UBB extends BaseAlg {
+public class LBB extends BaseAlg {
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 	private BigDecimal standardDeviations = BigDecimal.ZERO;
+	
 
-	public UBB() {
+	public LBB() {
 		super();
 		this.setActive(true);
 		this.setArchive(false);
 		this.setLocked(false);
 		this.setCreated(Instant.now());
-		this.setIdentifier("UBB");
+		this.setIdentifier("LBB");
 	}
 
 	public BigDecimal getStandardDeviations() {
@@ -54,22 +55,22 @@ public class UBB extends BaseAlg {
 		this.standardDeviations = standardDeviations;
 	}
 
-	public UBB(final String symbol) {
+	public LBB(final String symbol) {
 		super();
 		this.setSymbol(symbol);
 		this.setActive(true);
 		this.setArchive(false);
 		this.setLocked(false);
 		this.setCreated(Instant.now());
-		this.setIdentifier("UBB");
+		this.setIdentifier("LBB");
 	}
 
-	public UBB(final String code, final Boolean defaultLang, final String dir) {
+	public LBB(final String code, final Boolean defaultLang, final String dir) {
 		this.setActive(true);
 		this.setArchive(false);
 		this.setLocked(false);
 		this.setCreated(Instant.now());
-		this.setIdentifier("UBB");
+		this.setIdentifier("LBB");
 	}
 
 	@Override
@@ -88,7 +89,7 @@ public class UBB extends BaseAlg {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		final UBB other = (UBB) obj;
+		final LBB other = (LBB) obj;
 		if (standardDeviations == null) {
 			if (other.standardDeviations != null)
 				return false;
@@ -97,16 +98,15 @@ public class UBB extends BaseAlg {
 		return true;
 	}
 
-	public static BigDecimal calculateUBB(final List<BigDecimal> list, final BigDecimal standardDeviations) {
+	public static BigDecimal calculateLBB(final List<BigDecimal> list, final BigDecimal standardDeviations) {
 		final BigDecimal sma = SMA.calculateSMA(list);
 
-		return sma.add(
+		return sma.subtract(
 				SMA.calculateSD(list).multiply(standardDeviations));
 	}
 
-	public static BigDecimal calculateUBB(final List<BigDecimal> list, final BigDecimal sma,
-			final BigDecimal standardDeviations) {
-		return sma.add(
+	public static BigDecimal calculateLBB(final List<BigDecimal> list, final BigDecimal sma, final BigDecimal standardDeviations) {
+		return sma.subtract(
 				SMA.calculateSD(list).multiply(standardDeviations));
 	}
 }

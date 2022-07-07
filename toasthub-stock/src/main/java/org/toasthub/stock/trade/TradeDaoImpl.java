@@ -30,7 +30,7 @@ import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import org.toasthub.core.model.Symbol;
+import org.toasthub.stock.model.Symbol;
 import org.toasthub.stock.model.Trade;
 import org.toasthub.stock.model.TradeDetail;
 import org.toasthub.utils.GlobalConstant;

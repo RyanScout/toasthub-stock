@@ -9,11 +9,11 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.toasthub.core.model.CustomTechnicalIndicator;
-import org.toasthub.core.model.RequestValidation;
-import org.toasthub.core.model.Symbol;
-import org.toasthub.core.model.TechnicalIndicator;
 import org.toasthub.stock.cache.CacheSvc;
+import org.toasthub.stock.model.CustomTechnicalIndicator;
+import org.toasthub.stock.model.RequestValidation;
+import org.toasthub.stock.model.Symbol;
+import org.toasthub.stock.model.TechnicalIndicator;
 import org.toasthub.utils.GlobalConstant;
 import org.toasthub.utils.Request;
 import org.toasthub.utils.Response;
