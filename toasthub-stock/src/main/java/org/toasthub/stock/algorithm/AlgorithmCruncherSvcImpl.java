@@ -12,7 +12,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -170,8 +169,6 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 
 	@Override
 	public void save(final Request request, final Response response) {
-		// TODO Auto-generated method stub
-
 	}
 
 	public void backloadStockData(final Request request, final Response response) {

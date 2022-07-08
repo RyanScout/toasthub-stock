@@ -17,7 +17,6 @@ public abstract class BaseAlg extends BaseEntity {
 
     @Override
     protected Object clone() throws CloneNotSupportedException {
-        // TODO Auto-generated method stub
         return super.clone();
     }
 
@@ -66,8 +65,6 @@ public abstract class BaseAlg extends BaseEntity {
 
     private BigDecimal value = BigDecimal.ZERO;
     private String type = "";
-    private String evaluationPeriod = "";
-    private int evaluationDuration = 0;
     private long epochSeconds = 0;
     private long correspondingDay = 0;
 
