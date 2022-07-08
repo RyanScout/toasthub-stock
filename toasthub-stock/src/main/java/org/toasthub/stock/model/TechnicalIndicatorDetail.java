@@ -11,12 +11,12 @@ import javax.persistence.Table;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import org.toasthub.common.BaseEntity;
-
 @Entity
 @Table(name = "ta_technical_indicator_detail")
-public class TechnicalIndicatorDetail extends BaseEntity {
-    private long flashTime = 0;
+public class TechnicalIndicatorDetail extends TradeBaseEntity {
+    
+	private static final long serialVersionUID = 1L;
+	private long flashTime = 0;
     private BigDecimal flashPrice;
     private int checked = 0;
     private long volume = 0;

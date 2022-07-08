@@ -4,21 +4,23 @@ package org.toasthub.stock.historical_analysis;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import org.toasthub.utils.GlobalConstant;
-import org.toasthub.utils.Request;
-import org.toasthub.utils.Response;
+import org.toasthub.core.general.model.GlobalConstant;
+import org.toasthub.core.general.model.RestRequest;
+import org.toasthub.core.general.model.RestResponse;
 
 import net.jacobpeterson.alpaca.AlpacaAPI;
 
 
-@Service("HistoricalAnalysisSvc")
+@Service("TAHistoricalAnalysisSvc")
 public class HistoricalAnalysisSvcImpl implements HistoricalAnalysisSvc {
 
 	@Autowired
 	protected AlpacaAPI alpacaAPI;
 	
 	@Autowired
+	@Qualifier("TAHistoricalAnalysisDao")
 	protected HistoricalAnalysisDao historicalAnalysisDao;
 
 	
@@ -29,7 +31,7 @@ public class HistoricalAnalysisSvcImpl implements HistoricalAnalysisSvc {
 	}
 
 	@Override
-	public void process(Request request, Response response) {
+	public void process(RestRequest request, RestResponse response) {
 		String action = (String) request.getParams().get("action");
 		
 		switch (action) {
@@ -53,7 +55,7 @@ public class HistoricalAnalysisSvcImpl implements HistoricalAnalysisSvc {
 
 
 	@Override
-	public void save(Request request, Response response) {
+	public void save(RestRequest request, RestResponse response) {
 		// try {
 		// 	Trade trade =  null;
 		// 	if (request.containsParam(GlobalConstant.ITEM)) {
@@ -123,16 +125,16 @@ public class HistoricalAnalysisSvcImpl implements HistoricalAnalysisSvc {
 
 
 	@Override
-	public void delete(Request request, Response response) {
+	public void delete(RestRequest request, RestResponse response) {
 		try {
 			historicalAnalysisDao.delete(request, response);
 			historicalAnalysisDao.itemCount(request, response);
 			if ((Long) response.getParam(GlobalConstant.ITEMCOUNT) > 0) {
 				historicalAnalysisDao.items(request, response);
 			}
-			response.setStatus(Response.SUCCESS);
+			response.setStatus(RestResponse.SUCCESS);
 		} catch (Exception e) {
-			response.setStatus(Response.ACTIONFAILED);
+			response.setStatus(RestResponse.ACTIONFAILED);
 			e.printStackTrace();
 		}
 		
@@ -141,12 +143,12 @@ public class HistoricalAnalysisSvcImpl implements HistoricalAnalysisSvc {
 
 
 	@Override
-	public void item(Request request, Response response) {
+	public void item(RestRequest request, RestResponse response) {
 		try {
 			historicalAnalysisDao.item(request, response);
-			response.setStatus(Response.SUCCESS);
+			response.setStatus(RestResponse.SUCCESS);
 		} catch (Exception e) {
-			response.setStatus(Response.ACTIONFAILED);
+			response.setStatus(RestResponse.ACTIONFAILED);
 			e.printStackTrace();
 		}
 		
@@ -154,15 +156,15 @@ public class HistoricalAnalysisSvcImpl implements HistoricalAnalysisSvc {
 
 
 	@Override
-	public void items(Request request, Response response) {
+	public void items(RestRequest request, RestResponse response) {
 		try {
 			historicalAnalysisDao.itemCount(request, response);
 			if ((Long) response.getParam(GlobalConstant.ITEMCOUNT) > 0) {
 				historicalAnalysisDao.items(request, response);
 			}
-			response.setStatus(Response.SUCCESS);
+			response.setStatus(RestResponse.SUCCESS);
 		} catch (Exception e) {
-			response.setStatus(Response.ACTIONFAILED);
+			response.setStatus(RestResponse.ACTIONFAILED);
 			e.printStackTrace();
 		}
 		

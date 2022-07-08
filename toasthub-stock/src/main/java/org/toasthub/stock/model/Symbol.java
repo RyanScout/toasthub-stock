@@ -11,12 +11,12 @@ import javax.persistence.Table;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import org.toasthub.common.BaseEntity;
-
 @Entity
 @Table(name = "ta_symbol")
-public class Symbol extends BaseEntity {
-    public static final String SPY = "SPY";
+public class Symbol extends TradeBaseEntity {
+    
+	private static final long serialVersionUID = 1L;
+	public static final String SPY = "SPY";
     public static final String AAPL = "AAPL";
     public static final String TSLA = "TSLA";
 

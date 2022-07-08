@@ -1,9 +1,9 @@
 package org.toasthub.stock.dashboard;
 
-import org.toasthub.utils.Request;
-import org.toasthub.utils.Response;
+import org.toasthub.core.general.model.RestRequest;
+import org.toasthub.core.general.model.RestResponse;
 
 public interface DashboardSvc {
-	public void process(Request request, Response response);
-	public void getData(Request request, Response response);
+	public void process(RestRequest request, RestResponse response);
+	public void getData(RestRequest request, RestResponse response);
 }

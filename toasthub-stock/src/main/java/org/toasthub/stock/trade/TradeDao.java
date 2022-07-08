@@ -18,10 +18,10 @@ package org.toasthub.stock.trade;
 
 import java.util.List;
 
-import org.toasthub.common.BaseDao;
+import org.toasthub.core.common.BaseDao;
+import org.toasthub.core.general.model.RestRequest;
+import org.toasthub.core.general.model.RestResponse;
 import org.toasthub.stock.model.Trade;
-import org.toasthub.utils.Request;
-import org.toasthub.utils.Response;
 
 public interface TradeDao extends BaseDao {
     public List<Trade> getRunningTrades();
@@ -30,7 +30,7 @@ public interface TradeDao extends BaseDao {
 
     public List<Trade> getRunningDayTrades();
 
-    public void resetTrade(Request request, Response response);
+    public void resetTrade(RestRequest request, RestResponse response);
 
-    public void getSymbolData(Request request, Response response);
+    public void getSymbolData(RestRequest request, RestResponse response);
 }

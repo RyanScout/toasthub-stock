@@ -13,19 +13,21 @@ import java.util.Map;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.toasthub.core.general.model.GlobalConstant;
+import org.toasthub.core.general.model.RestRequest;
+import org.toasthub.core.general.model.RestResponse;
 import org.toasthub.stock.historical_analysis.HistoricalAnalysisDao;
 import org.toasthub.stock.model.AssetDay;
 import org.toasthub.stock.model.HistoricalAnalysis;
 import org.toasthub.stock.model.HistoricalDetail;
 import org.toasthub.stock.model.Order;
-import org.toasthub.utils.GlobalConstant;
-import org.toasthub.utils.Request;
-import org.toasthub.utils.Response;
+import org.toasthub.stock.model.TradeConstant;
 
 import net.jacobpeterson.alpaca.AlpacaAPI;
 
-@Service("HistoricalAnalyzingSvc")
+@Service("TAHistoricalAnalyzingSvc")
 public class HistoricalAnalyzingSvcImpl implements HistoricalAnalyzingSvc {
 
     @Autowired
@@ -35,9 +37,11 @@ public class HistoricalAnalyzingSvcImpl implements HistoricalAnalyzingSvc {
     protected BuySignals buySignals;
 
     @Autowired
+    @Qualifier("TAHistoricalAnalysisDao")
     protected HistoricalAnalysisDao historicalAnalysisDao;
 
     @Autowired
+    @Qualifier("TAHistoricalAnalyzingDao")
     protected HistoricalAnalyzingDao historicalAnalyzingDao;
 
     // Constructors
@@ -45,7 +49,7 @@ public class HistoricalAnalyzingSvcImpl implements HistoricalAnalyzingSvc {
     }
 
     @Override
-    public void process(Request request, Response response) {
+    public void process(RestRequest request, RestResponse response) {
         String action = (String) request.getParams().get("action");
         switch (action) {
             case "HISTORICALLY_ANALYZE_SWING_TRADE":
@@ -72,7 +76,7 @@ public class HistoricalAnalyzingSvcImpl implements HistoricalAnalyzingSvc {
     }
 
     @SuppressWarnings("unchecked")
-    private void historicallyAnalyzeSwingTrade(Request request, Response response) {
+    private void historicallyAnalyzeSwingTrade(RestRequest request, RestResponse response) {
         try {
             Map<String, ?> map = (Map<String, ?>) request.getParam(GlobalConstant.ITEM);
             HistoricalAnalysis historicalAnalysis = new HistoricalAnalysis(map);
@@ -106,7 +110,7 @@ public class HistoricalAnalyzingSvcImpl implements HistoricalAnalyzingSvc {
                         algorithm.length());
             }
 
-            request.addParam(GlobalConstant.IDENTIFIER, "StockDay");
+            request.addParam(TradeConstant.IDENTIFIER, "StockDay");
             historicalAnalyzingDao.items(request, response);
             List<AssetDay> stockDays = (List<AssetDay>) response.getParam(GlobalConstant.ITEMS);
             int startIndex = 0;
@@ -126,7 +130,7 @@ public class HistoricalAnalyzingSvcImpl implements HistoricalAnalyzingSvc {
             BigDecimal stockPrice = BigDecimal.ZERO;
             long currentTime;
             List<Order> orders = new ArrayList<Order>();
-            request.addParam(GlobalConstant.SYMBOL, historicalAnalysis.getSymbol());
+            request.addParam(TradeConstant.SYMBOL, historicalAnalysis.getSymbol());
 
             int frequencyExecuted = 0;
 
@@ -135,7 +139,7 @@ public class HistoricalAnalyzingSvcImpl implements HistoricalAnalyzingSvc {
                 stockPrice = stockDays.get(i).getClose();
                 currentTime = stockDays.get(i).getEpochSeconds();
                 request.addParam("STOCKPRICE", stockPrice);
-                request.addParam(GlobalConstant.EPOCHSECONDS, currentTime);
+                request.addParam(TradeConstant.EPOCHSECONDS, currentTime);
 
                 if (evaluate(
                         buySignals.process(alg1, request, response),
@@ -202,7 +206,7 @@ public class HistoricalAnalyzingSvcImpl implements HistoricalAnalyzingSvc {
         }
     }
 
-    private void historicallyAnalyzeDayTrade(Request request, Response response) {
+    private void historicallyAnalyzeDayTrade(RestRequest request, RestResponse response) {
         // Map<String, ?> map = (Map<String, ?>) request.getParam("ITEM");
         // HistoricalAnalysis historicalAnalysis = new HistoricalAnalysis();
         // String stockName = (String) map.get("stock");

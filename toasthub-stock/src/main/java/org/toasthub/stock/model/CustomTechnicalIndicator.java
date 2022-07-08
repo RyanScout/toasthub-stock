@@ -12,12 +12,12 @@ import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 
-import org.toasthub.common.BaseEntity;
-
 @Entity
 @Table(name = "ta_custom_technical_indicator")
-public class CustomTechnicalIndicator extends BaseEntity {
-    private String name;
+public class CustomTechnicalIndicator extends TradeBaseEntity {
+   
+	private static final long serialVersionUID = 1L;
+	private String name;
     private String evaluationPeriod;
     private String technicalIndicatorType;
     private String technicalIndicatorKey;

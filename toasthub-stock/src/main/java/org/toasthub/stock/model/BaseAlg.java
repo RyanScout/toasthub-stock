@@ -4,10 +4,9 @@ import java.math.BigDecimal;
 
 import javax.persistence.MappedSuperclass;
 
-import org.toasthub.common.BaseEntity;
 
 @MappedSuperclass()
-public abstract class BaseAlg extends BaseEntity {
+public abstract class BaseAlg extends TradeBaseEntity {
 
     /**
     * 

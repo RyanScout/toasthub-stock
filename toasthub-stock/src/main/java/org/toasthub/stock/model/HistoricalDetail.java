@@ -12,12 +12,10 @@ import javax.persistence.Table;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import org.toasthub.common.BaseEntity;
-
 
 @Entity
 @Table(name = "ta_historical_detail")
-public class HistoricalDetail extends BaseEntity {
+public class HistoricalDetail extends TradeBaseEntity {
 
 	private static final long serialVersionUID = 1L;
     

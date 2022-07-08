@@ -11,13 +11,12 @@ import javax.persistence.Entity;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
-import org.toasthub.common.BaseEntity;
-
 @Entity
 @Table(name = "ta_technical_indicator")
-public class TechnicalIndicator extends BaseEntity {
+public class TechnicalIndicator extends TradeBaseEntity {
 
-    public static final String GOLDENCROSS = "GoldenCross";
+    private static final long serialVersionUID = 1L;
+	public static final String GOLDENCROSS = "GoldenCross";
     public static final String LOWERBOLLINGERBAND = "LowerBollingerBand";
     public static final String UPPERBOLLINGERBAND = "UpperBollingerBand";
 
@@ -60,40 +59,38 @@ public class TechnicalIndicator extends BaseEntity {
     public Set<TechnicalIndicatorDetail> getDetails() {
         return details;
     }
-
     public void setDetails(Set<TechnicalIndicatorDetail> details) {
         this.details = details;
     }
 
+    @Column(name = "symbol")
     public String getSymbol() {
         return symbol;
     }
-
     public void setSymbol(String symbol) {
         this.symbol = symbol;
     }
 
-
+    @Column(name = "technical_indicator_type")
     public String getTechnicalIndicatorType() {
         return technicalIndicatorType;
     }
-
     public void setTechnicalIndicatorType(String technicalIndicatorType) {
         this.technicalIndicatorType = technicalIndicatorType;
     }
 
+    @Column(name = "technical_indicator_key")
     public String getTechnicalIndicatorKey() {
         return technicalIndicatorKey;
     }
-
     public void setTechnicalIndicatorKey(String technicalIndicatorKey) {
         this.technicalIndicatorKey = technicalIndicatorKey;
     }
 
+    @Column(name = "evaluation_period")
     public String getEvaluationPeriod() {
         return evaluationPeriod;
     }
-
     public void setEvaluationPeriod(String evaluationPeriod) {
         this.evaluationPeriod = evaluationPeriod;
     }
@@ -102,15 +99,14 @@ public class TechnicalIndicator extends BaseEntity {
     public String getUBBType() {
         return UBBType;
     }
-
     public void setUBBType(String uBBType) {
         this.UBBType = uBBType;
     }
 
+    @Column(name = "standard_deviations")
     public BigDecimal getStandardDeviations() {
         return standardDeviations;
     }
-
     public void setStandardDeviations(BigDecimal standardDeviations) {
         this.standardDeviations = standardDeviations;
     }
@@ -119,7 +115,6 @@ public class TechnicalIndicator extends BaseEntity {
     public String getLBBType() {
         return LBBType;
     }
-
     public void setLBBType(String lBBType) {
         this.LBBType = lBBType;
     }
@@ -128,7 +123,6 @@ public class TechnicalIndicator extends BaseEntity {
     public String getShortSMAType() {
         return shortSMAType;
     }
-
     public void setShortSMAType(String shortSMAType) {
         this.shortSMAType = shortSMAType;
     }
@@ -137,71 +131,70 @@ public class TechnicalIndicator extends BaseEntity {
     public String getLongSMAType() {
         return longSMAType;
     }
-
     public void setLongSMAType(String longSMAType) {
         this.longSMAType = longSMAType;
     }
 
-    public boolean isFlashing() {
-        return flashing;
-    }
-
+    @Column(name = "last_flash")
     public long getLastFlash() {
         return lastFlash;
     }
-
     public void setLastFlash(long lastFlash) {
         this.lastFlash = lastFlash;
     }
-
-    public long getLastCheck() {
-        return lastCheck;
+    
+    @Column(name = "flashing")
+    public boolean isFlashing() {
+        return flashing;
     }
-
-    public void setLastCheck(long lastCheck) {
-        this.lastCheck = lastCheck;
-    }
-
-    public long getFirstCheck() {
-        return firstCheck;
-    }
-
-    public void setFirstCheck(long firstCheck) {
-        this.firstCheck = firstCheck;
-    }
-
     public void setFlashing(boolean flashing) {
         this.flashing = flashing;
     }
 
+    @Column(name = "last_check")
+    public long getLastCheck() {
+        return lastCheck;
+    }
+    public void setLastCheck(long lastCheck) {
+        this.lastCheck = lastCheck;
+    }
+
+    @Column(name = "first_check")
+    public long getFirstCheck() {
+        return firstCheck;
+    }
+    public void setFirstCheck(long firstCheck) {
+        this.firstCheck = firstCheck;
+    }
+
+    @Column(name = "checked")
     public long getChecked() {
         return checked;
     }
-
     public void setChecked(long checked) {
         this.checked = checked;
     }
 
+    @Column(name = "flashed")
     public long getFlashed() {
         return flashed;
     }
-
     public void setFlashed(long flashed) {
         this.flashed = flashed;
     }
 
+    @Column(name = "successes")
     public long getSuccesses() {
         return successes;
     }
-
     public void setSuccesses(long successes) {
         this.successes = successes;
     }
 
+    @Column(name = "updating")
     public boolean isUpdating() {
         return updating;
     }
-
     public void setUpdating(boolean updating) {
         this.updating = updating;
     }

@@ -3,15 +3,15 @@ package org.toasthub.stock.dashboard;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.toasthub.utils.Request;
-import org.toasthub.utils.Response;
+import org.toasthub.core.general.model.RestRequest;
+import org.toasthub.core.general.model.RestResponse;
 
 import net.jacobpeterson.alpaca.AlpacaAPI;
 import net.jacobpeterson.alpaca.model.endpoint.account.Account;
 import net.jacobpeterson.alpaca.model.endpoint.clock.Clock;
 import net.jacobpeterson.alpaca.rest.AlpacaClientException;
 
-@Service("DashboardSvc")
+@Service("TADashboardSvc")
 public class DashboardSvcImpl implements DashboardSvc {
 
 	@Autowired
@@ -22,7 +22,7 @@ public class DashboardSvcImpl implements DashboardSvc {
 	}
 
 	@Override
-	public void process(Request request, Response response) {
+	public void process(RestRequest request, RestResponse response) {
 		String action = (String) request.getParams().get("action");
 		
 		switch (action) {
@@ -41,7 +41,7 @@ public class DashboardSvcImpl implements DashboardSvc {
 	}
 	
 	@Override
-	public void getData(Request request, Response response) {
+	public void getData(RestRequest request, RestResponse response) {
 		
 		try {
 			Clock clock = alpacaAPI.clock().get();

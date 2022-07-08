@@ -1,9 +1,8 @@
 package org.toasthub.stock.analysis;
 
-import org.toasthub.utils.Request;
-import org.toasthub.utils.Response;
-
+import org.toasthub.core.general.model.RestRequest;
+import org.toasthub.core.general.model.RestResponse;
 
 public interface HistoricalAnalyzingSvc {
-    public void process(Request request, Response response);
+    public void process(RestRequest request, RestResponse response);
 }

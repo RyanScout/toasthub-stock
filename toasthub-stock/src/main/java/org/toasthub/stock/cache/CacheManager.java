@@ -15,19 +15,21 @@ import java.util.stream.Stream;
 import javax.persistence.NoResultException;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StopWatch;
+import org.toasthub.core.general.model.GlobalConstant;
+import org.toasthub.core.general.model.RestRequest;
+import org.toasthub.core.general.model.RestResponse;
 import org.toasthub.stock.model.AssetDay;
 import org.toasthub.stock.model.AssetMinute;
 import org.toasthub.stock.model.LBB;
 import org.toasthub.stock.model.Symbol;
 import org.toasthub.stock.model.TechnicalIndicator;
 import org.toasthub.stock.model.TechnicalIndicatorDetail;
+import org.toasthub.stock.model.TradeConstant;
 import org.toasthub.stock.model.TradeSignalCache;
 import org.toasthub.stock.model.UBB;
-import org.toasthub.utils.GlobalConstant;
-import org.toasthub.utils.Request;
-import org.toasthub.utils.Response;
 
 @Component
 public class CacheManager {
@@ -36,13 +38,14 @@ public class CacheManager {
     private TradeSignalCache tradeSignalCache;
 
     @Autowired
+    @Qualifier("TACacheDao")
     private CacheDao cacheDao;
 
     private final AtomicBoolean updatingTechnicalIndicator = new AtomicBoolean(false);
 
     public void initializeCache() {
-        final Request request = new Request();
-        final Response response = new Response();
+        final RestRequest request = new RestRequest();
+        final RestResponse response = new RestResponse();
 
         try {
             cacheDao.items(request, response);
@@ -67,7 +70,7 @@ public class CacheManager {
 
         Stream.of(Symbol.SYMBOLS).forEach(symbol -> {
 
-            request.addParam(GlobalConstant.SYMBOL, symbol);
+            request.addParam(TradeConstant.SYMBOL, symbol);
 
             AssetDay recentAsesetDay = null;
 
@@ -104,10 +107,10 @@ public class CacheManager {
         });
     }
 
-    public void updateRawData(final Request request, final Response response) {
+    public void updateRawData(final RestRequest request, final RestResponse response) {
         Stream.of(Symbol.SYMBOLS).forEach(symbol -> {
 
-            request.addParam(GlobalConstant.SYMBOL, symbol);
+            request.addParam(TradeConstant.SYMBOL, symbol);
 
             AssetDay recentAsesetDay = null;
 
@@ -144,13 +147,13 @@ public class CacheManager {
         });
     }
 
-    public boolean goldenCrossIsFlashing(final Request request, final Response response) {
+    public boolean goldenCrossIsFlashing(final RestRequest request, final RestResponse response) {
         boolean result = false;
 
         final String shortSMAType = (String) request.getParam("SHORT_SMA_TYPE");
         final String longSMAType = (String) request.getParam("LONG_SMA_TYPE");
 
-        request.addParam(GlobalConstant.TYPE, shortSMAType);
+        request.addParam(TradeConstant.TYPE, shortSMAType);
 
         try {
             cacheDao.getSMAValue(request, response);
@@ -161,7 +164,7 @@ public class CacheManager {
 
         final BigDecimal shortSMAValue = (BigDecimal) response.getParam(GlobalConstant.ITEM);
 
-        request.addParam(GlobalConstant.TYPE, longSMAType);
+        request.addParam(TradeConstant.TYPE, longSMAType);
 
         try {
             cacheDao.getSMAValue(request, response);
@@ -178,15 +181,15 @@ public class CacheManager {
         return result;
     }
 
-    public boolean lowerBollingerBandIsFlashing(final Request request, final Response response) {
+    public boolean lowerBollingerBandIsFlashing(final RestRequest request, final RestResponse response) {
         boolean result = false;
 
-        final String symbol = (String) request.getParam(GlobalConstant.SYMBOL);
+        final String symbol = (String) request.getParam(TradeConstant.SYMBOL);
         final String evaluationPeriod = (String) request.getParam("EVALUATION_PERIOD");
         final String lbbType = (String) request.getParam("LBB_TYPE");
         final BigDecimal standardDeviations = (BigDecimal) request.getParam("STANDARD_DEVIATIONS");
 
-        request.addParam(GlobalConstant.TYPE, lbbType);
+        request.addParam(TradeConstant.TYPE, lbbType);
         request.addParam("STANDARD_DEVIATIONS", standardDeviations);
 
         try {
@@ -206,15 +209,15 @@ public class CacheManager {
         return result;
     }
 
-    public boolean upperBollingerBandIsFlashing(final Request request, final Response response) {
+    public boolean upperBollingerBandIsFlashing(final RestRequest request, final RestResponse response) {
         boolean result = false;
 
-        final String symbol = (String) request.getParam(GlobalConstant.SYMBOL);
+        final String symbol = (String) request.getParam(TradeConstant.SYMBOL);
         final String evaluationPeriod = (String) request.getParam("EVALUATION_PERIOD");
         final String ubbType = (String) request.getParam("UBB_TYPE");
         final BigDecimal standardDeviations = (BigDecimal) request.getParam("STANDARD_DEVIATIONS");
 
-        request.addParam(GlobalConstant.TYPE, ubbType);
+        request.addParam(TradeConstant.TYPE, ubbType);
         request.addParam("STANDARD_DEVIATIONS", standardDeviations);
 
         try {
@@ -234,7 +237,7 @@ public class CacheManager {
         return result;
     }
 
-    public void updateTechnicalIndicatorCache(final Request request, final Response response) {
+    public void updateTechnicalIndicatorCache(final RestRequest request, final RestResponse response) {
 
         while (updatingTechnicalIndicator.get()) {
             try {
@@ -336,25 +339,25 @@ public class CacheManager {
 
                         boolean flashing = false;
 
-                        request.addParam(GlobalConstant.SYMBOL, symbol);
+                        request.addParam(TradeConstant.SYMBOL, symbol);
                         request.addParam("EVALUATION_PERIOD", evaluationPeriod);
                         response.getParams().remove("INSUFFICIENT_DATA");
 
                         switch (technicalIndicator.getTechnicalIndicatorType()) {
                             case TechnicalIndicator.GOLDENCROSS:
-                                request.addParam(GlobalConstant.EPOCHSECONDS, currentMinute);
+                                request.addParam(TradeConstant.EPOCHSECONDS, currentMinute);
                                 request.addParam("SHORT_SMA_TYPE", technicalIndicator.getShortSMAType());
                                 request.addParam("LONG_SMA_TYPE", technicalIndicator.getLongSMAType());
                                 flashing = goldenCrossIsFlashing(request, response);
                                 break;
                             case TechnicalIndicator.LOWERBOLLINGERBAND:
-                                request.addParam(GlobalConstant.EPOCHSECONDS, currentMinute);
+                                request.addParam(TradeConstant.EPOCHSECONDS, currentMinute);
                                 request.addParam("LBB_TYPE", technicalIndicator.getLBBType());
                                 request.addParam("STANDARD_DEVIATIONS", technicalIndicator.getStandardDeviations());
                                 flashing = lowerBollingerBandIsFlashing(request, response);
                                 break;
                             case TechnicalIndicator.UPPERBOLLINGERBAND:
-                                request.addParam(GlobalConstant.EPOCHSECONDS, currentMinute);
+                                request.addParam(TradeConstant.EPOCHSECONDS, currentMinute);
                                 request.addParam("UBB_TYPE", technicalIndicator.getUBBType());
                                 request.addParam("STANDARD_DEVIATIONS", technicalIndicator.getStandardDeviations());
                                 flashing = upperBollingerBandIsFlashing(request, response);
@@ -412,10 +415,10 @@ public class CacheManager {
         updatingTechnicalIndicator.set(false);
     }
 
-    public void backloadTechnicalIndicator(final Request request, final Response response) {
+    public void backloadTechnicalIndicator(final RestRequest request, final RestResponse response) {
 
         if (request.getParam(GlobalConstant.ITEMID) == null) {
-            response.setStatus(Response.ERROR);
+            response.setStatus(RestResponse.ERROR);
             System.out.println("No item id given at backload technical indicator");
             return;
         }
@@ -429,7 +432,7 @@ public class CacheManager {
         final TechnicalIndicator currentTechnicalIndicator = (TechnicalIndicator) response
                 .getParam(GlobalConstant.ITEM);
 
-        request.addParam(GlobalConstant.SYMBOL, currentTechnicalIndicator.getSymbol());
+        request.addParam(TradeConstant.SYMBOL, currentTechnicalIndicator.getSymbol());
 
         final long endingEpochSeconds = currentTechnicalIndicator.getLastCheck();
 
@@ -440,7 +443,7 @@ public class CacheManager {
 
         final List<AssetDay> assetDays = new ArrayList<AssetDay>();
 
-        request.addParam(GlobalConstant.SYMBOL, currentTechnicalIndicator.getSymbol());
+        request.addParam(TradeConstant.SYMBOL, currentTechnicalIndicator.getSymbol());
         request.addParam("STARTING_EPOCH_SECONDS", startingEpochSeconds);
         request.addParam("ENDING_EPOCH_SECONDS", endingEpochSeconds);
 
@@ -465,7 +468,7 @@ public class CacheManager {
 
                         request.addParam("STARTING_EPOCH_SECONDS", assetDay.getEpochSeconds());
                         request.addParam("ENDING_EPOCH_SECONDS", assetDay.getEpochSeconds() + (60 * 60 * 24));
-                        request.addParam(GlobalConstant.SYMBOL, currentTechnicalIndicator.getSymbol());
+                        request.addParam(TradeConstant.SYMBOL, currentTechnicalIndicator.getSymbol());
 
                         if (assetDay.getEpochSeconds() + (60 * 60 * 24) > endingEpochSeconds) {
                             request.addParam("ENDING_EPOCH_SECONDS", endingEpochSeconds);
@@ -565,7 +568,7 @@ public class CacheManager {
 
                                     boolean flashing = false;
 
-                                    request.addParam(GlobalConstant.SYMBOL, symbol);
+                                    request.addParam(TradeConstant.SYMBOL, symbol);
                                     request.addParam("EVALUATION_PERIOD",
                                             currentTechnicalIndicator.getEvaluationPeriod());
                                     response.getParams().remove("INSUFFICIENT_DATA");
@@ -574,7 +577,7 @@ public class CacheManager {
 
                                     switch (currentTechnicalIndicator.getTechnicalIndicatorType()) {
                                         case TechnicalIndicator.GOLDENCROSS:
-                                            request.addParam(GlobalConstant.EPOCHSECONDS, currentMinute);
+                                            request.addParam(TradeConstant.EPOCHSECONDS, currentMinute);
                                             request.addParam("SHORT_SMA_TYPE",
                                                     currentTechnicalIndicator.getShortSMAType());
                                             request.addParam("LONG_SMA_TYPE",
@@ -582,14 +585,14 @@ public class CacheManager {
                                             flashing = goldenCrossIsFlashing(request, response);
                                             break;
                                         case TechnicalIndicator.LOWERBOLLINGERBAND:
-                                            request.addParam(GlobalConstant.EPOCHSECONDS, currentMinute);
+                                            request.addParam(TradeConstant.EPOCHSECONDS, currentMinute);
                                             request.addParam("LBB_TYPE", currentTechnicalIndicator.getLBBType());
                                             request.addParam("STANDARD_DEVIATIONS",
                                                     currentTechnicalIndicator.getStandardDeviations());
                                             flashing = lowerBollingerBandIsFlashing(request, response);
                                             break;
                                         case TechnicalIndicator.UPPERBOLLINGERBAND:
-                                            request.addParam(GlobalConstant.EPOCHSECONDS, currentMinute);
+                                            request.addParam(TradeConstant.EPOCHSECONDS, currentMinute);
                                             request.addParam("UBB_TYPE", currentTechnicalIndicator.getUBBType());
                                             request.addParam("STANDARD_DEVIATIONS",
                                                     currentTechnicalIndicator.getStandardDeviations());
@@ -725,13 +728,13 @@ public class CacheManager {
 
         updatingTechnicalIndicator.set(false);
 
-        response.setStatus(Response.SUCCESS);
+        response.setStatus(RestResponse.SUCCESS);
     }
 
-    public void backloadTechnicalIndicatorNoStreams(final Request request, final Response response) {
+    public void backloadTechnicalIndicatorNoStreams(final RestRequest request, final RestResponse response) {
 
         if (request.getParam(GlobalConstant.ITEMID) == null) {
-            response.setStatus(Response.ERROR);
+            response.setStatus(RestResponse.ERROR);
             System.out.println("No item id given at backload technical indicator");
             return;
         }
@@ -745,7 +748,7 @@ public class CacheManager {
         final TechnicalIndicator currentTechnicalIndicator = (TechnicalIndicator) response
                 .getParam(GlobalConstant.ITEM);
 
-        request.addParam(GlobalConstant.SYMBOL, currentTechnicalIndicator.getSymbol());
+        request.addParam(TradeConstant.SYMBOL, currentTechnicalIndicator.getSymbol());
 
         final long endingEpochSeconds = currentTechnicalIndicator.getFirstCheck();
 
@@ -756,7 +759,7 @@ public class CacheManager {
 
         final List<AssetDay> assetDays = new ArrayList<AssetDay>();
 
-        request.addParam(GlobalConstant.SYMBOL, currentTechnicalIndicator.getSymbol());
+        request.addParam(TradeConstant.SYMBOL, currentTechnicalIndicator.getSymbol());
         request.addParam("STARTING_EPOCH_SECONDS", startingEpochSeconds);
         request.addParam("ENDING_EPOCH_SECONDS", endingEpochSeconds);
 
@@ -777,7 +780,7 @@ public class CacheManager {
 
             request.addParam("STARTING_EPOCH_SECONDS", assetDay.getEpochSeconds());
             request.addParam("ENDING_EPOCH_SECONDS", assetDay.getEpochSeconds() + (60 * 60 * 24));
-            request.addParam(GlobalConstant.SYMBOL, currentTechnicalIndicator.getSymbol());
+            request.addParam(TradeConstant.SYMBOL, currentTechnicalIndicator.getSymbol());
 
             if (assetDay.getEpochSeconds() + (60 * 60 * 24) > endingEpochSeconds) {
                 request.addParam("ENDING_EPOCH_SECONDS", endingEpochSeconds);
@@ -814,7 +817,7 @@ public class CacheManager {
 
                 boolean flashing = false;
 
-                request.addParam(GlobalConstant.SYMBOL, symbol);
+                request.addParam(TradeConstant.SYMBOL, symbol);
                 request.addParam("EVALUATION_PERIOD",
                         currentTechnicalIndicator.getEvaluationPeriod());
                 response.getParams().remove("INSUFFICIENT_DATA");
@@ -823,7 +826,7 @@ public class CacheManager {
 
                 switch (currentTechnicalIndicator.getTechnicalIndicatorType()) {
                     case TechnicalIndicator.GOLDENCROSS:
-                        request.addParam(GlobalConstant.EPOCHSECONDS, currentMinute);
+                        request.addParam(TradeConstant.EPOCHSECONDS, currentMinute);
                         request.addParam("SHORT_SMA_TYPE",
                                 currentTechnicalIndicator.getShortSMAType());
                         request.addParam("LONG_SMA_TYPE",
@@ -831,14 +834,14 @@ public class CacheManager {
                         flashing = goldenCrossIsFlashing(request, response);
                         break;
                     case TechnicalIndicator.LOWERBOLLINGERBAND:
-                        request.addParam(GlobalConstant.EPOCHSECONDS, currentMinute);
+                        request.addParam(TradeConstant.EPOCHSECONDS, currentMinute);
                         request.addParam("LBB_TYPE", currentTechnicalIndicator.getLBBType());
                         request.addParam("STANDARD_DEVIATIONS",
                                 currentTechnicalIndicator.getStandardDeviations());
                         flashing = lowerBollingerBandIsFlashing(request, response);
                         break;
                     case TechnicalIndicator.UPPERBOLLINGERBAND:
-                        request.addParam(GlobalConstant.EPOCHSECONDS, currentMinute);
+                        request.addParam(TradeConstant.EPOCHSECONDS, currentMinute);
                         request.addParam("UBB_TYPE", currentTechnicalIndicator.getUBBType());
                         request.addParam("STANDARD_DEVIATIONS",
                                 currentTechnicalIndicator.getStandardDeviations());
@@ -1015,7 +1018,7 @@ public class CacheManager {
 
         updatingTechnicalIndicator.set(false);
 
-        response.setStatus(Response.SUCCESS);
+        response.setStatus(RestResponse.SUCCESS);
     }
 
 }

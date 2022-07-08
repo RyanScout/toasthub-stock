@@ -2,15 +2,15 @@ package org.toasthub.stock.order;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.toasthub.utils.Request;
-import org.toasthub.utils.Response;
+import org.toasthub.core.general.model.RestRequest;
+import org.toasthub.core.general.model.RestResponse;
 
 import net.jacobpeterson.alpaca.AlpacaAPI;
 import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderSide;
 import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderTimeInForce;
 import net.jacobpeterson.alpaca.rest.AlpacaClientException;
 
-@Service("PlaceOrderSvc")
+@Service("TAPlaceOrderSvc")
 public class PlaceOrderSvcImpl implements PlaceOrderSvc {
 
     @Autowired
@@ -21,7 +21,7 @@ public class PlaceOrderSvcImpl implements PlaceOrderSvc {
 	}
 
     @Override
-	public void process(Request request, Response response) {
+	public void process(RestRequest request, RestResponse response) {
 		String action = (String) request.getParams().get("action");
 		
 		switch (action) {
@@ -38,7 +38,7 @@ public class PlaceOrderSvcImpl implements PlaceOrderSvc {
 	}
 
     @Override
-    public void placeDefaultOrder(Request request, Response response) {
+    public void placeDefaultOrder(RestRequest request, RestResponse response) {
         String stockName = (String) request.getParams().get("stockName");
         Double orderAmount = Double.parseDouble((String)request.getParams().get("orderAmount"));
 
@@ -56,7 +56,7 @@ public class PlaceOrderSvcImpl implements PlaceOrderSvc {
     }
 
     @Override
-    public void placeTrailingStopOrder(Request request, Response response){
+    public void placeTrailingStopOrder(RestRequest request, RestResponse response){
         String stockName = (String) request.getParams().get("stockName");
 
         if ("".equals(stockName)) {

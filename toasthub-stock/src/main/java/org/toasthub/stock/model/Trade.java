@@ -31,11 +31,9 @@ import javax.persistence.Entity;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
-import org.toasthub.common.BaseEntity;
-
 @Entity
 @Table(name = "ta_trade")
-public class Trade extends BaseEntity {
+public class Trade extends TradeBaseEntity {
 
 	private static final long serialVersionUID = 1L;
 
