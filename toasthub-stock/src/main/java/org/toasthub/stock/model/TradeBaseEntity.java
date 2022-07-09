@@ -9,13 +9,11 @@ import org.toasthub.core.general.model.BaseEntity;
 public class TradeBaseEntity extends BaseEntity {
 
 	private static final long serialVersionUID = 1L;
-
 	protected String identifier;
 
 	// Constructor
 	public TradeBaseEntity() {
 	}
-	
 	
 	// Setter/Getters
 	@Column(name = "identifier")
@@ -25,6 +23,4 @@ public class TradeBaseEntity extends BaseEntity {
 	public void setIdentifier(String identifier) {
 		this.identifier = identifier;
 	}
-	
-	
 }

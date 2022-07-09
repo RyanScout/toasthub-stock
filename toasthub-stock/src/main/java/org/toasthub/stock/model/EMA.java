@@ -32,11 +32,9 @@ import javax.persistence.Table;
 //Exponential Moving Average
 public class EMA extends BaseAlg{
 
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
 
+	// Constructors
 	public EMA() {
 		super();
 		this.setActive(true);
@@ -64,6 +62,8 @@ public class EMA extends BaseAlg{
 		this.setIdentifier("EMA");
 	}
 
+	
+	// Methods
 	public static BigDecimal calculateEMA(List<BigDecimal> list){
         BigDecimal initEma = SMA.calculateSMA(list);
         BigDecimal multiplier = BigDecimal.valueOf( 2.0/(list.size()+1) );

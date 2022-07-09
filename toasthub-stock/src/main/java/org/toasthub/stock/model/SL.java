@@ -31,12 +31,11 @@ import javax.persistence.Table;
 @Entity
 @Table(name = "ta_SL")
 //Signal Line
-public class SL extends BaseAlg{
+public class SL extends BaseAlg {
 
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
+	
+	// Constructors
 	public SL() {
 		super();
 		this.setActive(true);
@@ -64,6 +63,7 @@ public class SL extends BaseAlg{
 		this.setIdentifier("SL");
 	}
 
+	// Methods
 	public static BigDecimal calculateSL(List<BigDecimal> list){
         BigDecimal multiplier = BigDecimal.valueOf( 2.0/(9+1) );
         BigDecimal macdAverage = BigDecimal.ZERO;

@@ -19,26 +19,21 @@ public class TechnicalIndicator extends TradeBaseEntity {
 	public static final String GOLDENCROSS = "GoldenCross";
     public static final String LOWERBOLLINGERBAND = "LowerBollingerBand";
     public static final String UPPERBOLLINGERBAND = "UpperBollingerBand";
-
     public static final String[] TECHNICALINDICATORTYPES = {
             GOLDENCROSS, LOWERBOLLINGERBAND, UPPERBOLLINGERBAND
     };
-
     private boolean flashing = false;
     private boolean updating = false;
-
     private String evaluationPeriod = "";
     private String technicalIndicatorKey = "";
     private String technicalIndicatorType = "";
     private String symbol = "";
-
     private long checked = 0;
     private long flashed = 0;
     private long successes = 0;
     private long firstCheck = 0;
     private long lastCheck = 0;
     private long lastFlash = 0;
-
     private String shortSMAType;
     private String longSMAType;
     private String LBBType;
@@ -47,6 +42,7 @@ public class TechnicalIndicator extends TradeBaseEntity {
 
     private Set<TechnicalIndicatorDetail> details = new LinkedHashSet<TechnicalIndicatorDetail>();
 
+    // Constructors
     public TechnicalIndicator() {
         super();
         this.setActive(true);
@@ -55,6 +51,8 @@ public class TechnicalIndicator extends TradeBaseEntity {
         this.setCreated(Instant.now());
     }   
 
+    
+    // Setter/Getter
     @OneToMany(mappedBy = "technicalIndicator", cascade = CascadeType.ALL)
     public Set<TechnicalIndicatorDetail> getDetails() {
         return details;

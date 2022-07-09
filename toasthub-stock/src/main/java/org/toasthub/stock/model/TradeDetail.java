@@ -32,7 +32,7 @@ public class TradeDetail extends TradeBaseEntity{
     private long filledAt;
     private String orderCondition;
 
-
+    // Constructors
     public TradeDetail() {
 		super();
 		this.setActive(true);
@@ -42,6 +42,8 @@ public class TradeDetail extends TradeBaseEntity{
 		this.setIdentifier("TradeDetail");
 	}
 
+    // Setter/Getter
+	@Column(name = "filled_at")
     public long getFilledAt() {
         return filledAt;
     }
@@ -49,6 +51,7 @@ public class TradeDetail extends TradeBaseEntity{
         this.filledAt = filledAt;
     }
 
+	@Column(name = "placed_at")
     public long getPlacedAt() {
         return placedAt;
     }
@@ -56,6 +59,7 @@ public class TradeDetail extends TradeBaseEntity{
         this.placedAt = placedAt;
     }
 
+	@Column(name = "dollar_amount")
     public BigDecimal getDollarAmount() {
         return dollarAmount;
     }
@@ -63,6 +67,7 @@ public class TradeDetail extends TradeBaseEntity{
         this.dollarAmount = dollarAmount;
     }
 
+	@Column(name = "share_amount")
     public BigDecimal getShareAmount() {
         return shareAmount;
     }
@@ -80,6 +85,7 @@ public class TradeDetail extends TradeBaseEntity{
         this.trade = trade;
     }
 
+	@Column(name = "asset_price")
     public BigDecimal getAssetPrice() {
         return assetPrice;
     }
@@ -87,6 +93,7 @@ public class TradeDetail extends TradeBaseEntity{
         this.assetPrice = assetPrice;
     }
     
+	@Column(name = "order_side")
     public String getOrderSide() {
         return orderSide;
     }
@@ -94,6 +101,7 @@ public class TradeDetail extends TradeBaseEntity{
         this.orderSide = orderSide;
     }
     
+	@Column(name = "status")
     public String getStatus() {
         return status;
     }
@@ -109,6 +117,7 @@ public class TradeDetail extends TradeBaseEntity{
         this.orderID = orderID;
     }
     
+	@Column(name = "total_value")
     public BigDecimal getTotalValue() {
         return totalValue;
     }
@@ -116,6 +125,7 @@ public class TradeDetail extends TradeBaseEntity{
         this.totalValue = totalValue;
     }
     
+	@Column(name = "available_budget")
     public BigDecimal getAvailableBudget() {
         return availableBudget;
     }
@@ -123,6 +133,7 @@ public class TradeDetail extends TradeBaseEntity{
         this.availableBudget = availableBudget;
     }
     
+	@Column(name = "shares_held")
     public BigDecimal getSharesHeld() {
         return sharesHeld;
     }
@@ -130,6 +141,7 @@ public class TradeDetail extends TradeBaseEntity{
         this.sharesHeld = sharesHeld;
     }
     
+	@Column(name = "order_condition")
     public String getOrderCondition() {
         return orderCondition;
     }

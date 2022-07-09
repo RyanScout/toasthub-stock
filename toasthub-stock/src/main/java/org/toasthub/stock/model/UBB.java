@@ -23,6 +23,8 @@ package org.toasthub.stock.model;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Table;
 
@@ -31,12 +33,10 @@ import javax.persistence.Table;
 // Lower Bollinger Band
 public class UBB extends BaseAlg {
 
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
 	private BigDecimal standardDeviations = BigDecimal.ZERO;
 
+	// Constructors
 	public UBB() {
 		super();
 		this.setActive(true);
@@ -45,15 +45,6 @@ public class UBB extends BaseAlg {
 		this.setCreated(Instant.now());
 		this.setIdentifier("UBB");
 	}
-
-	public BigDecimal getStandardDeviations() {
-		return standardDeviations;
-	}
-
-	public void setStandardDeviations(final BigDecimal standardDeviations) {
-		this.standardDeviations = standardDeviations;
-	}
-
 	public UBB(final String symbol) {
 		super();
 		this.setSymbol(symbol);
@@ -71,7 +62,18 @@ public class UBB extends BaseAlg {
 		this.setCreated(Instant.now());
 		this.setIdentifier("UBB");
 	}
+	
+	// Setter/Getter
+	@Column(name = "standard_deviations")
+	public BigDecimal getStandardDeviations() {
+		return standardDeviations;
+	}
+	public void setStandardDeviations(final BigDecimal standardDeviations) {
+		this.standardDeviations = standardDeviations;
+	}
 
+	
+	// Methods
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -99,14 +101,11 @@ public class UBB extends BaseAlg {
 
 	public static BigDecimal calculateUBB(final List<BigDecimal> list, final BigDecimal standardDeviations) {
 		final BigDecimal sma = SMA.calculateSMA(list);
-
-		return sma.add(
-				SMA.calculateSD(list).multiply(standardDeviations));
+		return sma.add(SMA.calculateSD(list).multiply(standardDeviations));
 	}
 
 	public static BigDecimal calculateUBB(final List<BigDecimal> list, final BigDecimal sma,
 			final BigDecimal standardDeviations) {
-		return sma.add(
-				SMA.calculateSD(list).multiply(standardDeviations));
+		return sma.add(SMA.calculateSD(list).multiply(standardDeviations));
 	}
 }

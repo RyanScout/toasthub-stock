@@ -21,28 +21,29 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
     private String evaluationPeriod;
     private String technicalIndicatorType;
     private String technicalIndicatorKey;
-
     private String shortSMAType;
     private String longSMAType;
-
     private String LBBType;
     private String UBBType;
     private BigDecimal standardDeviations;
 
-    
     private Set<Symbol> symbols = new LinkedHashSet<Symbol>();
     private ArrayList<Object> technicalIndicators = new ArrayList<Object>();
    
 
-    
+    // Setter/Getter
+    @Column(name = "technical_indicator_type")
     public String getTechnicalIndicatorType() {
         return technicalIndicatorType;
     }
-
+    public void setTechnicalIndicatorType(String technicalIndicatorType) {
+        this.technicalIndicatorType = technicalIndicatorType;
+    }
+    
+    @Column(name = "standard_deviations")
     public BigDecimal getStandardDeviations() {
         return standardDeviations;
     }
-
     public void setStandardDeviations(BigDecimal standardDeviations) {
         this.standardDeviations = standardDeviations;
     }
@@ -51,7 +52,6 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
     public String getUBBType() {
         return UBBType;
     }
-
     public void setUBBType(String uBBType) {
         this.UBBType = uBBType;
     }
@@ -60,7 +60,6 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
     public String getLBBType() {
         return LBBType;
     }
-
     public void setLBBType(String lBBType) {
         this.LBBType = lBBType;
     }
@@ -69,7 +68,6 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
     public String getLongSMAType() {
         return longSMAType;
     }
-
     public void setLongSMAType(String longSMAType) {
         this.longSMAType = longSMAType;
     }
@@ -78,7 +76,6 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
     public String getShortSMAType() {
         return shortSMAType;
     }
-
     public void setShortSMAType(String shortSMAType) {
         this.shortSMAType = shortSMAType;
     }
@@ -87,16 +84,14 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
     public Set<Symbol> getSymbols() {
         return symbols;
     }
-
     public void setSymbols(Set<Symbol> symbols) {
         this.symbols = symbols;
     }
 
+    @Column(name = "technical_indicator_key")
     public String getTechnicalIndicatorKey() {
         return technicalIndicatorKey;
     }
-
-
     public void setTechnicalIndicatorKey(String technicalIndicatorKey) {
         this.technicalIndicatorKey = technicalIndicatorKey;
     }
@@ -105,27 +100,22 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
     public ArrayList<Object> getTechnicalIndicators() {
         return technicalIndicators;
     }
-
     public void setTechnicalIndicators(ArrayList<Object> technicalIndicators) {
         this.technicalIndicators = technicalIndicators;
     }
 
-    public void setTechnicalIndicatorType(String technicalIndicatorType) {
-        this.technicalIndicatorType = technicalIndicatorType;
-    }
-
+    @Column(name = "evaluation_period")
     public String getEvaluationPeriod() {
         return evaluationPeriod;
     }
-
     public void setEvaluationPeriod(String evaluationPeriod) {
         this.evaluationPeriod = evaluationPeriod;
     }
 
+    @Column(name = "name")
     public String getName() {
         return name;
     }
-
     public void setName(String name) {
         this.name = name;
     }

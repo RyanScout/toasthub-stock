@@ -10,6 +10,7 @@ public class Configuration extends TradeBaseEntity {
     private static final long serialVersionUID = 1L;
 	private boolean backloaded = false;
 
+	// Setter/Getter
     @Column(name = "backloaded")
     public boolean isBackloaded() {
         return backloaded;

@@ -24,12 +24,14 @@ public class AssetMinute extends TradeBaseEntity {
     private BigDecimal vwap;
     private String type;
 
+    // Constructors
     public AssetMinute() {
         super();
         this.setIdentifier("AssetMinute");
         this.setType("AssetMinute");
     }
 
+    // Setter/Getter
     @Column(name = "symbol")
     public String getSymbol() {
         return symbol;
