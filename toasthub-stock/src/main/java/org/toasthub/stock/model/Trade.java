@@ -208,7 +208,7 @@ public class Trade extends TradeBaseEntity {
 		this.symbol = symbol;
 	}
 
-	@Column(name = "profile_limit_amount")
+	@Column(name = "profit_limit_amount")
 	public BigDecimal getProfitLimitAmount() {
 		return profitLimitAmount;
 	}
