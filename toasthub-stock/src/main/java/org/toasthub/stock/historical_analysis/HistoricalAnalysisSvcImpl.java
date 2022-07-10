@@ -6,6 +6,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.toasthub.core.general.handler.ServiceProcessor;
 import org.toasthub.core.general.model.GlobalConstant;
 import org.toasthub.core.general.model.RestRequest;
 import org.toasthub.core.general.model.RestResponse;
@@ -14,7 +15,7 @@ import net.jacobpeterson.alpaca.AlpacaAPI;
 
 
 @Service("TAHistoricalAnalysisSvc")
-public class HistoricalAnalysisSvcImpl implements HistoricalAnalysisSvc {
+public class HistoricalAnalysisSvcImpl implements ServiceProcessor, HistoricalAnalysisSvc {
 
 	@Autowired
 	protected AlpacaAPI alpacaAPI;

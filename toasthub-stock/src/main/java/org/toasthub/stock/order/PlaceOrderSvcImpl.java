@@ -2,6 +2,7 @@ package org.toasthub.stock.order;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.toasthub.core.general.handler.ServiceProcessor;
 import org.toasthub.core.general.model.RestRequest;
 import org.toasthub.core.general.model.RestResponse;
 
@@ -11,7 +12,7 @@ import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderTimeInForce;
 import net.jacobpeterson.alpaca.rest.AlpacaClientException;
 
 @Service("TAPlaceOrderSvc")
-public class PlaceOrderSvcImpl implements PlaceOrderSvc {
+public class PlaceOrderSvcImpl implements ServiceProcessor, PlaceOrderSvc {
 
     @Autowired
 	protected AlpacaAPI alpacaAPI = null;

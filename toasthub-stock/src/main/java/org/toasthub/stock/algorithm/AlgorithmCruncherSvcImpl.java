@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StopWatch;
+import org.toasthub.core.general.handler.ServiceProcessor;
 import org.toasthub.core.general.model.GlobalConstant;
 import org.toasthub.core.general.model.RestRequest;
 import org.toasthub.core.general.model.RestResponse;
@@ -44,7 +45,7 @@ import net.jacobpeterson.alpaca.model.endpoint.marketdata.stock.historical.bar.e
 import net.jacobpeterson.alpaca.model.endpoint.marketdata.stock.historical.bar.enums.BarFeed;
 
 @Service("TAAlgorithmCruncherSvc")
-public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
+public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCruncherSvc {
 
 	@Autowired
 	protected AlpacaAPI alpacaAPI;

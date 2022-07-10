@@ -3,6 +3,7 @@ package org.toasthub.stock.dashboard;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.toasthub.core.general.handler.ServiceProcessor;
 import org.toasthub.core.general.model.RestRequest;
 import org.toasthub.core.general.model.RestResponse;
 
@@ -12,7 +13,7 @@ import net.jacobpeterson.alpaca.model.endpoint.clock.Clock;
 import net.jacobpeterson.alpaca.rest.AlpacaClientException;
 
 @Service("TADashboardSvc")
-public class DashboardSvcImpl implements DashboardSvc {
+public class DashboardSvcImpl implements ServiceProcessor, DashboardSvc {
 
 	@Autowired
 	protected AlpacaAPI alpacaAPI;

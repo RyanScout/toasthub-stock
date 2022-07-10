@@ -17,6 +17,7 @@ import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.ParseException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.stereotype.Service;
+import org.toasthub.core.general.handler.ServiceProcessor;
 import org.toasthub.core.general.model.GlobalConstant;
 import org.toasthub.core.general.model.RestRequest;
 import org.toasthub.core.general.model.RestResponse;
@@ -27,7 +28,7 @@ import org.toasthub.stock.model.Trade;
 import org.toasthub.stock.model.TradeConstant;
 
 @Service("TATradeSvc")
-public class TradeSvcImpl implements TradeSvc {
+public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 
 	@Autowired
 	@Qualifier("TATradeDao")

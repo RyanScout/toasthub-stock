@@ -8,6 +8,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.toasthub.core.general.handler.ServiceProcessor;
 import org.toasthub.core.general.model.GlobalConstant;
 import org.toasthub.core.general.model.RestRequest;
 import org.toasthub.core.general.model.RestResponse;
@@ -20,7 +21,7 @@ import org.toasthub.stock.model.TradeConstant;
 import org.toasthub.stock.model.TradeSignalCache;
 
 @Service("TACacheSvc")
-public class CacheSvcImpl implements CacheSvc {
+public class CacheSvcImpl implements ServiceProcessor, CacheSvc {
 
     @Autowired
     @Qualifier("TACacheDao")
