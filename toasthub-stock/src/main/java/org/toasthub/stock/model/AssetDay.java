@@ -4,16 +4,116 @@ import java.math.BigDecimal;
 import java.util.Set;
 
 import javax.persistence.CascadeType;
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
-import org.toasthub.common.BaseEntity;
-
 @Entity
 @Table(name = "ta_asset_day")
-public class AssetDay extends BaseEntity {
+public class AssetDay extends TradeBaseEntity {
 
+    private static final long serialVersionUID = 1L;
+    private String type;
+    private String symbol;
+    private BigDecimal open;
+    private BigDecimal close;
+    private BigDecimal high;
+    private BigDecimal low;
+    private long epochSeconds;
+    private long volume;
+    private BigDecimal vwap;
+    private Set<AssetMinute> assetMinutes;
+
+    // Constructors
+    public AssetDay() {
+        super();
+        setType("AssetDay");
+        this.setIdentifier("AssetDay");
+    }
+
+    
+    // Setter/Getter
+    @Column(name = "symbol")
+    public String getSymbol() {
+        return symbol;
+    }
+    public void setSymbol(final String symbol) {
+        this.symbol = symbol;
+    }
+
+    @Column(name = "type")
+    public String getType() {
+        return type;
+    }
+    public void setType(final String type) {
+        this.type = type;
+    }
+
+    @OneToMany(mappedBy = "assetDay", cascade = CascadeType.ALL)
+    public Set<AssetMinute> getAssetMinutes() {
+        return assetMinutes;
+    }
+    public void setAssetMinutes(final Set<AssetMinute> assetMinutes) {
+        this.assetMinutes = assetMinutes;
+    }
+
+    @Column(name = "low")
+    public BigDecimal getLow() {
+        return low;
+    }
+    public void setLow(final BigDecimal low) {
+        this.low = low;
+    }
+
+    @Column(name = "high")
+    public BigDecimal getHigh() {
+        return high;
+    }
+    public void setHigh(final BigDecimal high) {
+        this.high = high;
+    }
+
+    @Column(name = "close")
+    public BigDecimal getClose() {
+        return close;
+    }
+    public void setClose(final BigDecimal close) {
+        this.close = close;
+    }
+
+    @Column(name = "open")
+    public BigDecimal getOpen() {
+        return open;
+    }
+    public void setOpen(final BigDecimal open) {
+        this.open = open;
+    }
+
+    @Column(name = "vwap")
+    public BigDecimal getVwap() {
+        return vwap;
+    }
+    public void setVwap(final BigDecimal vwap) {
+        this.vwap = vwap;
+    }
+
+    @Column(name = "volume")
+    public long getVolume() {
+        return volume;
+    }
+    public void setVolume(final long volume) {
+        this.volume = volume;
+    }
+
+    @Column(name = "epoch_seconds")
+    public long getEpochSeconds() {
+        return epochSeconds;
+    }
+    public void setEpochSeconds(final long epochSeconds) {
+        this.epochSeconds = epochSeconds;
+    }
+    
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -79,104 +179,5 @@ public class AssetDay extends BaseEntity {
         } else if (!vwap.equals(other.vwap))
             return false;
         return true;
-    }
-
-    private static final long serialVersionUID = 1L;
-    private String type;
-    private String symbol;
-    private BigDecimal open;
-    private BigDecimal close;
-    private BigDecimal high;
-    private BigDecimal low;
-    private long epochSeconds;
-    private long volume;
-    private BigDecimal vwap;
-    private Set<AssetMinute> assetMinutes;
-
-    public AssetDay() {
-        super();
-        setType("AssetDay");
-        this.setIdentifier("AssetDay");
-    }
-
-    public String getSymbol() {
-        return symbol;
-    }
-
-    public void setSymbol(final String symbol) {
-        this.symbol = symbol;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(final String type) {
-        this.type = type;
-    }
-
-    @OneToMany(mappedBy = "assetDay", cascade = CascadeType.ALL)
-    public Set<AssetMinute> getAssetMinutes() {
-        return assetMinutes;
-    }
-
-    public void setAssetMinutes(final Set<AssetMinute> assetMinutes) {
-        this.assetMinutes = assetMinutes;
-    }
-
-    public BigDecimal getLow() {
-        return low;
-    }
-
-    public void setLow(final BigDecimal low) {
-        this.low = low;
-    }
-
-    public BigDecimal getHigh() {
-        return high;
-    }
-
-    public void setHigh(final BigDecimal high) {
-        this.high = high;
-    }
-
-    public BigDecimal getClose() {
-        return close;
-    }
-
-    public void setClose(final BigDecimal close) {
-        this.close = close;
-    }
-
-    public BigDecimal getOpen() {
-        return open;
-    }
-
-    public void setOpen(final BigDecimal open) {
-        this.open = open;
-    }
-
-    public BigDecimal getVwap() {
-        return vwap;
-    }
-
-    public void setVwap(final BigDecimal vwap) {
-        this.vwap = vwap;
-    }
-
-    public long getVolume() {
-        return volume;
-    }
-
-    public void setVolume(final long volume) {
-        this.volume = volume;
-    }
-
-    public long getEpochSeconds() {
-        return epochSeconds;
-    }
-
-    public void setEpochSeconds(final long epochSeconds) {
-        this.epochSeconds = epochSeconds;
     }
 }

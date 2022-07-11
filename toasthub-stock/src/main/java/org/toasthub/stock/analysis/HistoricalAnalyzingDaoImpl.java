@@ -19,36 +19,38 @@ package org.toasthub.stock.analysis;
 import java.math.BigDecimal;
 import java.util.List;
 
-import javax.persistence.EntityManager;
 import javax.persistence.Query;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import org.toasthub.core.common.EntityManagerDataSvc;
+import org.toasthub.core.general.model.GlobalConstant;
+import org.toasthub.core.general.model.RestRequest;
+import org.toasthub.core.general.model.RestResponse;
 import org.toasthub.stock.model.EMA;
 import org.toasthub.stock.model.HistoricalAnalysis;
 import org.toasthub.stock.model.LBB;
 import org.toasthub.stock.model.MACD;
 import org.toasthub.stock.model.SL;
 import org.toasthub.stock.model.SMA;
-import org.toasthub.utils.GlobalConstant;
-import org.toasthub.utils.Request;
-import org.toasthub.utils.Response;
+import org.toasthub.stock.model.TradeConstant;
 
-@Repository("HistoricalAnalyzingDao")
-@Transactional()
+
+@Repository("TAHistoricalAnalyzingDao")
+@Transactional("TransactionManagerData")
 public class HistoricalAnalyzingDaoImpl implements HistoricalAnalyzingDao {
 
 	@Autowired
-	protected EntityManager entityManager;
+	protected EntityManagerDataSvc entityManagerDataSvc;
 
 	@Override
-	public void delete(Request request, Response response){
+	public void delete(RestRequest request, RestResponse response) throws Exception {
 		if (request.containsParam(GlobalConstant.ITEMID) && !"".equals(request.getParam(GlobalConstant.ITEMID))) {
 
-			HistoricalAnalysis historicalAnalysis = (HistoricalAnalysis) entityManager.getReference(HistoricalAnalysis.class,
+			HistoricalAnalysis historicalAnalysis = (HistoricalAnalysis) entityManagerDataSvc.getInstance().getReference(HistoricalAnalysis.class,
 					Long.valueOf((Integer) request.getParam(GlobalConstant.ITEMID)));
-			entityManager.remove(historicalAnalysis);
+			entityManagerDataSvc.getInstance().remove(historicalAnalysis);
 
 		} else {
 			// utilSvc.addStatus(Response.ERROR, Response.ACTIONFAILED, "Missing ID",
@@ -57,30 +59,30 @@ public class HistoricalAnalyzingDaoImpl implements HistoricalAnalyzingDao {
 	}
 
 	@Override
-	public void save(Request request, Response response) throws Exception {
-		entityManager.merge( (Object) response.getParam(GlobalConstant.ITEM));
+	public void save(RestRequest request, RestResponse response) throws Exception {
+		entityManagerDataSvc.getInstance().merge( (Object) response.getParam(GlobalConstant.ITEM));
 	}
 
 	@Override
-	public void items(Request request, Response response) throws Exception {
+	public void items(RestRequest request, RestResponse response) throws Exception {
 		String queryStr = "SELECT DISTINCT x FROM "
-		+request.getParam(GlobalConstant.IDENTIFIER)
+		+request.getParam(TradeConstant.IDENTIFIER)
 		+" AS x ";
 
-		Query query = entityManager.createQuery(queryStr);
+		Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
 		List<?> items = query.getResultList();
 
 		response.addParam(GlobalConstant.ITEMS, items);
 	}
 
 	@Override
-	public void itemCount(Request request, Response response) throws Exception {
+	public void itemCount(RestRequest request, RestResponse response) throws Exception {
 		String queryStr = "SELECT COUNT(DISTINCT x) FROM "
-		+request.getParam(GlobalConstant.IDENTIFIER)
+		+request.getParam(TradeConstant.IDENTIFIER)
 		+" as x ";
 
 		boolean and = false;
-		if (request.containsParam(GlobalConstant.EPOCHSECONDS)) {
+		if (request.containsParam(TradeConstant.EPOCHSECONDS)) {
 			if (!and)
 				queryStr += " WHERE ";
 			else
@@ -89,7 +91,7 @@ public class HistoricalAnalyzingDaoImpl implements HistoricalAnalyzingDao {
 			queryStr += "x.epochSeconds =:epochSeconds ";
 			and = true;
 		}
-		if (request.containsParam(GlobalConstant.SYMBOL)) {
+		if (request.containsParam(TradeConstant.SYMBOL)) {
 			if (!and)
 				queryStr += " WHERE ";
 			else
@@ -98,7 +100,7 @@ public class HistoricalAnalyzingDaoImpl implements HistoricalAnalyzingDao {
 			queryStr += "x.stock =:stock ";
 			and = true;
 		}
-		if (request.containsParam(GlobalConstant.TYPE)) {
+		if (request.containsParam(TradeConstant.TYPE)) {
 			if (!and)
 				queryStr += " WHERE ";
 			else
@@ -108,16 +110,16 @@ public class HistoricalAnalyzingDaoImpl implements HistoricalAnalyzingDao {
 			and = true;
 		}
 
-		Query query = entityManager.createQuery(queryStr);
+		Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
 
-		if (request.containsParam(GlobalConstant.EPOCHSECONDS)) {
-			query.setParameter("epochSeconds", (long)request.getParam(GlobalConstant.EPOCHSECONDS));
+		if (request.containsParam(TradeConstant.EPOCHSECONDS)) {
+			query.setParameter("epochSeconds", (long)request.getParam(TradeConstant.EPOCHSECONDS));
 		}
-		if (request.containsParam(GlobalConstant.TYPE)) {
-			query.setParameter("type", (String) request.getParam(GlobalConstant.TYPE));
+		if (request.containsParam(TradeConstant.TYPE)) {
+			query.setParameter("type", (String) request.getParam(TradeConstant.TYPE));
 		}
-		if (request.containsParam(GlobalConstant.SYMBOL)) {
-			query.setParameter("stock", (String) request.getParam(GlobalConstant.SYMBOL));
+		if (request.containsParam(TradeConstant.SYMBOL)) {
+			query.setParameter("stock", (String) request.getParam(TradeConstant.SYMBOL));
 		}
 
 		Long count = (Long) query.getSingleResult();
@@ -128,9 +130,9 @@ public class HistoricalAnalyzingDaoImpl implements HistoricalAnalyzingDao {
 	}
 
 	@Override
-	public void item(Request request, Response response) throws Exception {
+	public void item(RestRequest request, RestResponse response) throws Exception {
 		String x = "";
-		switch ((String) request.getParam(GlobalConstant.IDENTIFIER)) {
+		switch ((String) request.getParam(TradeConstant.IDENTIFIER)) {
 			case "SMA":
 				x = "SMA";
 				break;
@@ -156,10 +158,10 @@ public class HistoricalAnalyzingDaoImpl implements HistoricalAnalyzingDao {
 		+ " WHERE x.epochSeconds =:epochSeconds"
 		+ " AND x.type =: type AND x.stock =:stock";
 
-		Query query = entityManager.createQuery(queryStr);
-		query.setParameter("epochSeconds", request.getParam(GlobalConstant.EPOCHSECONDS));
-		query.setParameter("type", request.getParam(GlobalConstant.TYPE));
-		query.setParameter("stock", request.getParam(GlobalConstant.SYMBOL));
+		Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+		query.setParameter("epochSeconds", request.getParam(TradeConstant.EPOCHSECONDS));
+		query.setParameter("type", request.getParam(TradeConstant.TYPE));
+		query.setParameter("stock", request.getParam(TradeConstant.SYMBOL));
 		Object result = query.getSingleResult();
 
 		response.addParam(GlobalConstant.ITEM , result);
@@ -170,7 +172,7 @@ public class HistoricalAnalyzingDaoImpl implements HistoricalAnalyzingDao {
 		String queryStr = "SELECT DISTINCT x FROM " + alg + " AS x"
 				+ " WHERE x.epochSeconds =:epochSeconds"
 				+ " AND x.type =: type AND x.stock =:stock";
-		Query query = entityManager.createQuery(queryStr);
+		Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
 		query.setParameter("epochSeconds", epochSeconds);
 		query.setParameter("type", type);
 		query.setParameter("stock", stock);
@@ -208,4 +210,5 @@ public class HistoricalAnalyzingDaoImpl implements HistoricalAnalyzingDao {
 			}
 		}
 	}
+
 }

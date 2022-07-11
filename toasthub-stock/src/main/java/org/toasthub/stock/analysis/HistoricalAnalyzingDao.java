@@ -18,7 +18,8 @@ package org.toasthub.stock.analysis;
 
 import java.math.BigDecimal;
 
-import org.toasthub.common.BaseDao;
+import org.toasthub.core.common.BaseDao;
+
 
 public interface HistoricalAnalyzingDao extends BaseDao {
 	public BigDecimal queryAlgValue(String alg, String stock, String type, long epochSeconds);

@@ -12,25 +12,30 @@ import java.util.stream.Stream;
 import javax.persistence.NoResultException;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.ParseException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.stereotype.Service;
+import org.toasthub.core.general.handler.ServiceProcessor;
+import org.toasthub.core.general.model.GlobalConstant;
+import org.toasthub.core.general.model.RestRequest;
+import org.toasthub.core.general.model.RestResponse;
 import org.toasthub.stock.custom_technical_indicator.CustomTechnicalIndicatorDao;
 import org.toasthub.stock.model.CustomTechnicalIndicator;
 import org.toasthub.stock.model.RequestValidation;
 import org.toasthub.stock.model.Trade;
-import org.toasthub.utils.GlobalConstant;
-import org.toasthub.utils.Request;
-import org.toasthub.utils.Response;
+import org.toasthub.stock.model.TradeConstant;
 
-@Service("TradeSvc")
-public class TradeSvcImpl implements TradeSvc {
+@Service("TATradeSvc")
+public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 
 	@Autowired
+	@Qualifier("TATradeDao")
 	protected TradeDao tradeDao;
 
 	@Autowired
+	@Qualifier("TACustomTechnicalIndicatorDao")
 	private CustomTechnicalIndicatorDao customTechnicalIndicatorDao;
 
 	final ExpressionParser parser = new SpelExpressionParser();
@@ -42,7 +47,7 @@ public class TradeSvcImpl implements TradeSvc {
 	}
 
 	@Override
-	public void process(final Request request, final Response response) {
+	public void process(final RestRequest request, final RestResponse response) {
 		final String action = (String) request.getParams().get("action");
 
 		switch (action) {
@@ -72,9 +77,9 @@ public class TradeSvcImpl implements TradeSvc {
 	}
 
 	@Override
-	public void save(final Request request, final Response response) {
+	public void save(final RestRequest request, final RestResponse response) {
 		if ((!request.containsParam(GlobalConstant.ITEM)) || (request.getParam(GlobalConstant.ITEM) == null)) {
-			response.setStatus(Response.ERROR);
+			response.setStatus(RestResponse.ERROR);
 			return;
 		}
 
@@ -140,7 +145,7 @@ public class TradeSvcImpl implements TradeSvc {
 				RequestValidation.validateShares(request, response);
 				break;
 			default:
-				response.setStatus(Response.ERROR);
+				response.setStatus(RestResponse.ERROR);
 				return;
 		}
 
@@ -162,7 +167,7 @@ public class TradeSvcImpl implements TradeSvc {
 				RequestValidation.validateTrailingStopAmount(request, response);
 				break;
 			default:
-				response.setStatus(Response.ERROR);
+				response.setStatus(RestResponse.ERROR);
 				return;
 		}
 
@@ -309,52 +314,52 @@ public class TradeSvcImpl implements TradeSvc {
 			e.printStackTrace();
 		}
 
-		response.setStatus(Response.SUCCESS);
+		response.setStatus(RestResponse.SUCCESS);
 	}
 
 	@Override
-	public void delete(final Request request, final Response response) {
+	public void delete(final RestRequest request, final RestResponse response) {
 		try {
 			tradeDao.delete(request, response);
-			response.setStatus(Response.SUCCESS);
+			response.setStatus(RestResponse.SUCCESS);
 		} catch (final Exception e) {
-			response.setStatus(Response.ACTIONFAILED);
+			response.setStatus(RestResponse.ACTIONFAILED);
 			e.printStackTrace();
 		}
 
 	}
 
-	public void reset(final Request request, final Response response) {
+	public void reset(final RestRequest request, final RestResponse response) {
 		try {
 			tradeDao.resetTrade(request, response);
-			response.setStatus(Response.SUCCESS);
+			response.setStatus(RestResponse.SUCCESS);
 		} catch (final Exception e) {
-			response.setStatus(Response.ACTIONFAILED);
+			response.setStatus(RestResponse.ACTIONFAILED);
 			e.printStackTrace();
 		}
 
 	}
 
 	@Override
-	public void item(final Request request, final Response response) {
+	public void item(final RestRequest request, final RestResponse response) {
 		try {
 			tradeDao.item(request, response);
-			response.setStatus(Response.SUCCESS);
+			response.setStatus(RestResponse.SUCCESS);
 		} catch (final Exception e) {
-			response.setStatus(Response.ACTIONFAILED);
+			response.setStatus(RestResponse.ACTIONFAILED);
 			e.printStackTrace();
 		}
 
 	}
 
 	@Override
-	public void items(final Request request, final Response response) {
+	public void items(final RestRequest request, final RestResponse response) {
 		try {
 			tradeDao.itemCount(request, response);
 			if ((Long) response.getParam(GlobalConstant.ITEMCOUNT) > 0) {
 				tradeDao.items(request, response);
 
-				for (final Object o : ArrayList.class.cast(response.getParam(GlobalConstant.TRADES))) {
+				for (final Object o : ArrayList.class.cast(response.getParam(TradeConstant.TRADES))) {
 					final Trade trade = Trade.class.cast(o);
 
 					String[] stringArr1 = trade.getParseableBuyCondition().split(" ");
@@ -400,15 +405,15 @@ public class TradeSvcImpl implements TradeSvc {
 					trade.setSellCondition(String.join(" ", stringArr2));
 				}
 			}
-			response.setStatus(Response.SUCCESS);
+			response.setStatus(RestResponse.SUCCESS);
 		} catch (final Exception e) {
-			response.setStatus(Response.ACTIONFAILED);
+			response.setStatus(RestResponse.ACTIONFAILED);
 			e.printStackTrace();
 		}
 
 	}
 
-	public void getSymbolData(final Request request, final Response response) {
+	public void getSymbolData(final RestRequest request, final RestResponse response) {
 		if (request.getParam("FIRST_POINT") == null || request.getParam("LAST_POINT") == null
 				|| request.getParam("SYMBOL") == null || request.getParam("EVALUATION_PERIOD") == null ) {
 			return;
@@ -416,7 +421,7 @@ public class TradeSvcImpl implements TradeSvc {
 		tradeDao.getSymbolData(request, response);
 	}
 
-	public void validateBuyCondition(final Request request, final Response response) {
+	public void validateBuyCondition(final RestRequest request, final RestResponse response) {
 		String initialString = "";
 
 		if (request.getParam("buyCondition") instanceof String) {
@@ -444,8 +449,9 @@ public class TradeSvcImpl implements TradeSvc {
 				response.setStatus("Invalid technical indicator in buy condition");
 				testStrings.add("true");
 				return s;
+			} catch (final Exception e) {
 			}
-
+			
 			final CustomTechnicalIndicator c = CustomTechnicalIndicator.class.cast(response.getParam(GlobalConstant.ITEM));
 
 			if (!c.getEvaluationPeriod().equals((String) request.getParam("evaluationPeriod"))) {
@@ -480,7 +486,7 @@ public class TradeSvcImpl implements TradeSvc {
 		request.addParam("BUY_CONDITION", str);
 	}
 
-	public void validateSellCondition(final Request request, final Response response) {
+	public void validateSellCondition(final RestRequest request, final RestResponse response) {
 		String initialString = "";
 
 		if (request.getParam("sellCondition") instanceof String) {
@@ -506,6 +512,7 @@ public class TradeSvcImpl implements TradeSvc {
 				response.setStatus("Invalid technical indicator in sell condition");
 				testStrings.add("true");
 				return s;
+			} catch (final Exception e) {
 			}
 
 			final CustomTechnicalIndicator c = CustomTechnicalIndicator.class.cast(response.getParam(GlobalConstant.ITEM));

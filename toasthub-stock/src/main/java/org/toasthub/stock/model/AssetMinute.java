@@ -2,19 +2,18 @@ package org.toasthub.stock.model;
 
 import java.math.BigDecimal;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
-import org.toasthub.common.BaseEntity;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "ta_asset_minute")
-public class AssetMinute extends BaseEntity {
+public class AssetMinute extends TradeBaseEntity {
 
     private static final long serialVersionUID = 1L;
     private AssetDay assetDay;
@@ -25,32 +24,34 @@ public class AssetMinute extends BaseEntity {
     private BigDecimal vwap;
     private String type;
 
+    // Constructors
     public AssetMinute() {
         super();
         this.setIdentifier("AssetMinute");
         this.setType("AssetMinute");
     }
 
+    // Setter/Getter
+    @Column(name = "symbol")
     public String getSymbol() {
         return symbol;
     }
-
     public void setSymbol(final String symbol) {
         this.symbol = symbol;
     }
 
+    @Column(name = "type")
     public String getType() {
         return type;
     }
-
     public void setType(final String type) {
         this.type = type;
     }
 
+    @Column(name = "value")
     public BigDecimal getValue() {
         return value;
     }
-
     public void setValue(final BigDecimal value) {
         this.value = value;
     }
@@ -61,7 +62,6 @@ public class AssetMinute extends BaseEntity {
     public AssetDay getAssetDay() {
         return assetDay;
     }
-
     public void setAssetDay(final AssetDay assetDay) {
         this.assetDay = assetDay;
     }
@@ -115,26 +115,26 @@ public class AssetMinute extends BaseEntity {
         return true;
     }
 
+    @Column(name = "vwap")
     public BigDecimal getVwap() {
         return vwap;
     }
-
     public void setVwap(final BigDecimal vwap) {
         this.vwap = vwap;
     }
 
+    @Column(name = "volume")
     public long getVolume() {
         return volume;
     }
-
     public void setVolume(final long volume) {
         this.volume = volume;
     }
 
+    @Column(name = "epoch_seconds")
     public long getEpochSeconds() {
         return epochSeconds;
     }
-
     public void setEpochSeconds(final long epochSeconds) {
         this.epochSeconds = epochSeconds;
     }

@@ -2,19 +2,74 @@ package org.toasthub.stock.model;
 
 import java.math.BigDecimal;
 
+import javax.persistence.Column;
 import javax.persistence.MappedSuperclass;
 
-import org.toasthub.common.BaseEntity;
 
 @MappedSuperclass()
-public abstract class BaseAlg extends BaseEntity {
+public abstract class BaseAlg extends TradeBaseEntity {
 
-    /**
-    * 
-    */
     private static final long serialVersionUID = 1L;
-    private String symbol = "";
+    protected String symbol = "";
+    protected BigDecimal value = BigDecimal.ZERO;
+    protected String type = "";
+    protected long epochSeconds = 0;
+    protected long correspondingDay = 0;
 
+    // Constructor
+    public BaseAlg() {
+        super();
+    }
+    public BaseAlg(final String symbol) {
+        super();
+    }
+
+    public BaseAlg(final String code, final Boolean defaultLang, final String dir) {
+        super();
+    }
+
+    // Setter/Getter
+    @Column(name = "corresponding_day")
+    public long getCorrespondingDay() {
+        return correspondingDay;
+    }
+    public void setCorrespondingDay(final long correspondingDay) {
+        this.correspondingDay = correspondingDay;
+    }
+
+    @Column(name = "type")
+    public String getType() {
+        return type;
+    }
+    public void setType(final String type) {
+        this.type = type;
+    }
+
+    @Column(name = "value")
+    public BigDecimal getValue() {
+        return value;
+    }
+    public void setValue(final BigDecimal value) {
+        this.value = value;
+    }
+
+    @Column(name = "symbol")
+    public String getSymbol() {
+        return symbol;
+    }
+    public void setSymbol(final String symbol) {
+        this.symbol = symbol;
+    }
+
+    @Column(name = "epoch_seconds")
+    public long getEpochSeconds() {
+        return epochSeconds;
+    }
+    public void setEpochSeconds(final long epochSeconds) {
+
+        this.epochSeconds = epochSeconds;
+    }
+    
     @Override
     protected Object clone() throws CloneNotSupportedException {
         return super.clone();
@@ -63,62 +118,4 @@ public abstract class BaseAlg extends BaseEntity {
         return true;
     }
 
-    private BigDecimal value = BigDecimal.ZERO;
-    private String type = "";
-    private long epochSeconds = 0;
-    private long correspondingDay = 0;
-
-    public BaseAlg() {
-        super();
-    }
-
-    public long getCorrespondingDay() {
-        return correspondingDay;
-    }
-
-    public void setCorrespondingDay(final long correspondingDay) {
-        this.correspondingDay = correspondingDay;
-    }
-
-    public BaseAlg(final String symbol) {
-        super();
-    }
-
-    public BaseAlg(final String code, final Boolean defaultLang, final String dir) {
-        super();
-    }
-
-    // getters and setters
-    public String getType() {
-        return type;
-    }
-
-    public void setType(final String type) {
-        this.type = type;
-    }
-
-    public BigDecimal getValue() {
-        return value;
-    }
-
-    public void setValue(final BigDecimal value) {
-        this.value = value;
-    }
-
-    public String getSymbol() {
-        return symbol;
-    }
-
-    public void setSymbol(final String symbol) {
-        this.symbol = symbol;
-    }
-
-    public long getEpochSeconds() {
-        return epochSeconds;
-    }
-
-    public void setEpochSeconds(final long epochSeconds) {
-
-        this.epochSeconds = epochSeconds;
-    }
 }
