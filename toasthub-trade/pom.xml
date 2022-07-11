@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>org.toasthub</groupId>
-	<artifactId>toasthub-stock</artifactId>
+	<artifactId>toasthub-trade</artifactId>
 	<version>1.0-SNAPSHOT</version>
-	<name>toasthub-stock</name>
-	<description>toasthub-stock module</description>
+	<name>toasthub-trade</name>
+	<description>toasthub-trade module</description>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
