@@ -6,24 +6,29 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.toasthub.core.general.handler.ServiceProcessor;
+import org.toasthub.core.general.model.GlobalConstant;
+import org.toasthub.core.general.model.RestRequest;
+import org.toasthub.core.general.model.RestResponse;
 import org.toasthub.stock.algorithm.AlgorithmCruncherSvc;
 import org.toasthub.stock.custom_technical_indicator.CustomTechnicalIndicatorDao;
 import org.toasthub.stock.model.CustomTechnicalIndicator;
 import org.toasthub.stock.model.Symbol;
 import org.toasthub.stock.model.TechnicalIndicator;
+import org.toasthub.stock.model.TradeConstant;
 import org.toasthub.stock.model.TradeSignalCache;
-import org.toasthub.utils.GlobalConstant;
-import org.toasthub.utils.Request;
-import org.toasthub.utils.Response;
 
-@Service("CacheSvc")
-public class CacheSvcImpl implements CacheSvc {
+@Service("TACacheSvc")
+public class CacheSvcImpl implements ServiceProcessor, CacheSvc {
 
     @Autowired
+    @Qualifier("TACacheDao")
     private CacheDao cacheDao;
 
     @Autowired
+    @Qualifier("TACustomTechnicalIndicatorDao")
     private CustomTechnicalIndicatorDao customTechnicalIndicatorDao;
 
     @Autowired
@@ -33,10 +38,11 @@ public class CacheSvcImpl implements CacheSvc {
     private CacheManager cacheManager;
 
     @Autowired
+    @Qualifier("TAAlgorithmCruncherSvc")
     private AlgorithmCruncherSvc algorithmCruncherSvc;
 
     @Override
-    public void process(final Request request, final Response response) {
+    public void process(final RestRequest request, final RestResponse response) {
         final String action = (String) request.getParams().get("action");
         switch (action) {
             case "ITEM":
@@ -54,7 +60,7 @@ public class CacheSvcImpl implements CacheSvc {
             case "BACKLOAD":
                 algorithmCruncherSvc.backloadAlg(request, response);
                 cacheManager.backloadTechnicalIndicator(request, response);
-                response.setStatus(Response.SUCCESS);
+                response.setStatus(RestResponse.SUCCESS);
                 break;
             default:
                 System.out.println(action + "is not recognized as an action as cachesvc");
@@ -64,7 +70,7 @@ public class CacheSvcImpl implements CacheSvc {
     }
 
     @Override
-    public void save(final Request request, final Response response) {
+    public void save(final RestRequest request, final RestResponse response) {
         final Collection<String> symbols = new ArrayList<String>();
 
         for (final Object o : ArrayList.class.cast(request.getParam("SYMBOLS"))) {
@@ -75,7 +81,7 @@ public class CacheSvcImpl implements CacheSvc {
                 .distinct()
                 .filter(symbol -> Arrays.asList(Symbol.SYMBOLS).contains(symbol))
                 .forEach(symbol -> {
-                    request.addParam(GlobalConstant.SYMBOL, symbol);
+                    request.addParam(TradeConstant.SYMBOL, symbol);
                     try {
                         cacheDao.itemCount(request, response);
                     } catch (final Exception e) {
@@ -124,22 +130,22 @@ public class CacheSvcImpl implements CacheSvc {
                     }
                 });
 
-        response.setStatus(Response.SUCCESS);
+        response.setStatus(RestResponse.SUCCESS);
 
     }
 
     @Override
-    public void delete(final Request request, final Response response) {
+    public void delete(final RestRequest request, final RestResponse response) {
 
     }
 
     @Override
-    public void item(final Request request, final Response response) {
+    public void item(final RestRequest request, final RestResponse response) {
 
     }
 
     @Override
-    public void items(final Request request, final Response response) {
+    public void items(final RestRequest request, final RestResponse response) {
         try {
             customTechnicalIndicatorDao.items(request, response);
         } catch (final Exception e) {

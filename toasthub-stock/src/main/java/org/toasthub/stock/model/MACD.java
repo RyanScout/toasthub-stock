@@ -32,11 +32,9 @@ import javax.persistence.Table;
 //Moving Average Convergence/Divergence Indicator
 public class MACD extends BaseAlg{
 
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
 
+	// Constructors
 	public MACD() {
 		super();
 		this.setActive(true);
@@ -64,6 +62,7 @@ public class MACD extends BaseAlg{
 		this.setIdentifier("MACD");
 	}
 
+	// Methods
 	public static BigDecimal calculateMACD(List<BigDecimal> list){
         List<BigDecimal> trimmedList = list.subList(list.size()-25, list.size());
         BigDecimal longEMA = EMA.calculateEMA(trimmedList);

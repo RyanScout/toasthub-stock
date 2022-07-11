@@ -8,27 +8,31 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.toasthub.core.general.handler.ServiceProcessor;
+import org.toasthub.core.general.model.GlobalConstant;
+import org.toasthub.core.general.model.RestRequest;
+import org.toasthub.core.general.model.RestResponse;
 import org.toasthub.stock.cache.CacheSvc;
 import org.toasthub.stock.model.CustomTechnicalIndicator;
 import org.toasthub.stock.model.RequestValidation;
 import org.toasthub.stock.model.Symbol;
 import org.toasthub.stock.model.TechnicalIndicator;
-import org.toasthub.utils.GlobalConstant;
-import org.toasthub.utils.Request;
-import org.toasthub.utils.Response;
 
-@Service("CustomTechnicalIndicatorSvc")
-public class CustomTechnicalIndicatorSvcImpl implements CustomTechnicalIndicatorSvc {
+@Service("TACustomTechnicalIndicatorSvc")
+public class CustomTechnicalIndicatorSvcImpl implements ServiceProcessor, CustomTechnicalIndicatorSvc {
 
     @Autowired
+    @Qualifier("TACustomTechnicalIndicatorDao")
     private CustomTechnicalIndicatorDao customTechnicalIndicatorDao;
 
     @Autowired
+    @Qualifier("TACacheSvc")
     private CacheSvc cacheSvc;
 
     @Override
-    public void process(Request request, Response response) {
+    public void process(RestRequest request, RestResponse response) {
         String action = (String) request.getParams().get("action");
         switch (action) {
             case "ITEM":
@@ -47,11 +51,11 @@ public class CustomTechnicalIndicatorSvcImpl implements CustomTechnicalIndicator
     }
 
     @Override
-    public void save(Request request, Response response) {
+    public void save(RestRequest request, RestResponse response) {
         response.setStatus("Starting !");
 
         if ((!request.containsParam(GlobalConstant.ITEM)) || (request.getParam(GlobalConstant.ITEM) == null)) {
-            response.setStatus(Response.ERROR);
+            response.setStatus(RestResponse.ERROR);
             return;
         }
 
@@ -144,7 +148,7 @@ public class CustomTechnicalIndicatorSvcImpl implements CustomTechnicalIndicator
             }
 
             if ((long) response.getParam(GlobalConstant.ITEMCOUNT) > 0) {
-                response.setStatus(Response.ERROR);
+                response.setStatus(RestResponse.ERROR);
                 return;
             }
         }
@@ -220,16 +224,16 @@ public class CustomTechnicalIndicatorSvcImpl implements CustomTechnicalIndicator
 
         cacheSvc.save(request, response);
 
-        response.setStatus(Response.SUCCESS);
+        response.setStatus(RestResponse.SUCCESS);
     }
 
     @Override
-    public void delete(Request request, Response response) {
+    public void delete(RestRequest request, RestResponse response) {
         try {
 			customTechnicalIndicatorDao.delete(request, response);
-			response.setStatus(Response.SUCCESS);
+			response.setStatus(RestResponse.SUCCESS);
 		} catch (Exception e) {
-			response.setStatus(Response.ACTIONFAILED);
+			response.setStatus(RestResponse.ACTIONFAILED);
 			e.printStackTrace();
 		}
 
@@ -237,12 +241,12 @@ public class CustomTechnicalIndicatorSvcImpl implements CustomTechnicalIndicator
     }
 
     @Override
-    public void item(Request request, Response response) {
+    public void item(RestRequest request, RestResponse response) {
 
     }
 
     @Override
-    public void items(Request request, Response response) {
+    public void items(RestRequest request, RestResponse response) {
     }
 
 }
