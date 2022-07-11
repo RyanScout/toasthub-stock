@@ -3,12 +3,12 @@ package org.toasthub.stock.model;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-import org.toasthub.utils.Request;
-import org.toasthub.utils.Response;
+import org.toasthub.core.general.model.RestRequest;
+import org.toasthub.core.general.model.RestResponse;
 
 public class RequestValidation {
 
-    public static void validateShortSMAType(Request request, Response response) {
+    public static void validateShortSMAType(RestRequest request, RestResponse response) {
         String string = "";
         String substring = "";
         int i = 0;
@@ -16,7 +16,7 @@ public class RequestValidation {
         string = (String) request.getParam("shortSMAType");
 
         if (!string.endsWith("-" + ((String) request.getParam("EVALUATION_PERIOD")).toLowerCase())) {
-            response.setStatus(Response.ERROR);
+            response.setStatus(RestResponse.ERROR);
             return;
         }
 
@@ -25,7 +25,7 @@ public class RequestValidation {
         try {
             i = Integer.parseInt(substring);
         } catch (NumberFormatException e) {
-            response.setStatus(Response.ERROR);
+            response.setStatus(RestResponse.ERROR);
             return;
         }
 
@@ -37,7 +37,7 @@ public class RequestValidation {
         request.addParam("SHORT_SMA_TYPE", request.getParam("shortSMAType"));
     }
 
-    public static void validateLongSMAType(Request request, Response response) {
+    public static void validateLongSMAType(RestRequest request, RestResponse response) {
         String string = "";
         String substring = "";
         int i = 0;
@@ -45,7 +45,7 @@ public class RequestValidation {
         string = (String) request.getParam("longSMAType");
 
         if (!string.endsWith("-" + ((String) request.getParam("EVALUATION_PERIOD")).toLowerCase())) {
-            response.setStatus(Response.ERROR);
+            response.setStatus(RestResponse.ERROR);
             return;
         }
         substring = string.substring(0,
@@ -53,7 +53,7 @@ public class RequestValidation {
         try {
             i = Integer.parseInt(substring);
         } catch (NumberFormatException e) {
-            response.setStatus(Response.ERROR);
+            response.setStatus(RestResponse.ERROR);
             return;
         }
 
@@ -65,7 +65,7 @@ public class RequestValidation {
         request.addParam("LONG_SMA_TYPE", request.getParam("longSMAType"));
     }
 
-    public static void validateLBBType(Request request, Response response) {
+    public static void validateLBBType(RestRequest request, RestResponse response) {
         String string = "";
         String substring = "";
         int i = 0;
@@ -73,7 +73,7 @@ public class RequestValidation {
         string = (String) request.getParam("lbbType");
 
         if (!string.endsWith("-" + ((String) request.getParam("EVALUATION_PERIOD")).toLowerCase())) {
-            response.setStatus(Response.ERROR);
+            response.setStatus(RestResponse.ERROR);
             return;
         }
         substring = string.substring(0,
@@ -81,7 +81,7 @@ public class RequestValidation {
         try {
             i = Integer.parseInt(substring);
         } catch (NumberFormatException e) {
-            response.setStatus(Response.ERROR);
+            response.setStatus(RestResponse.ERROR);
             return;
         }
 
@@ -93,7 +93,7 @@ public class RequestValidation {
         request.addParam("LBB_TYPE", (String) request.getParam("lbbType"));
     }
 
-    public static void validateUBBType(Request request, Response response) {
+    public static void validateUBBType(RestRequest request, RestResponse response) {
         String string = "";
         String substring = "";
         int i = 0;
@@ -101,7 +101,7 @@ public class RequestValidation {
         string = (String) request.getParam("ubbType");
 
         if (!string.endsWith("-" + ((String) request.getParam("EVALUATION_PERIOD")).toLowerCase())) {
-            response.setStatus(Response.ERROR);
+            response.setStatus(RestResponse.ERROR);
             return;
         }
         substring = string.substring(0,
@@ -109,7 +109,7 @@ public class RequestValidation {
         try {
             i = Integer.parseInt(substring);
         } catch (NumberFormatException e) {
-            response.setStatus(Response.ERROR);
+            response.setStatus(RestResponse.ERROR);
             return;
         }
 
@@ -121,7 +121,7 @@ public class RequestValidation {
         request.addParam("UBB_TYPE", (String) request.getParam("ubbType"));
     }
 
-    public static void validateStandardDeviations(Request request, Response response) {
+    public static void validateStandardDeviations(RestRequest request, RestResponse response) {
         BigDecimal num = BigDecimal.ZERO;
 
         if (request.getParam("standardDeviations") instanceof Integer) {
@@ -146,7 +146,7 @@ public class RequestValidation {
         request.addParam("STANDARD_DEVIATIONS", num);
     }
 
-    public static void validateDollars(Request request, Response response) {
+    public static void validateDollars(RestRequest request, RestResponse response) {
         BigDecimal num = BigDecimal.ZERO;
 
         if (request.getParam("currencyAmount") instanceof Integer) {
@@ -169,7 +169,7 @@ public class RequestValidation {
         request.addParam("CURRENCY_AMOUNT", num);
     }
 
-    public static void validateShares(Request request, Response response) {
+    public static void validateShares(RestRequest request, RestResponse response) {
         BigDecimal num = BigDecimal.ZERO;
 
         if (request.getParam("currencyAmount") instanceof Integer) {
@@ -192,7 +192,7 @@ public class RequestValidation {
         request.addParam("CURRENCY_AMOUNT", num);
     }
 
-    public static void validateTrailingStopAmount(Request request, Response response){
+    public static void validateTrailingStopAmount(RestRequest request, RestResponse response){
         BigDecimal num = BigDecimal.ZERO;
 
         if (request.getParam("trailingStopAmount") instanceof Integer) {
@@ -215,7 +215,7 @@ public class RequestValidation {
         request.addParam("TRAILING_STOP_AMOUNT", num);
     }
 
-    public static void validateProfitLimitAmount(Request request, Response response){
+    public static void validateProfitLimitAmount(RestRequest request, RestResponse response){
         BigDecimal num = BigDecimal.ZERO;
 
         if (request.getParam("profitLimitAmount") instanceof Integer) {
@@ -238,7 +238,7 @@ public class RequestValidation {
         request.addParam("PROFIT_LIMIT_AMOUNT", num);
     }
 
-    public static void validateBudget(Request request, Response response){
+    public static void validateBudget(RestRequest request, RestResponse response){
         BigDecimal num = BigDecimal.ZERO;
 
         if (request.getParam("budget") instanceof Integer) {
@@ -262,7 +262,7 @@ public class RequestValidation {
         request.addParam("BUDGET", num);
     }
 
-    public static void validateName(Request request, Response response){
+    public static void validateName(RestRequest request, RestResponse response){
         String name = "";
 
         if(request.getParam("name") instanceof String){

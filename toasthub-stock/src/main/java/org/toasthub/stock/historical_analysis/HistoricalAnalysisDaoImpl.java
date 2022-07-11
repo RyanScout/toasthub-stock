@@ -18,32 +18,33 @@ package org.toasthub.stock.historical_analysis;
 
 import java.util.List;
 
-import javax.persistence.EntityManager;
 import javax.persistence.Query;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import org.toasthub.core.common.EntityManagerDataSvc;
+import org.toasthub.core.general.model.GlobalConstant;
+import org.toasthub.core.general.model.RestRequest;
+import org.toasthub.core.general.model.RestResponse;
 import org.toasthub.stock.model.HistoricalAnalysis;
 import org.toasthub.stock.model.Trade;
-import org.toasthub.utils.GlobalConstant;
-import org.toasthub.utils.Request;
-import org.toasthub.utils.Response;
+import org.toasthub.stock.model.TradeConstant;
 
-@Repository("HistoricalAnalysisDao")
-@Transactional()
+@Repository("TAHistoricalAnalysisDao")
+@Transactional("TransactionManagerData")
 public class HistoricalAnalysisDaoImpl implements HistoricalAnalysisDao {
 
 	@Autowired
-	protected EntityManager entityManager;
+	protected EntityManagerDataSvc entityManagerDataSvc;
 
 	@Override
-	public void delete(Request request, Response response){
+	public void delete(RestRequest request, RestResponse response){
 		if (request.containsParam(GlobalConstant.ITEMID) && !"".equals(request.getParam(GlobalConstant.ITEMID))) {
 
-			HistoricalAnalysis historicalAnalysis = (HistoricalAnalysis) entityManager.getReference(HistoricalAnalysis.class,
-					new Long((Integer) request.getParam(GlobalConstant.ITEMID)));
-			entityManager.remove(historicalAnalysis);
+			HistoricalAnalysis historicalAnalysis = (HistoricalAnalysis) entityManagerDataSvc.getInstance().getReference(HistoricalAnalysis.class,
+					Long.valueOf((Integer) request.getParam(GlobalConstant.ITEMID)));
+			entityManagerDataSvc.getInstance().remove(historicalAnalysis);
 
 		} else {
 			// utilSvc.addStatus(Response.ERROR, Response.ACTIONFAILED, "Missing ID",
@@ -52,25 +53,25 @@ public class HistoricalAnalysisDaoImpl implements HistoricalAnalysisDao {
 	}
 
 	@Override
-	public void save(Request request, Response response) throws Exception {
+	public void save(RestRequest request, RestResponse response) throws Exception {
 		HistoricalAnalysis historicalAnalysis = (HistoricalAnalysis) request.getParam(GlobalConstant.ITEM);
-		entityManager.merge(historicalAnalysis);
+		entityManagerDataSvc.getInstance().merge(historicalAnalysis);
 	}
 
 	@Override
-	public void items(Request request, Response response){
+	public void items(RestRequest request, RestResponse response){
 		String queryStr = "SELECT DISTINCT x FROM HistoricalAnalysis AS x ";
-		Query query = entityManager.createQuery(queryStr);
+		Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
 		@SuppressWarnings("unchecked")
 		List<HistoricalAnalysis> historicalAnalyses = query.getResultList();
 
-		response.addParam(GlobalConstant.HISTORICAL_ANALYSES, historicalAnalyses);
+		response.addParam(TradeConstant.HISTORICAL_ANALYSES, historicalAnalyses);
 	}
 
 	@Override
-	public void itemCount(Request request, Response response){
+	public void itemCount(RestRequest request, RestResponse response){
 		String queryStr = "SELECT COUNT(DISTINCT x) FROM HistoricalAnalysis as x ";
-		Query query = entityManager.createQuery(queryStr);
+		Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
 
 		Long count = (Long) query.getSingleResult();
 		if (count == null) {
@@ -82,12 +83,12 @@ public class HistoricalAnalysisDaoImpl implements HistoricalAnalysisDao {
 
 
 	@Override
-	public void item(Request request, Response response) throws Exception {
+	public void item(RestRequest request, RestResponse response) throws Exception {
 		if (request.containsParam(GlobalConstant.ITEMID) && !"".equals(request.getParam(GlobalConstant.ITEMID))) {
 			String queryStr = "SELECT x FROM Trade AS x WHERE x.id =:id";
-			Query query = entityManager.createQuery(queryStr);
+			Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
 
-			query.setParameter("id", new Long((Integer) request.getParam(GlobalConstant.ITEMID)));
+			query.setParameter("id", Long.valueOf((Integer) request.getParam(GlobalConstant.ITEMID)));
 			Trade trade = (Trade) query.getSingleResult();
 
 			response.addParam("item", trade);

@@ -16,7 +16,9 @@
 
 package org.toasthub.stock.historical_analysis;
 
-import org.toasthub.common.BaseDao;
+
+import org.toasthub.core.common.BaseDao;
 
 public interface HistoricalAnalysisDao extends BaseDao {
+
 }

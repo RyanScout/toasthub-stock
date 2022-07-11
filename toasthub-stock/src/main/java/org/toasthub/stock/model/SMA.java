@@ -33,11 +33,9 @@ import javax.persistence.Table;
 //Simple Moving Average
 public class SMA extends BaseAlg{
 
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
 
+	// Constructors
 	public SMA() {
 		super();
 		this.setActive(true);
@@ -65,6 +63,7 @@ public class SMA extends BaseAlg{
 		this.setIdentifier("SMA");
 	}
 
+	// Methods
 	public static BigDecimal calculateSMA(final List<BigDecimal> list) {
         BigDecimal sma = BigDecimal.ZERO;
         for (int i = 0; i < list.size(); i++)

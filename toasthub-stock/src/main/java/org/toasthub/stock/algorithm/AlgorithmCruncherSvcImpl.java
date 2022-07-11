@@ -12,15 +12,19 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.persistence.NoResultException;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StopWatch;
+import org.toasthub.core.general.handler.ServiceProcessor;
+import org.toasthub.core.general.model.GlobalConstant;
+import org.toasthub.core.general.model.RestRequest;
+import org.toasthub.core.general.model.RestResponse;
 import org.toasthub.stock.model.AssetDay;
 import org.toasthub.stock.model.AssetMinute;
 import org.toasthub.stock.model.Configuration;
@@ -28,11 +32,9 @@ import org.toasthub.stock.model.LBB;
 import org.toasthub.stock.model.SMA;
 import org.toasthub.stock.model.Symbol;
 import org.toasthub.stock.model.TechnicalIndicator;
+import org.toasthub.stock.model.TradeConstant;
 import org.toasthub.stock.model.TradeSignalCache;
 import org.toasthub.stock.model.UBB;
-import org.toasthub.utils.GlobalConstant;
-import org.toasthub.utils.Request;
-import org.toasthub.utils.Response;
 
 import net.jacobpeterson.alpaca.AlpacaAPI;
 import net.jacobpeterson.alpaca.model.endpoint.marketdata.common.historical.bar.enums.BarTimePeriod;
@@ -42,13 +44,14 @@ import net.jacobpeterson.alpaca.model.endpoint.marketdata.stock.historical.bar.S
 import net.jacobpeterson.alpaca.model.endpoint.marketdata.stock.historical.bar.enums.BarAdjustment;
 import net.jacobpeterson.alpaca.model.endpoint.marketdata.stock.historical.bar.enums.BarFeed;
 
-@Service("AlgorithmCruncherSvc")
-public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
+@Service("TAAlgorithmCruncherSvc")
+public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCruncherSvc {
 
 	@Autowired
 	protected AlpacaAPI alpacaAPI;
 
 	@Autowired
+	@Qualifier("TAAlgorithmCruncherDao")
 	protected AlgorithmCruncherDao algorithmCruncherDao;
 
 	@Autowired
@@ -57,7 +60,7 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 	public final int START_OF_2022 = 1640998860;
 
 	@Override
-	public void process(final Request request, final Response response) {
+	public void process(final RestRequest request, final RestResponse response) {
 		final String action = (String) request.getParams().get("action");
 
 		switch (action) {
@@ -89,52 +92,52 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 	}
 
 	@Override
-	public void delete(final Request request, final Response response) {
+	public void delete(final RestRequest request, final RestResponse response) {
 		try {
 			algorithmCruncherDao.delete(request, response);
 			algorithmCruncherDao.itemCount(request, response);
 			if ((Long) response.getParam(GlobalConstant.ITEMCOUNT) > 0) {
 				algorithmCruncherDao.items(request, response);
 			}
-			response.setStatus(Response.SUCCESS);
+			response.setStatus(RestResponse.SUCCESS);
 		} catch (final Exception e) {
-			response.setStatus(Response.ACTIONFAILED);
+			response.setStatus(RestResponse.ACTIONFAILED);
 			e.printStackTrace();
 		}
 
 	}
 
 	@Override
-	public void item(final Request request, final Response response) {
+	public void item(final RestRequest request, final RestResponse response) {
 		try {
 			algorithmCruncherDao.item(request, response);
-			response.setStatus(Response.SUCCESS);
+			response.setStatus(RestResponse.SUCCESS);
 		} catch (final Exception e) {
-			response.setStatus(Response.ACTIONFAILED);
+			response.setStatus(RestResponse.ACTIONFAILED);
 			e.printStackTrace();
 		}
 
 	}
 
 	@Override
-	public void items(final Request request, final Response response) {
+	public void items(final RestRequest request, final RestResponse response) {
 		try {
 			algorithmCruncherDao.itemCount(request, response);
 			if ((Long) response.getParam(GlobalConstant.ITEMCOUNT) > 0) {
 				algorithmCruncherDao.items(request, response);
 			}
-			response.setStatus(Response.SUCCESS);
+			response.setStatus(RestResponse.SUCCESS);
 		} catch (final Exception e) {
-			response.setStatus(Response.ACTIONFAILED);
+			response.setStatus(RestResponse.ACTIONFAILED);
 			e.printStackTrace();
 		}
 	}
 
 	@Override
 	public void initializeDatabase() {
-		final Request request = new Request();
-		final Response response = new Response();
-		request.addParam(GlobalConstant.IDENTIFIER, "CONFIGURATION");
+		final RestRequest request = new RestRequest();
+		final RestResponse response = new RestResponse();
+		request.addParam(TradeConstant.IDENTIFIER, "CONFIGURATION");
 		try {
 			algorithmCruncherDao.itemCount(request, response);
 		} catch (final Exception e) {
@@ -169,12 +172,10 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 	}
 
 	@Override
-	public void save(final Request request, final Response response) {
-		// TODO Auto-generated method stub
-
+	public void save(final RestRequest request, final RestResponse response) {
 	}
 
-	public void backloadStockData(final Request request, final Response response) {
+	public void backloadStockData(final RestRequest request, final RestResponse response) {
 		try {
 			for (final String stockName : Symbol.STOCKSYMBOLS) {
 
@@ -285,7 +286,7 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 		}
 	}
 
-	public void backloadCryptoData(final Request request, final Response response) {
+	public void backloadCryptoData(final RestRequest request, final RestResponse response) {
 		try {
 			final Collection<Exchange> exchanges = new ArrayList<Exchange>();
 			exchanges.add(Exchange.COINBASE);
@@ -397,7 +398,7 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 	}
 
 	@Override
-	public void loadStockData(final Request request, final Response response) {
+	public void loadStockData(final RestRequest request, final RestResponse response) {
 		try {
 			for (final String stockName : Symbol.STOCKSYMBOLS) {
 				final ZonedDateTime today = ZonedDateTime.now(ZoneId.of("America/New_York")).minusSeconds(60 * 20);
@@ -431,10 +432,10 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 				AssetDay stockDay = new AssetDay();
 				final Set<AssetMinute> stockMinutes = new LinkedHashSet<AssetMinute>();
 
-				request.addParam(GlobalConstant.EPOCHSECONDS, today.truncatedTo(ChronoUnit.DAYS).toEpochSecond());
-				request.addParam(GlobalConstant.SYMBOL, stockName);
-				request.addParam(GlobalConstant.TYPE, "AssetDay");
-				request.addParam(GlobalConstant.IDENTIFIER, "AssetDay");
+				request.addParam(TradeConstant.EPOCHSECONDS, today.truncatedTo(ChronoUnit.DAYS).toEpochSecond());
+				request.addParam(TradeConstant.SYMBOL, stockName);
+				request.addParam(TradeConstant.TYPE, "AssetDay");
+				request.addParam(TradeConstant.IDENTIFIER, "AssetDay");
 
 				try {
 					algorithmCruncherDao.initializedAssetDay(request, response);
@@ -475,7 +476,7 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 	}
 
 	@Override
-	public void loadCryptoData(final Request request, final Response response) {
+	public void loadCryptoData(final RestRequest request, final RestResponse response) {
 		try {
 			final Collection<Exchange> exchanges = new ArrayList<Exchange>();
 			exchanges.add(Exchange.COINBASE);
@@ -507,10 +508,10 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 				AssetDay cryptoDay = new AssetDay();
 				final Set<AssetMinute> cryptoMinutes = new LinkedHashSet<AssetMinute>();
 
-				request.addParam(GlobalConstant.EPOCHSECONDS, today.truncatedTo(ChronoUnit.DAYS).toEpochSecond());
-				request.addParam(GlobalConstant.SYMBOL, cryptoName);
-				request.addParam(GlobalConstant.TYPE, "AssetDay");
-				request.addParam(GlobalConstant.IDENTIFIER, "AssetDay");
+				request.addParam(TradeConstant.EPOCHSECONDS, today.truncatedTo(ChronoUnit.DAYS).toEpochSecond());
+				request.addParam(TradeConstant.SYMBOL, cryptoName);
+				request.addParam(TradeConstant.TYPE, "AssetDay");
+				request.addParam(TradeConstant.IDENTIFIER, "AssetDay");
 
 				try {
 					algorithmCruncherDao.initializedAssetDay(request, response);
@@ -551,9 +552,9 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 	}
 
 	@Override
-	public void loadAlgorithmData(final Request request, final Response response) {
+	public void loadAlgorithmData(final RestRequest request, final RestResponse response) {
 
-		request.addParam(GlobalConstant.IDENTIFIER, "TECHNICAL_INDICATOR");
+		request.addParam(TradeConstant.IDENTIFIER, "TECHNICAL_INDICATOR");
 
 		try {
 			algorithmCruncherDao.items(request, response);
@@ -592,8 +593,8 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 
 			request.addParam("STARTING_EPOCH_SECONDS", now.minusDays(1000).toEpochSecond());
 			request.addParam("ENDING_EPOCH_SECONDS", now.plusDays(1000).toEpochSecond());
-			request.addParam(GlobalConstant.IDENTIFIER, "AssetDay");
-			request.addParam(GlobalConstant.SYMBOL, symbol);
+			request.addParam(TradeConstant.IDENTIFIER, "AssetDay");
+			request.addParam(TradeConstant.SYMBOL, symbol);
 
 			try {
 				algorithmCruncherDao.items(request, response);
@@ -613,8 +614,8 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 
 			request.addParam("STARTING_EPOCH_SECONDS", now.minusMinutes(1000).toEpochSecond());
 			request.addParam("ENDING_EPOCH_SECONDS", now.plusMinutes(1000).toEpochSecond());
-			request.addParam(GlobalConstant.IDENTIFIER, "AssetMinute");
-			request.addParam(GlobalConstant.SYMBOL, symbol);
+			request.addParam(TradeConstant.IDENTIFIER, "AssetMinute");
+			request.addParam(TradeConstant.SYMBOL, symbol);
 
 			try {
 				algorithmCruncherDao.items(request, response);
@@ -735,11 +736,11 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 	}
 
 	@Override
-	public void backloadAlg(final Request request, final Response response) {
+	public void backloadAlg(final RestRequest request, final RestResponse response) {
 
 		if (request.getParam(GlobalConstant.ITEMID) == null) {
 			System.out.println("No item id");
-			response.setStatus(Response.ERROR);
+			response.setStatus(RestResponse.ERROR);
 			return;
 		}
 
@@ -748,7 +749,7 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 		final TechnicalIndicator t = (TechnicalIndicator) response.getParam(GlobalConstant.ITEM);
 
 		if (t.isUpdating()) {
-			response.setStatus(Response.ERROR);
+			response.setStatus(RestResponse.ERROR);
 			return;
 		}
 
@@ -765,7 +766,7 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 		tradeSignalCache.insertTechnicalIndicator(t);
 
 		request.addParam("ENDING_EPOCH_SECONDS", t.getLastCheck());
-		request.addParam(GlobalConstant.SYMBOL, t.getSymbol());
+		request.addParam(TradeConstant.SYMBOL, t.getSymbol());
 
 		switch (t.getTechnicalIndicatorType()) {
 			case TechnicalIndicator.GOLDENCROSS:
@@ -784,19 +785,19 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 				break;
 			default:
 				System.out.println("INVALID TECHINCAL INDICATOR TYPE AT ALGORITHMCRUCNHERSVC BACKLOADALG");
-				response.setStatus(Response.ERROR);
+				response.setStatus(RestResponse.ERROR);
 				return;
 		}
 
-		response.setStatus(Response.SUCCESS);
+		response.setStatus(RestResponse.SUCCESS);
 	}
 
-	public void backloadSMA(final Request request, final Response response) {
+	public void backloadSMA(final RestRequest request, final RestResponse response) {
 		final Set<SMA> smaSet = new HashSet<SMA>();
 
 		final String shortSMAType = (String) request.getParam("SHORT_SMA_TYPE");
 		final String longSMAType = (String) request.getParam("LONG_SMA_TYPE");
-		final String symbol = (String) request.getParam(GlobalConstant.SYMBOL);
+		final String symbol = (String) request.getParam(TradeConstant.SYMBOL);
 
 		final int daysToBackload = (int) request.getParam("DAYS_TO_BACKLOAD");
 
@@ -823,9 +824,9 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 						final String smaType = sma.getType();
 						final int smaPeriod = Integer.valueOf(smaType.substring(0, smaType.indexOf("-")));
 
-						request.addParam(GlobalConstant.IDENTIFIER, "SMA");
-						request.addParam(GlobalConstant.TYPE, smaType);
-						request.addParam(GlobalConstant.SYMBOL, symbol);
+						request.addParam(TradeConstant.IDENTIFIER, "SMA");
+						request.addParam(TradeConstant.TYPE, smaType);
+						request.addParam(TradeConstant.SYMBOL, symbol);
 
 						final long endingEpochSeconds = (long) request.getParam("ENDING_EPOCH_SECONDS");
 						final long startingEpochSeconds = endingEpochSeconds
@@ -834,7 +835,7 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 						request.addParam("STARTING_EPOCH_SECONDS", startingEpochSeconds);
 						request.addParam("ENDING_EPOCH_SECONDS", endingEpochSeconds);
 
-						request.addParam(GlobalConstant.IDENTIFIER, "AssetDay");
+						request.addParam(TradeConstant.IDENTIFIER, "AssetDay");
 
 						try {
 							algorithmCruncherDao.items(request, response);
@@ -862,7 +863,7 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 											.sorted((a, b) -> (int) (a.getEpochSeconds() - b.getEpochSeconds()))
 											.collect(Collectors.toCollection(ArrayList::new));
 
-									request.addParam(GlobalConstant.IDENTIFIER, "AssetMinute");
+									request.addParam(TradeConstant.IDENTIFIER, "AssetMinute");
 									request.addParam("STARTING_EPOCH_SECONDS", assetDay.getEpochSeconds());
 									request.addParam("ENDING_EPOCH_SECONDS",
 											assetDay.getEpochSeconds() + (60 * 60 * 24));
@@ -931,10 +932,10 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 		}
 	}
 
-	public void backloadLBB(final Request request, final Response response) {
+	public void backloadLBB(final RestRequest request, final RestResponse response) {
 
 		final String lbbType = (String) request.getParam("LBB_TYPE");
-		final String symbol = (String) request.getParam(GlobalConstant.SYMBOL);
+		final String symbol = (String) request.getParam(TradeConstant.SYMBOL);
 
 		final BigDecimal standardDeviations = (BigDecimal) request.getParam("STANDARD_DEVIATIONS");
 
@@ -950,9 +951,9 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 
 		final int lbbPeriod = Integer.valueOf(lbbType.substring(0, lbbType.indexOf("-")));
 
-		request.addParam(GlobalConstant.IDENTIFIER, "LBB");
-		request.addParam(GlobalConstant.TYPE, lbbType);
-		request.addParam(GlobalConstant.SYMBOL, symbol);
+		request.addParam(TradeConstant.IDENTIFIER, "LBB");
+		request.addParam(TradeConstant.TYPE, lbbType);
+		request.addParam(TradeConstant.SYMBOL, symbol);
 		request.addParam("STANDARD_DEVIATIONS", standardDeviations);
 
 		final long endingEpochSeconds = (long) request.getParam("ENDING_EPOCH_SECONDS");
@@ -962,7 +963,7 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 		request.addParam("STARTING_EPOCH_SECONDS", startingEpochSeconds);
 		request.addParam("ENDING_EPOCH_SECONDS", endingEpochSeconds);
 
-		request.addParam(GlobalConstant.IDENTIFIER, "AssetDay");
+		request.addParam(TradeConstant.IDENTIFIER, "AssetDay");
 
 		try {
 			algorithmCruncherDao.items(request, response);
@@ -994,7 +995,7 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 								.sorted((a, b) -> (int) (a.getEpochSeconds() - b.getEpochSeconds()))
 								.collect(Collectors.toCollection(ArrayList::new));
 
-						request.addParam(GlobalConstant.IDENTIFIER, "AssetMinute");
+						request.addParam(TradeConstant.IDENTIFIER, "AssetMinute");
 						request.addParam("STARTING_EPOCH_SECONDS", assetDay.getEpochSeconds());
 						request.addParam("ENDING_EPOCH_SECONDS",
 								assetDay.getEpochSeconds() + (60 * 60 * 24));
@@ -1063,7 +1064,7 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 		}
 	}
 
-	public void configureSMAMinute(final Request request, final Response response) {
+	public void configureSMAMinute(final RestRequest request, final RestResponse response) {
 		final List<AssetMinute> assetMinutes = new ArrayList<AssetMinute>();
 		final List<BigDecimal> assetMinuteValues = new ArrayList<BigDecimal>();
 
@@ -1084,10 +1085,10 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 			return;
 		}
 
-		request.addParam(GlobalConstant.IDENTIFIER, "SMA");
-		request.addParam(GlobalConstant.TYPE, smaType);
-		request.addParam(GlobalConstant.SYMBOL, symbol);
-		request.addParam(GlobalConstant.EPOCHSECONDS,
+		request.addParam(TradeConstant.IDENTIFIER, "SMA");
+		request.addParam(TradeConstant.TYPE, smaType);
+		request.addParam(TradeConstant.SYMBOL, symbol);
+		request.addParam(TradeConstant.EPOCHSECONDS,
 				assetMinutes.get(i).getEpochSeconds());
 
 		try {
@@ -1109,7 +1110,7 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 		request.addParam("SUCCESSFUL", true);
 	}
 
-	public void configureLBBMinute(final Request request, final Response response) {
+	public void configureLBBMinute(final RestRequest request, final RestResponse response) {
 		final List<AssetMinute> assetMinutes = new ArrayList<AssetMinute>();
 		final List<BigDecimal> assetMinuteValues = new ArrayList<BigDecimal>();
 
@@ -1131,11 +1132,11 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 			return;
 		}
 
-		request.addParam(GlobalConstant.IDENTIFIER, "LBB");
-		request.addParam(GlobalConstant.TYPE, lbbType);
+		request.addParam(TradeConstant.IDENTIFIER, "LBB");
+		request.addParam(TradeConstant.TYPE, lbbType);
 		request.addParam("STANDARD_DEVIATIONS", standardDeviations);
-		request.addParam(GlobalConstant.SYMBOL, symbol);
-		request.addParam(GlobalConstant.EPOCHSECONDS,
+		request.addParam(TradeConstant.SYMBOL, symbol);
+		request.addParam(TradeConstant.EPOCHSECONDS,
 				assetMinutes.get(i).getEpochSeconds());
 		try {
 			algorithmCruncherDao.itemCount(request, response);
@@ -1152,10 +1153,10 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 		lbb.setType(lbbType);
 		lbb.setStandardDeviations(standardDeviations);
 
-		request.addParam(GlobalConstant.IDENTIFIER, "SMA");
-		request.addParam(GlobalConstant.SYMBOL, symbol);
-		request.addParam(GlobalConstant.TYPE, lbbType);
-		request.addParam(GlobalConstant.EPOCHSECONDS, assetMinutes.get(i).getEpochSeconds());
+		request.addParam(TradeConstant.IDENTIFIER, "SMA");
+		request.addParam(TradeConstant.SYMBOL, symbol);
+		request.addParam(TradeConstant.TYPE, lbbType);
+		request.addParam(TradeConstant.EPOCHSECONDS, assetMinutes.get(i).getEpochSeconds());
 
 		try {
 			algorithmCruncherDao.item(request, response);
@@ -1173,7 +1174,7 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 		request.addParam("SUCCESSFUL", true);
 	}
 
-	public void configureUBBMinute(final Request request, final Response response) {
+	public void configureUBBMinute(final RestRequest request, final RestResponse response) {
 
 		final List<AssetMinute> assetMinutes = new ArrayList<AssetMinute>();
 		final List<BigDecimal> assetMinuteValues = new ArrayList<BigDecimal>();
@@ -1196,11 +1197,11 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 			return;
 		}
 
-		request.addParam(GlobalConstant.IDENTIFIER, "UBB");
-		request.addParam(GlobalConstant.TYPE, ubbType);
+		request.addParam(TradeConstant.IDENTIFIER, "UBB");
+		request.addParam(TradeConstant.TYPE, ubbType);
 		request.addParam("STANDARD_DEVIATIONS", standardDeviations);
-		request.addParam(GlobalConstant.SYMBOL, symbol);
-		request.addParam(GlobalConstant.EPOCHSECONDS,
+		request.addParam(TradeConstant.SYMBOL, symbol);
+		request.addParam(TradeConstant.EPOCHSECONDS,
 				assetMinutes.get(i).getEpochSeconds());
 		try {
 			algorithmCruncherDao.itemCount(request, response);
@@ -1216,10 +1217,10 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 		ubb.setType(ubbType);
 		ubb.setStandardDeviations(standardDeviations);
 
-		request.addParam(GlobalConstant.IDENTIFIER, "SMA");
-		request.addParam(GlobalConstant.SYMBOL, symbol);
-		request.addParam(GlobalConstant.TYPE, ubbType);
-		request.addParam(GlobalConstant.EPOCHSECONDS, assetMinutes.get(i).getEpochSeconds());
+		request.addParam(TradeConstant.IDENTIFIER, "SMA");
+		request.addParam(TradeConstant.SYMBOL, symbol);
+		request.addParam(TradeConstant.TYPE, ubbType);
+		request.addParam(TradeConstant.EPOCHSECONDS, assetMinutes.get(i).getEpochSeconds());
 
 		try {
 			algorithmCruncherDao.item(request, response);
@@ -1237,7 +1238,7 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 		request.addParam("SUCCESSFUL", true);
 	}
 
-	public void configureSMADay(final Request request, final Response response) {
+	public void configureSMADay(final RestRequest request, final RestResponse response) {
 		final List<AssetDay> assetDays = new ArrayList<AssetDay>();
 		final List<BigDecimal> assetDayValues = new ArrayList<BigDecimal>();
 		final AssetMinute assetMinute = (AssetMinute) request.getParam("RECENT_ASSET_MINUTE");
@@ -1262,10 +1263,10 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 
 		assetDayValues.set(assetDayValues.size() - 1, assetMinute.getValue());
 
-		request.addParam(GlobalConstant.IDENTIFIER, "SMA");
-		request.addParam(GlobalConstant.TYPE, smaType);
-		request.addParam(GlobalConstant.SYMBOL, symbol);
-		request.addParam(GlobalConstant.EPOCHSECONDS, epochSeconds);
+		request.addParam(TradeConstant.IDENTIFIER, "SMA");
+		request.addParam(TradeConstant.TYPE, smaType);
+		request.addParam(TradeConstant.SYMBOL, symbol);
+		request.addParam(TradeConstant.EPOCHSECONDS, epochSeconds);
 
 		try {
 			algorithmCruncherDao.itemCount(request, response);
@@ -1287,7 +1288,7 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 		request.addParam("SUCCESSFUL", true);
 	}
 
-	public void configureLBBDay(final Request request, final Response response) {
+	public void configureLBBDay(final RestRequest request, final RestResponse response) {
 		final List<AssetDay> assetDays = new ArrayList<AssetDay>();
 		final List<BigDecimal> assetDayValues = new ArrayList<BigDecimal>();
 		final AssetMinute assetMinute = (AssetMinute) request.getParam("RECENT_ASSET_MINUTE");
@@ -1312,11 +1313,11 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 
 		assetDayValues.set(assetDayValues.size() - 1, assetMinute.getValue());
 
-		request.addParam(GlobalConstant.IDENTIFIER, "LBB");
-		request.addParam(GlobalConstant.TYPE, lbbType);
+		request.addParam(TradeConstant.IDENTIFIER, "LBB");
+		request.addParam(TradeConstant.TYPE, lbbType);
 		request.addParam("STANDARD_DEVIATIONS", standardDeviations);
-		request.addParam(GlobalConstant.SYMBOL, symbol);
-		request.addParam(GlobalConstant.EPOCHSECONDS,
+		request.addParam(TradeConstant.SYMBOL, symbol);
+		request.addParam(TradeConstant.EPOCHSECONDS,
 				assetMinute.getEpochSeconds());
 
 		try {
@@ -1335,10 +1336,10 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 		lbb.setStandardDeviations(standardDeviations);
 		lbb.setCorrespondingDay(assetDays.get(i).getEpochSeconds());
 
-		request.addParam(GlobalConstant.IDENTIFIER, "SMA");
-		request.addParam(GlobalConstant.SYMBOL, symbol);
-		request.addParam(GlobalConstant.TYPE, lbbType);
-		request.addParam(GlobalConstant.EPOCHSECONDS, lbb.getEpochSeconds());
+		request.addParam(TradeConstant.IDENTIFIER, "SMA");
+		request.addParam(TradeConstant.SYMBOL, symbol);
+		request.addParam(TradeConstant.TYPE, lbbType);
+		request.addParam(TradeConstant.EPOCHSECONDS, lbb.getEpochSeconds());
 
 		try {
 			algorithmCruncherDao.item(request, response);
@@ -1357,7 +1358,7 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 		request.addParam("SUCCESSFUL", true);
 	}
 
-	public void configureUBBDay(final Request request, final Response response) {
+	public void configureUBBDay(final RestRequest request, final RestResponse response) {
 		final List<AssetDay> assetDays = new ArrayList<AssetDay>();
 		final List<BigDecimal> assetDayValues = new ArrayList<BigDecimal>();
 		final AssetMinute assetMinute = (AssetMinute) request.getParam("RECENT_ASSET_MINUTE");
@@ -1382,11 +1383,11 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 			return;
 		}
 
-		request.addParam(GlobalConstant.IDENTIFIER, "UBB");
-		request.addParam(GlobalConstant.TYPE, ubbType);
+		request.addParam(TradeConstant.IDENTIFIER, "UBB");
+		request.addParam(TradeConstant.TYPE, ubbType);
 		request.addParam("STANDARD_DEVIATIONS", standardDeviations);
-		request.addParam(GlobalConstant.SYMBOL, symbol);
-		request.addParam(GlobalConstant.EPOCHSECONDS,
+		request.addParam(TradeConstant.SYMBOL, symbol);
+		request.addParam(TradeConstant.EPOCHSECONDS,
 				assetMinute.getEpochSeconds());
 
 		try {
@@ -1405,10 +1406,10 @@ public class AlgorithmCruncherSvcImpl implements AlgorithmCruncherSvc {
 		ubb.setStandardDeviations(standardDeviations);
 		ubb.setCorrespondingDay(assetDays.get(i).getEpochSeconds());
 
-		request.addParam(GlobalConstant.IDENTIFIER, "SMA");
-		request.addParam(GlobalConstant.SYMBOL, symbol);
-		request.addParam(GlobalConstant.TYPE, ubbType);
-		request.addParam(GlobalConstant.EPOCHSECONDS, ubb.getEpochSeconds());
+		request.addParam(TradeConstant.IDENTIFIER, "SMA");
+		request.addParam(TradeConstant.SYMBOL, symbol);
+		request.addParam(TradeConstant.TYPE, ubbType);
+		request.addParam(TradeConstant.EPOCHSECONDS, ubb.getEpochSeconds());
 
 		try {
 			algorithmCruncherDao.item(request, response);

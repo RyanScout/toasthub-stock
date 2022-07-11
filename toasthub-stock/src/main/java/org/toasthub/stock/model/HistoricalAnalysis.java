@@ -31,12 +31,10 @@ import javax.persistence.Entity;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
-import org.toasthub.common.BaseEntity;
-
 
 @Entity
 @Table(name = "ta_historical_analysis")
-public class HistoricalAnalysis extends BaseEntity {
+public class HistoricalAnalysis extends TradeBaseEntity {
 
 	private static final long serialVersionUID = 1L;
 
@@ -63,32 +61,6 @@ public class HistoricalAnalysis extends BaseEntity {
 		this.setCreated(Instant.now());
 		this.setIdentifier("HistoricalAnalysis");
 	}
-
-	public String getSymbol() {
-		return symbol;
-	}
-
-	public void setSymbol(String symbol) {
-		this.symbol = symbol;
-	}
-
-	@Column(name = "historical_analysis_type")
-	public String getHistoricalAnalysisType() {
-		return historicalAnalysisType;
-	}
-
-	public void setHistoricalAnalysisType(String historicalAnalysisType) {
-		this.historicalAnalysisType = historicalAnalysisType;
-	}
-	@Column(name = "order_type")
-	public String getOrderType() {
-		return orderType;
-	}
-
-	public void setOrderType(String orderType) {
-		this.orderType = orderType;
-	}
-
 	public HistoricalAnalysis(String code, Boolean defaultLang, String dir) {
 		this.setActive(true);
 		this.setArchive(false);
@@ -108,7 +80,30 @@ public class HistoricalAnalysis extends BaseEntity {
 		setIdentifier("HistoricalAnalysis");
 	}
 
-	// Methods
+	// Setter/Getter
+	@Column(name = "symbol")
+	public String getSymbol() {
+		return symbol;
+	}
+	public void setSymbol(String symbol) {
+		this.symbol = symbol;
+	}
+
+	@Column(name = "historical_analysis_type")
+	public String getHistoricalAnalysisType() {
+		return historicalAnalysisType;
+	}
+	public void setHistoricalAnalysisType(String historicalAnalysisType) {
+		this.historicalAnalysisType = historicalAnalysisType;
+	}
+	
+	@Column(name = "order_type")
+	public String getOrderType() {
+		return orderType;
+	}
+	public void setOrderType(String orderType) {
+		this.orderType = orderType;
+	}
 
 	@Column(name = "name")
 	public String getName() {
@@ -125,6 +120,7 @@ public class HistoricalAnalysis extends BaseEntity {
 	public void setAmount(BigDecimal amount) {
 		this.amount = amount;
 	}
+	
 	@Column(name = "algorithm")
 	public String getAlgorithm() {
 		return algorithm;
@@ -132,6 +128,7 @@ public class HistoricalAnalysis extends BaseEntity {
 	public void setAlgorithm(String algorithm) {
 		this.algorithm = algorithm;
 	}
+	
 	@Column(name = "trailing_stop_percent")
 	public BigDecimal getTrailingStopPercent() {
 		return trailingStopPercent;
@@ -139,6 +136,7 @@ public class HistoricalAnalysis extends BaseEntity {
 	public void setTrailingStopPercent(BigDecimal trailingStopPercent) {
 		this.trailingStopPercent = trailingStopPercent;
 	}
+	
 	@Column(name = "profit_limit")
 	public BigDecimal getProfitLimit() {
 		return profitLimit;
@@ -146,6 +144,7 @@ public class HistoricalAnalysis extends BaseEntity {
 	public void setProfitLimit(BigDecimal profitLimit) {
 		this.profitLimit = profitLimit;
 	}
+	
 	@Column(name = "total_value")
 	public BigDecimal getTotalValue() {
 		return totalValue;
@@ -153,6 +152,7 @@ public class HistoricalAnalysis extends BaseEntity {
 	public void setTotalValue(BigDecimal totalValue) {
 		this.totalValue = totalValue;
 	}
+	
 	@Column(name = "money_spent")
 	public BigDecimal getMoneySpent() {
 		return moneySpent;
@@ -160,6 +160,7 @@ public class HistoricalAnalysis extends BaseEntity {
 	public void setMoneySpent(BigDecimal moneySpent) {
 		this.moneySpent = moneySpent;
 	}
+	
 	@Column(name="end_time")
 	public long getEndTime() {
 		return endTime;
@@ -167,6 +168,7 @@ public class HistoricalAnalysis extends BaseEntity {
 	public void setEndTime(long endTime) {
 		this.endTime = endTime;
 	}
+	
 	@Column(name="start_time")
 	public long getStartTime() {
 		return startTime;
@@ -174,6 +176,7 @@ public class HistoricalAnalysis extends BaseEntity {
 	public void setStartTime(long startTime) {
 		this.startTime = startTime;
 	}
+	
 	@OneToMany(mappedBy = "historicalAnalysis" , cascade = CascadeType.ALL)
 	public Set<HistoricalDetail> getHistoricalDetails() {
 		return historicalDetails;

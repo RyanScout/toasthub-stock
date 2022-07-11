@@ -3,26 +3,30 @@ package org.toasthub.stock.analysis;
 import java.math.BigDecimal;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.toasthub.core.general.model.GlobalConstant;
+import org.toasthub.core.general.model.RestRequest;
+import org.toasthub.core.general.model.RestResponse;
 import org.toasthub.stock.model.LBB;
 import org.toasthub.stock.model.MACD;
 import org.toasthub.stock.model.SL;
 import org.toasthub.stock.model.SMA;
-import org.toasthub.utils.GlobalConstant;
-import org.toasthub.utils.Request;
-import org.toasthub.utils.Response;
+import org.toasthub.stock.model.TradeConstant;
+
 
 @Service("BuySignals")
 public class BuySignals {
 
     @Autowired
+    @Qualifier("TAHistoricalAnalyzingDao")
     HistoricalAnalyzingDao historicalAnalyzingDao;
 
     // signals return true if buy signal is present, false otherwise
 
     // measures whether a 15 day moving average is above a 50 day moving average
 
-    public Boolean process(String alg , Request request, Response response) {
+    public Boolean process(String alg , RestRequest request, RestResponse response) {
         Boolean result = false;
         switch (alg) {
 
@@ -46,15 +50,15 @@ public class BuySignals {
 
     
 
-    public Boolean goldenCross(Request request, Response response) {
+    public Boolean goldenCross(RestRequest request, RestResponse response) {
         try{
-        request.addParam(GlobalConstant.IDENTIFIER , "SMA");
+        request.addParam(TradeConstant.IDENTIFIER , "SMA");
 
-        request.addParam(GlobalConstant.TYPE, "15-day");
+        request.addParam(TradeConstant.TYPE, "15-day");
         historicalAnalyzingDao.item(request, response);
         SMA shortMovingAverage = (SMA) response.getParam(GlobalConstant.ITEM);
 
-        request.addParam(GlobalConstant.TYPE, "50-day");
+        request.addParam(TradeConstant.TYPE, "50-day");
         historicalAnalyzingDao.item(request, response);
         SMA longMovingAverage = (SMA) response.getParam(GlobalConstant.ITEM);
 
@@ -71,10 +75,10 @@ public class BuySignals {
 
     // indicates whether the 20 day sma touches or falls beneath the lower bollinger
     // band
-    public Boolean touchesLBB(Request request, Response response) {
+    public Boolean touchesLBB(RestRequest request, RestResponse response) {
         try{
-        request.addParam(GlobalConstant.IDENTIFIER, "LBB");
-        request.addParam(GlobalConstant.TYPE, "20-day");
+        request.addParam(TradeConstant.IDENTIFIER, "LBB");
+        request.addParam(TradeConstant.TYPE, "20-day");
         historicalAnalyzingDao.item(request, response);
         LBB lbb = (LBB) response.getParam(GlobalConstant.ITEM);
 
@@ -88,15 +92,15 @@ public class BuySignals {
     }
 
     //indicates whether or not macd has crossed over the signal line within the period
-    public Boolean signalLineCross(Request request, Response response) {
+    public Boolean signalLineCross(RestRequest request, RestResponse response) {
         try{
-        request.addParam(GlobalConstant.IDENTIFIER, "MACD");
-        request.addParam(GlobalConstant.TYPE, "Day");
+        request.addParam(TradeConstant.IDENTIFIER, "MACD");
+        request.addParam(TradeConstant.TYPE, "Day");
         historicalAnalyzingDao.item(request, response);
         MACD macd = (MACD) response.getParam(GlobalConstant.ITEM);
 
-        request.addParam(GlobalConstant.IDENTIFIER, "SL");
-        request.addParam(GlobalConstant.TYPE, "Day");
+        request.addParam(TradeConstant.IDENTIFIER, "SL");
+        request.addParam(TradeConstant.TYPE, "Day");
         historicalAnalyzingDao.item(request, response);
         SL sl = (SL) response.getParam(GlobalConstant.ITEM);
 

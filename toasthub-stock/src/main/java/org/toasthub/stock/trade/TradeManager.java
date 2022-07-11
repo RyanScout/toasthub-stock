@@ -12,17 +12,19 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.stereotype.Component;
+import org.toasthub.core.general.model.GlobalConstant;
+import org.toasthub.core.general.model.RestRequest;
+import org.toasthub.core.general.model.RestResponse;
 import org.toasthub.stock.custom_technical_indicator.CustomTechnicalIndicatorDao;
 import org.toasthub.stock.model.CustomTechnicalIndicator;
 import org.toasthub.stock.model.Trade;
+import org.toasthub.stock.model.TradeConstant;
 import org.toasthub.stock.model.TradeDetail;
 import org.toasthub.stock.model.TradeSignalCache;
-import org.toasthub.utils.GlobalConstant;
-import org.toasthub.utils.Request;
-import org.toasthub.utils.Response;
 
 import net.jacobpeterson.alpaca.AlpacaAPI;
 import net.jacobpeterson.alpaca.model.endpoint.orders.Order;
@@ -37,15 +39,17 @@ public class TradeManager {
     protected AlpacaAPI alpacaAPI;
 
     @Autowired
+    @Qualifier("TATradeDao")
     protected TradeDao tradeDao;
 
     @Autowired
     private TradeSignalCache tradeSignalCache;
 
     @Autowired
+    @Qualifier("TACustomTechnicalIndicatorDao")
     private CustomTechnicalIndicatorDao customTechnicalIndicatorDao;
 
-    public void updateTrades(final Request request, final Response response) {
+    public void updateTrades(final RestRequest request, final RestResponse response) {
         final List<Trade> trades = tradeDao.getAllRunningTrades();
 
         if (trades == null || trades.size() == 0) {
@@ -207,7 +211,7 @@ public class TradeManager {
         });
     }
 
-    public void checkTrades(final Request request, final Response response) {
+    public void checkTrades(final RestRequest request, final RestResponse response) {
         final List<Trade> trades = tradeDao.getRunningTrades();
 
         if (trades == null || trades.size() == 0) {
@@ -225,7 +229,7 @@ public class TradeManager {
                 .filter(trade -> !(trade.getEvaluationPeriod().equals("DAY") && trade.getLastOrder() > today))
                 .forEach(trade -> {
 
-                    request.addParam(GlobalConstant.TRADE, trade);
+                    request.addParam(TradeConstant.TRADE, trade);
 
                     System.out.println("Checking trade: " + trade.getName());
 
@@ -252,10 +256,10 @@ public class TradeManager {
                 });
     }
 
-    public void currentBuyTest(final Request request, final Response response) {
+    public void currentBuyTest(final RestRequest request, final RestResponse response) {
         try {
 
-            final Trade trade = (Trade) request.getParam(GlobalConstant.TRADE);
+            final Trade trade = (Trade) request.getParam(TradeConstant.TRADE);
 
             if (!trade.getIterations().equals("unlimited")
                     && trade.getIterationsExecuted() >= Integer.parseInt(trade.getIterations())) {
@@ -489,10 +493,10 @@ public class TradeManager {
 
     }
 
-    public void currentSellTest(final Request request, final Response response) {
+    public void currentSellTest(final RestRequest request, final RestResponse response) {
         try {
 
-            final Trade trade = (Trade) request.getParam(GlobalConstant.TRADE);
+            final Trade trade = (Trade) request.getParam(TradeConstant.TRADE);
 
             if (!trade.getIterations().equals("unlimited")
                     && trade.getIterationsExecuted() >= Integer.parseInt(trade.getIterations())) {
@@ -600,10 +604,10 @@ public class TradeManager {
         }
     }
 
-    public void currentBotTest(final Request request, final Response response) {
+    public void currentBotTest(final RestRequest request, final RestResponse response) {
         request.addParam("BOUGHT", false);
 
-        final Trade trade = (Trade) request.getParam(GlobalConstant.TRADE);
+        final Trade trade = (Trade) request.getParam(TradeConstant.TRADE);
         BigDecimal orderAmount = BigDecimal.ZERO;
 
         switch (trade.getCurrencyType()) {

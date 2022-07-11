@@ -23,6 +23,8 @@ package org.toasthub.stock.model;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Table;
 
@@ -31,13 +33,10 @@ import javax.persistence.Table;
 // Lower Bollinger Band
 public class LBB extends BaseAlg {
 
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
 	private BigDecimal standardDeviations = BigDecimal.ZERO;
 	
-
+	// Constructors
 	public LBB() {
 		super();
 		this.setActive(true);
@@ -46,15 +45,6 @@ public class LBB extends BaseAlg {
 		this.setCreated(Instant.now());
 		this.setIdentifier("LBB");
 	}
-
-	public BigDecimal getStandardDeviations() {
-		return standardDeviations;
-	}
-
-	public void setStandardDeviations(final BigDecimal standardDeviations) {
-		this.standardDeviations = standardDeviations;
-	}
-
 	public LBB(final String symbol) {
 		super();
 		this.setSymbol(symbol);
@@ -71,6 +61,15 @@ public class LBB extends BaseAlg {
 		this.setLocked(false);
 		this.setCreated(Instant.now());
 		this.setIdentifier("LBB");
+	}
+	
+	// Setter/Getter
+	@Column(name = "standard_deviations")
+	public BigDecimal getStandardDeviations() {
+		return standardDeviations;
+	}
+	public void setStandardDeviations(final BigDecimal standardDeviations) {
+		this.standardDeviations = standardDeviations;
 	}
 
 	@Override

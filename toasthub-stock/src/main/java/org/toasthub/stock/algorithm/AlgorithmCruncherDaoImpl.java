@@ -24,7 +24,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.persistence.EntityManager;
 import javax.persistence.NoResultException;
 import javax.persistence.Query;
 
@@ -32,36 +31,37 @@ import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import org.toasthub.core.common.EntityManagerDataSvc;
+import org.toasthub.core.general.model.GlobalConstant;
+import org.toasthub.core.general.model.RestRequest;
+import org.toasthub.core.general.model.RestResponse;
 import org.toasthub.stock.model.AssetDay;
 import org.toasthub.stock.model.AssetMinute;
 import org.toasthub.stock.model.LBB;
 import org.toasthub.stock.model.SMA;
 import org.toasthub.stock.model.Symbol;
 import org.toasthub.stock.model.TechnicalIndicator;
+import org.toasthub.stock.model.TradeConstant;
 import org.toasthub.stock.model.UBB;
-import org.toasthub.utils.GlobalConstant;
-import org.toasthub.utils.Request;
-import org.toasthub.utils.Response;
 
-import java.time.Instant;
 
-@Repository("AlgorithmCruncherDao")
-@Transactional()
+@Repository("TAAlgorithmCruncherDao")
+@Transactional("TransactionManagerData")
 public class AlgorithmCruncherDaoImpl implements AlgorithmCruncherDao {
 
 	@Autowired
-	protected EntityManager entityManager;
+	protected EntityManagerDataSvc entityManagerDataSvc;
 
 	@Override
-	public void getRecentAssetDay(final Request request, final Response response) {
-		final String x = (String) request.getParam(GlobalConstant.SYMBOL);
+	public void getRecentAssetDay(final RestRequest request, final RestResponse response) {
+		final String x = (String) request.getParam(TradeConstant.SYMBOL);
 
 		if (Arrays.asList(Symbol.SYMBOLS).contains(x)) {
 			final String queryStr = "SELECT * FROM tradeanalyzer_main.ta_asset_day WHERE symbol = \""
 					+ x
 					+ "\" ORDER BY id DESC LIMIT 0, 1;";
 
-			final Query query = entityManager.createNativeQuery(queryStr, AssetDay.class);
+			final Query query = entityManagerDataSvc.getInstance().createNativeQuery(queryStr, AssetDay.class);
 			final Object result = query.getSingleResult();
 
 			response.addParam(GlobalConstant.ITEM, result);
@@ -70,8 +70,8 @@ public class AlgorithmCruncherDaoImpl implements AlgorithmCruncherDao {
 	}
 
 	@Override
-	public void getRecentAssetMinute(final Request request, final Response response) {
-		final String x = (String) request.getParam(GlobalConstant.SYMBOL);
+	public void getRecentAssetMinute(final RestRequest request, final RestResponse response) {
+		final String x = (String) request.getParam(TradeConstant.SYMBOL);
 
 		if (Arrays.asList(Symbol.SYMBOLS).contains(x)) {
 
@@ -79,7 +79,7 @@ public class AlgorithmCruncherDaoImpl implements AlgorithmCruncherDao {
 					+ x
 					+ "\" ORDER BY id DESC LIMIT 0, 1;";
 
-			final Query query = entityManager.createNativeQuery(queryStr, AssetMinute.class);
+			final Query query = entityManagerDataSvc.getInstance().createNativeQuery(queryStr, AssetMinute.class);
 			final Object result = query.getSingleResult();
 
 			response.addParam(GlobalConstant.ITEM, result);
@@ -88,26 +88,26 @@ public class AlgorithmCruncherDaoImpl implements AlgorithmCruncherDao {
 	}
 
 	@Override
-	public void delete(final Request request, final Response response) throws Exception {
+	public void delete(final RestRequest request, final RestResponse response) throws Exception {
 	}
 
 	@Override
-	public void save(final Request request, final Response response) throws Exception {
-		entityManager.merge((Object) request.getParam(GlobalConstant.ITEM));
+	public void save(final RestRequest request, final RestResponse response) throws Exception {
+		entityManagerDataSvc.getInstance().merge((Object) request.getParam(GlobalConstant.ITEM));
 	}
 
 	@Override
-	public void saveAll(final Request request, final Response response) {
+	public void saveAll(final RestRequest request, final RestResponse response) {
 		for (final Object o : ArrayList.class.cast(request.getParam(GlobalConstant.ITEMS))) {
-			entityManager.merge(o);
+			entityManagerDataSvc.getInstance().merge(o);
 		}
 	}
 
 	@Override
-	public void items(final Request request, final Response response) throws Exception {
+	public void items(final RestRequest request, final RestResponse response) throws Exception {
 
 		String x = "";
-		switch ((String) request.getParam(GlobalConstant.IDENTIFIER)) {
+		switch ((String) request.getParam(TradeConstant.IDENTIFIER)) {
 			case "AssetDay":
 				x = "AssetDay";
 				break;
@@ -122,7 +122,7 @@ public class AlgorithmCruncherDaoImpl implements AlgorithmCruncherDao {
 				return;
 		}
 
-		if (!Arrays.asList(Symbol.SYMBOLS).contains((String) request.getParam(GlobalConstant.SYMBOL))) {
+		if (!Arrays.asList(Symbol.SYMBOLS).contains((String) request.getParam(TradeConstant.SYMBOL))) {
 			System.out.println("request param symbol does not contain valid symbol at algorithm cruncher dao items");
 			return;
 		}
@@ -130,8 +130,8 @@ public class AlgorithmCruncherDaoImpl implements AlgorithmCruncherDao {
 		final String queryStr = "SELECT DISTINCT x FROM " + x
 				+ " AS x WHERE x.symbol =:symbol AND x.epochSeconds >=: startingEpochSeconds AND x.epochSeconds <=:endingEpochSeconds";
 
-		final Query query = entityManager.createQuery(queryStr);
-		query.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
+		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+		query.setParameter("symbol", request.getParam(TradeConstant.SYMBOL));
 		query.setParameter("startingEpochSeconds", request.getParam("STARTING_EPOCH_SECONDS"));
 		query.setParameter("endingEpochSeconds", request.getParam("ENDING_EPOCH_SECONDS"));
 		final List<?> items = query.getResultList();
@@ -140,10 +140,10 @@ public class AlgorithmCruncherDaoImpl implements AlgorithmCruncherDao {
 	}
 
 	@Override
-	public void itemCount(final Request request, final Response response) throws Exception {
+	public void itemCount(final RestRequest request, final RestResponse response) throws Exception {
 		
 		String x = "";
-		switch ((String) request.getParam(GlobalConstant.IDENTIFIER)) {
+		switch ((String) request.getParam(TradeConstant.IDENTIFIER)) {
 			case "SMA":
 				x = "SMA";
 				break;
@@ -178,7 +178,7 @@ public class AlgorithmCruncherDaoImpl implements AlgorithmCruncherDao {
 		String queryStr = "SELECT COUNT(DISTINCT x) FROM " + x + " AS x ";
 
 		boolean and = false;
-		if (request.containsParam(GlobalConstant.EPOCHSECONDS)) {
+		if (request.containsParam(TradeConstant.EPOCHSECONDS)) {
 			if (!and)
 				queryStr += " WHERE ";
 			else
@@ -187,7 +187,7 @@ public class AlgorithmCruncherDaoImpl implements AlgorithmCruncherDao {
 			queryStr += "x.epochSeconds =:epochSeconds ";
 			and = true;
 		}
-		if (request.containsParam(GlobalConstant.SYMBOL)) {
+		if (request.containsParam(TradeConstant.SYMBOL)) {
 			if (!and)
 				queryStr += " WHERE ";
 			else
@@ -196,7 +196,7 @@ public class AlgorithmCruncherDaoImpl implements AlgorithmCruncherDao {
 			queryStr += "x.symbol =:symbol ";
 			and = true;
 		}
-		if (request.containsParam(GlobalConstant.TYPE)) {
+		if (request.containsParam(TradeConstant.TYPE)) {
 			if (!and)
 				queryStr += " WHERE ";
 			else
@@ -215,16 +215,16 @@ public class AlgorithmCruncherDaoImpl implements AlgorithmCruncherDao {
 			and = true;
 		}
 
-		final Query query = entityManager.createQuery(queryStr);
+		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
 
-		if (request.containsParam(GlobalConstant.EPOCHSECONDS)) {
-			query.setParameter("epochSeconds", (long) request.getParam(GlobalConstant.EPOCHSECONDS));
+		if (request.containsParam(TradeConstant.EPOCHSECONDS)) {
+			query.setParameter("epochSeconds", (long) request.getParam(TradeConstant.EPOCHSECONDS));
 		}
-		if (request.containsParam(GlobalConstant.TYPE)) {
-			query.setParameter("type", (String) request.getParam(GlobalConstant.TYPE));
+		if (request.containsParam(TradeConstant.TYPE)) {
+			query.setParameter("type", (String) request.getParam(TradeConstant.TYPE));
 		}
-		if (request.containsParam(GlobalConstant.SYMBOL)) {
-			query.setParameter("symbol", (String) request.getParam(GlobalConstant.SYMBOL));
+		if (request.containsParam(TradeConstant.SYMBOL)) {
+			query.setParameter("symbol", (String) request.getParam(TradeConstant.SYMBOL));
 		}
 		if (x.equals("LBB") || x.equals("UBB")) {
 			query.setParameter("standardDeviations", (BigDecimal) request.getParam("STANDARD_DEVIATIONS"));
@@ -238,10 +238,10 @@ public class AlgorithmCruncherDaoImpl implements AlgorithmCruncherDao {
 	}
 
 	@Override
-	public void item(final Request request, final Response response) throws NoResultException {
+	public void item(final RestRequest request, final RestResponse response) throws NoResultException {
 
 		String x = "";
-		switch ((String) request.getParam(GlobalConstant.IDENTIFIER)) {
+		switch ((String) request.getParam(TradeConstant.IDENTIFIER)) {
 			case "SMA":
 				x = "SMA";
 				break;
@@ -273,7 +273,7 @@ public class AlgorithmCruncherDaoImpl implements AlgorithmCruncherDao {
 				break;
 		}
 
-		if (!Arrays.asList(Symbol.SYMBOLS).contains((String) request.getParam(GlobalConstant.SYMBOL))) {
+		if (!Arrays.asList(Symbol.SYMBOLS).contains((String) request.getParam(TradeConstant.SYMBOL))) {
 			System.out.println("request param symbol does not contain valid symbol at algorithm cruncher dao item");
 			return;
 		}
@@ -281,24 +281,24 @@ public class AlgorithmCruncherDaoImpl implements AlgorithmCruncherDao {
 		final String queryStr = "SELECT DISTINCT x FROM " + x + " AS x"
 				+ " WHERE x.epochSeconds =:epochSeconds"
 				+ " AND x.type =: type AND x.symbol =:symbol";
-		final Query query = entityManager.createQuery(queryStr);
-		query.setParameter("epochSeconds", request.getParam(GlobalConstant.EPOCHSECONDS));
-		query.setParameter("type", request.getParam(GlobalConstant.TYPE));
-		query.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
+		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+		query.setParameter("epochSeconds", request.getParam(TradeConstant.EPOCHSECONDS));
+		query.setParameter("type", request.getParam(TradeConstant.TYPE));
+		query.setParameter("symbol", request.getParam(TradeConstant.SYMBOL));
 		final Object result = query.getSingleResult();
 
 		response.addParam(GlobalConstant.ITEM, result);
 	}
 
 	@Override
-	public void initializedAssetDay(final Request request, final Response response) throws NoResultException {
+	public void initializedAssetDay(final RestRequest request, final RestResponse response) throws NoResultException {
 		final String queryStr = "SELECT DISTINCT x FROM AssetDay" + " AS x"
 				+ " WHERE x.epochSeconds =:epochSeconds"
 				+ " AND x.type =: type AND x.symbol =:symbol";
-		final Query query = entityManager.createQuery(queryStr);
-		query.setParameter("epochSeconds", request.getParam(GlobalConstant.EPOCHSECONDS));
-		query.setParameter("type", request.getParam(GlobalConstant.TYPE));
-		query.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL));
+		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+		query.setParameter("epochSeconds", request.getParam(TradeConstant.EPOCHSECONDS));
+		query.setParameter("type", request.getParam(TradeConstant.TYPE));
+		query.setParameter("symbol", request.getParam(TradeConstant.SYMBOL));
 		final AssetDay result = (AssetDay) query.getSingleResult();
 		Hibernate.initialize(result.getAssetMinutes());
 
@@ -306,8 +306,8 @@ public class AlgorithmCruncherDaoImpl implements AlgorithmCruncherDao {
 	}
 
 	@Override
-	public void getRecentAssetMinutes(final Request request, final Response response) {
-		final String x = (String) request.getParam(GlobalConstant.SYMBOL);
+	public void getRecentAssetMinutes(final RestRequest request, final RestResponse response) {
+		final String x = (String) request.getParam(TradeConstant.SYMBOL);
 
 		if (!Arrays.asList(Symbol.SYMBOLS).contains(x)) {
 			System.out.println("Symbol does not match symbols");
@@ -317,7 +317,7 @@ public class AlgorithmCruncherDaoImpl implements AlgorithmCruncherDao {
 				+ x
 				+ "\" ORDER BY epoch_seconds DESC LIMIT 200;";
 
-		final Query query = entityManager.createNativeQuery(queryStr, AssetMinute.class);
+		final Query query = entityManagerDataSvc.getInstance().createNativeQuery(queryStr, AssetMinute.class);
 		final List<AssetMinute> assetMinutes = new ArrayList<AssetMinute>();
 		for (final Object o : (ArrayList.class.cast(query.getResultList()))) {
 			assetMinutes.add(AssetMinute.class.cast(o));
@@ -327,9 +327,9 @@ public class AlgorithmCruncherDaoImpl implements AlgorithmCruncherDao {
 		response.addParam(GlobalConstant.ITEMS, assetMinutes);
 	}
 
-	public void getAlgSets(final Request request, final Response response) {
+	public void getAlgSets(final RestRequest request, final RestResponse response) {
 		final String queryStr = "Select DISTINCT x FROM TechnicalIndicator x";
-		final Query query = entityManager.createQuery(queryStr);
+		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
 
 		final Set<SMA> smaSet = new HashSet<SMA>();
 		final Set<LBB> lbbSet = new HashSet<LBB>();
@@ -377,16 +377,16 @@ public class AlgorithmCruncherDaoImpl implements AlgorithmCruncherDao {
 		response.addParam("UBB_SET", ubbSet);
 	}
 
-	public void getConfiguration(final Request request, final Response response) {
+	public void getConfiguration(final RestRequest request, final RestResponse response) {
 		final String queryStr = "SELECT DISTINCT x FROM Configuration AS x";
-		final Query query = entityManager.createQuery(queryStr);
+		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
 		response.addParam(GlobalConstant.ITEM, query.getSingleResult());
 	}
 
 	@Override
-	public void getEarliestAlgTime(Request request, Response response) {
+	public void getEarliestAlgTime(RestRequest request, RestResponse response) {
 		String x = "";
-		switch ((String) request.getParam(GlobalConstant.IDENTIFIER)) {
+		switch ((String) request.getParam(TradeConstant.IDENTIFIER)) {
 			case "SMA":
 				x = "SMA";
 				break;
@@ -409,7 +409,7 @@ public class AlgorithmCruncherDaoImpl implements AlgorithmCruncherDao {
 				return;
 		}
 
-		if (!Arrays.asList(Symbol.SYMBOLS).contains((String) request.getParam(GlobalConstant.SYMBOL))) {
+		if (!Arrays.asList(Symbol.SYMBOLS).contains((String) request.getParam(TradeConstant.SYMBOL))) {
 			System.out.println("request param symbol does not contain valid symbol at algorithm cruncher dao item");
 			return;
 		}
@@ -417,9 +417,9 @@ public class AlgorithmCruncherDaoImpl implements AlgorithmCruncherDao {
 		String queryStr = "SELECT DISTINCT x.epochSeconds FROM " + x
 				+ " x WHERE x.symbol =: symbol AND x.type =:type ORDER BY x.epochSeconds ASC";
 
-		final Query query = entityManager.createQuery(queryStr)
-				.setParameter("type", request.getParam(GlobalConstant.TYPE))
-				.setParameter("symbol", request.getParam(GlobalConstant.SYMBOL))
+		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr)
+				.setParameter("type", request.getParam(TradeConstant.TYPE))
+				.setParameter("symbol", request.getParam(TradeConstant.SYMBOL))
 				.setMaxResults(1);
 
 		response.addParam(GlobalConstant.ITEM, query.getSingleResult());
@@ -427,10 +427,10 @@ public class AlgorithmCruncherDaoImpl implements AlgorithmCruncherDao {
 	}
 
 	@Override
-	public void getTechicalIndicator(Request request, Response response) {
+	public void getTechicalIndicator(RestRequest request, RestResponse response) {
 		if (request.containsParam(GlobalConstant.ITEMID) && (request.getParam(GlobalConstant.ITEMID) != null)) {
 			final String queryStr = "SELECT DISTINCT x FROM TechnicalIndicator AS x WHERE x.id =:id";
-			final Query query = entityManager.createQuery(queryStr);
+			final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
 
 			if (request.getParam(GlobalConstant.ITEMID) instanceof Integer) {
 				query.setParameter("id", Long.valueOf((Integer) request.getParam(GlobalConstant.ITEMID)));

@@ -1,10 +1,13 @@
 package org.toasthub.stock.model;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.MathContext;
 
-public class Order {
-    private BigDecimal dollarAmount;
+public class Order implements Serializable {
+    
+	private static final long serialVersionUID = 1L;
+	private BigDecimal dollarAmount;
     private BigDecimal stockAmount;
     private BigDecimal highPrice;
     private BigDecimal trailingStopPrice;
@@ -13,6 +16,21 @@ public class Order {
     private BigDecimal initialPrice;
     private long boughtAtTime;
     
+    // Constructors
+    public Order(BigDecimal dollarAmount , BigDecimal stockPrice){
+        this.dollarAmount = dollarAmount;
+        this.stockAmount = convertToShares(stockPrice);
+        this.initialPrice = stockPrice;
+        this.highPrice = stockPrice;
+    }
+
+    public Order(int shareAmount , BigDecimal stockPrice){
+        BigDecimal stockAmount = new BigDecimal(shareAmount);
+        this.stockAmount = stockAmount;
+        this.dollarAmount = convertToDollars(stockPrice);
+        this.initialPrice = stockPrice;
+        this.highPrice = stockPrice;
+    }
     public Order(BigDecimal dollarAmount, BigDecimal stockAmount, BigDecimal trailingStopPrice, 
                  BigDecimal trailingStopPercent, BigDecimal totalProfit, BigDecimal initialStockPrice){
 
@@ -40,33 +58,17 @@ public class Order {
         }
     }
 
+    // Setter/Getter
     public long getBoughtAtTime() {
         return boughtAtTime;
     }
-
     public void setBoughtAtTime(long boughtAtTime) {
         this.boughtAtTime = boughtAtTime;
-    }
-
-    public Order(BigDecimal dollarAmount , BigDecimal stockPrice){
-        this.dollarAmount = dollarAmount;
-        this.stockAmount = convertToShares(stockPrice);
-        this.initialPrice = stockPrice;
-        this.highPrice = stockPrice;
-    }
-
-    public Order(int shareAmount , BigDecimal stockPrice){
-        BigDecimal stockAmount = new BigDecimal(shareAmount);
-        this.stockAmount = stockAmount;
-        this.dollarAmount = convertToDollars(stockPrice);
-        this.initialPrice = stockPrice;
-        this.highPrice = stockPrice;
     }
 
     public BigDecimal getTotalProfit() {
         return totalProfit;
     }
-
     public void setTotalProfit(BigDecimal totalProfit) {
         this.totalProfit = totalProfit;
     }
@@ -74,7 +76,6 @@ public class Order {
     public BigDecimal getStockAmount() {
         return stockAmount;
     }
-
     public void setStockAmount(BigDecimal stockAmount) {
         this.stockAmount = stockAmount;
     }
@@ -82,7 +83,6 @@ public class Order {
     public BigDecimal getDollarAmount() {
         return dollarAmount;
     }
-
     public void setDollarAmount(BigDecimal dollarAmount) {
         this.dollarAmount = dollarAmount;
     }
@@ -90,18 +90,24 @@ public class Order {
     public BigDecimal getHighPrice() {
         return highPrice;
     }
+    public void setHighPrice(BigDecimal highPrice) {
+        this.highPrice = highPrice;
+    }
+    
     public BigDecimal getTrailingStopPercent() {
         return trailingStopPercent;
     }
     public void setTrailingStopPercent(BigDecimal trailingStopPercent){
         this.trailingStopPercent = trailingStopPercent;
     }
+    
     public BigDecimal getTrailingStopPrice() {
         return trailingStopPrice;
     }
-    public void setHighPrice(BigDecimal highPrice) {
-        this.highPrice = highPrice;
-    }
+    public void setTrailingStopPrice(BigDecimal trailingStopPrice) {
+		this.trailingStopPrice = trailingStopPrice;
+	}
+    
     public BigDecimal convertToShares(BigDecimal stockPrice){
         this.stockAmount = this.dollarAmount.divide(stockPrice, MathContext.DECIMAL32);
         return this.stockAmount;
@@ -114,6 +120,9 @@ public class Order {
     public BigDecimal getInitialPrice(){
         return initialPrice;
     }
+	public void setInitialPrice(BigDecimal initialPrice) {
+		this.initialPrice = initialPrice;
+	}
 
     
 

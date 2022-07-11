@@ -12,12 +12,10 @@ import javax.persistence.Table;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import org.toasthub.common.BaseEntity;
-
 
 @Entity
 @Table(name = "ta_historical_detail")
-public class HistoricalDetail extends BaseEntity {
+public class HistoricalDetail extends TradeBaseEntity {
 
 	private static final long serialVersionUID = 1L;
     
@@ -46,7 +44,7 @@ public class HistoricalDetail extends BaseEntity {
         this.setIdentifier("HistoricalDetail");
 	}
 
-    //Methods
+    // Setter/Getter
     @JsonIgnore
     @ManyToOne(targetEntity = HistoricalAnalysis.class , fetch = FetchType.LAZY)
     @JoinColumn(name = "historical_analysis_id")
@@ -56,6 +54,7 @@ public class HistoricalDetail extends BaseEntity {
     public void setHistoricalAnalysis(HistoricalAnalysis historicalAnalysis) {
         this.historicalAnalysis = historicalAnalysis;
     }
+    
     @Column(name = "high_price")
     public BigDecimal getHighPrice() {
         return highPrice;
@@ -63,6 +62,7 @@ public class HistoricalDetail extends BaseEntity {
     public void setHighPrice(BigDecimal highPrice) {
         this.highPrice = highPrice;
     }
+    
     @Column(name = "sold_at")
     public BigDecimal getSoldAt() {
         return soldAt;
@@ -70,6 +70,7 @@ public class HistoricalDetail extends BaseEntity {
     public void setSoldAt(BigDecimal soldAt) {
         this.soldAt = soldAt;
     }
+    
     @Column(name = "bought_at")
     public BigDecimal getBoughtAt() {
         return boughtAt;
@@ -77,6 +78,7 @@ public class HistoricalDetail extends BaseEntity {
     public void setBoughtAt(BigDecimal boughtAt) {
         this.boughtAt = boughtAt;
     }
+    
     @Column(name = "sold_at_time")
     public long getSoldAtTime() {
         return soldAtTime;
@@ -84,6 +86,7 @@ public class HistoricalDetail extends BaseEntity {
     public void setSoldAtTime(long soldAtTime) {
         this.soldAtTime = soldAtTime;
     }
+    
     @Column(name = "bought_at_time")
     public long getBoughtAtTime() {
         return boughtAtTime;

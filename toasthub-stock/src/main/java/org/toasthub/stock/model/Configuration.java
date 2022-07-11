@@ -4,13 +4,13 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Table;
 
-import org.toasthub.common.BaseEntity;
-
 @Entity
 @Table(name = "ta_configuration")
-public class Configuration extends BaseEntity {
-    private boolean backloaded = false;
+public class Configuration extends TradeBaseEntity {
+    private static final long serialVersionUID = 1L;
+	private boolean backloaded = false;
 
+	// Setter/Getter
     @Column(name = "backloaded")
     public boolean isBackloaded() {
         return backloaded;
