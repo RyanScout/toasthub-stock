@@ -27,6 +27,7 @@ import java.util.List;
 
 import javax.persistence.Entity;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 
 @Entity
 @Table(name = "ta_SMA")
@@ -64,6 +65,7 @@ public class SMA extends BaseAlg{
 	}
 
 	// Methods
+	@Transient
 	public static BigDecimal calculateSMA(final List<BigDecimal> list) {
         BigDecimal sma = BigDecimal.ZERO;
         for (int i = 0; i < list.size(); i++)
@@ -71,6 +73,7 @@ public class SMA extends BaseAlg{
         return sma.divide( new BigDecimal(list.size()) , MathContext.DECIMAL32);
     }
 
+	@Transient
 	public static BigDecimal calculateSD(final List<BigDecimal> list) {
         double sum = 0.0, standardDeviation = 0.0;
         final int length = list.size();

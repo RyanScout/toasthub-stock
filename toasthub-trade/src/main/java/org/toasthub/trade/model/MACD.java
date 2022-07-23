@@ -26,6 +26,7 @@ import java.util.List;
 
 import javax.persistence.Entity;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 
 @Entity
 @Table(name = "ta_MACD")
@@ -63,6 +64,7 @@ public class MACD extends BaseAlg{
 	}
 
 	// Methods
+	@Transient
 	public static BigDecimal calculateMACD(List<BigDecimal> list){
         List<BigDecimal> trimmedList = list.subList(list.size()-25, list.size());
         BigDecimal longEMA = EMA.calculateEMA(trimmedList);

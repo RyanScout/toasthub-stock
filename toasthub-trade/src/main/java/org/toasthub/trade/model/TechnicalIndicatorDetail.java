@@ -10,7 +10,10 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
+import org.toasthub.core.general.api.View;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonView;
 
 @Entity
 @Table(name = "ta_technical_indicator_detail")
@@ -46,6 +49,7 @@ public class TechnicalIndicatorDetail extends TradeBaseEntity {
         this.technicalIndicator = technicalIndicator;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "success_percent")
     public BigDecimal getSuccessPercent() {
         return successPercent;
@@ -54,6 +58,7 @@ public class TechnicalIndicatorDetail extends TradeBaseEntity {
         this.successPercent = successPercent;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "success")
     public boolean isSuccess() {
         return success;
@@ -62,6 +67,7 @@ public class TechnicalIndicatorDetail extends TradeBaseEntity {
         this.success = success;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "vwap")
     public BigDecimal getVwap() {
         return vwap;
@@ -70,6 +76,7 @@ public class TechnicalIndicatorDetail extends TradeBaseEntity {
         this.vwap = vwap;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "volume")
     public long getVolume() {
         return volume;
@@ -78,6 +85,7 @@ public class TechnicalIndicatorDetail extends TradeBaseEntity {
         this.volume = volume;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "checked")
     public int getChecked() {
         return checked;
@@ -86,6 +94,7 @@ public class TechnicalIndicatorDetail extends TradeBaseEntity {
         this.checked = checked;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "flash_price")
     public BigDecimal getFlashPrice() {
         return flashPrice;
@@ -94,6 +103,7 @@ public class TechnicalIndicatorDetail extends TradeBaseEntity {
         this.flashPrice = flashPrice;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "flash_time")
     public long getFlashTime() {
         return flashTime;

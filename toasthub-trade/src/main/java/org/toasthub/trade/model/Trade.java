@@ -31,6 +31,10 @@ import javax.persistence.Entity;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
+import org.toasthub.core.general.api.View;
+
+import com.fasterxml.jackson.annotation.JsonView;
+
 @Entity
 @Table(name = "ta_trade")
 public class Trade extends TradeBaseEntity {
@@ -96,6 +100,7 @@ public class Trade extends TradeBaseEntity {
 	}
 		
 	// Setter/Getter
+	@JsonView({View.Member.class})
 	@Column(name = "last_order")
 	public long getLastOrder() {
 		return lastOrder;
@@ -104,6 +109,7 @@ public class Trade extends TradeBaseEntity {
 		this.lastOrder = lastOrder;
 	}
 
+	@JsonView({View.Member.class})
 	@Column(name = "first_order")
 	public long getFirstOrder() {
 		return firstOrder;
@@ -112,6 +118,7 @@ public class Trade extends TradeBaseEntity {
 		this.firstOrder = firstOrder;
 	}
 	
+	@JsonView({View.Member.class})
 	@Column(name = "parseable_sell_condition")
 	public String getParseableSellCondition() {
 		return parseableSellCondition;
@@ -120,6 +127,7 @@ public class Trade extends TradeBaseEntity {
 		this.parseableSellCondition = parseableSellCondition;
 	}
 
+	@JsonView({View.Member.class})
 	@Column(name = "parseable_buy_condition")
 	public String getParseableBuyCondition() {
 		return parseableBuyCondition;
@@ -128,6 +136,7 @@ public class Trade extends TradeBaseEntity {
 		this.parseableBuyCondition = parseableBuyCondition;
 	}
 
+	@JsonView({View.Member.class})
 	@Column(name = "iterations_executed")
 	public int getIterationsExecuted() {
 		return iterationsExecuted;
@@ -136,6 +145,7 @@ public class Trade extends TradeBaseEntity {
 		this.iterationsExecuted = iterationsExecuted;
 	}
 
+	@JsonView({View.Member.class})
 	@Column(name = "iterations")
 	public String getIterations() {
 		return iterations;
@@ -144,6 +154,7 @@ public class Trade extends TradeBaseEntity {
 		this.iterations = iterations;
 	}
 
+	@JsonView({View.Member.class})
 	@Column(name = "total_value")
 	public BigDecimal getTotalValue() {
 		return totalValue;
@@ -152,6 +163,7 @@ public class Trade extends TradeBaseEntity {
 		this.totalValue = totalValue;
 	}
 
+	@JsonView({View.Member.class})
 	@OneToMany(mappedBy = "trade", cascade = CascadeType.ALL)
 	public Set<TradeDetail> getTradeDetails() {
 		return tradeDetails;
@@ -160,6 +172,7 @@ public class Trade extends TradeBaseEntity {
 		this.tradeDetails = tradeDetails;
 	}
 
+	@JsonView({View.Member.class})
 	@Column(name = "evaluation_period")
 	public String getEvaluationPeriod() {
 		return evaluationPeriod;
@@ -168,6 +181,7 @@ public class Trade extends TradeBaseEntity {
 		this.evaluationPeriod = evaluationPeriod;
 	}
 
+	@JsonView({View.Member.class})
 	@Column(name = "shares_held")
 	public BigDecimal getSharesHeld() {
 		return sharesHeld;
@@ -176,6 +190,7 @@ public class Trade extends TradeBaseEntity {
 		this.sharesHeld = sharesHeld;
 	}
 
+	@JsonView({View.Member.class})
 	@Column(name = "budget")
 	public BigDecimal getBudget() {
 		return budget;
@@ -184,6 +199,7 @@ public class Trade extends TradeBaseEntity {
 		this.budget = budget;
 	}
 
+	@JsonView({View.Member.class})
 	@Column(name = "available_budget")
 	public BigDecimal getAvailableBudget() {
 		return availableBudget;
@@ -192,6 +208,7 @@ public class Trade extends TradeBaseEntity {
 		this.availableBudget = availableBudget;
 	}
 
+	@JsonView({View.Member.class})
 	@Column(name = "status")
 	public String getStatus() {
 		return status;
@@ -200,6 +217,7 @@ public class Trade extends TradeBaseEntity {
 		this.status = status;
 	}
 
+	@JsonView({View.Member.class})
 	@Column(name = "symbol")
 	public String getSymbol() {
 		return symbol;
@@ -208,6 +226,7 @@ public class Trade extends TradeBaseEntity {
 		this.symbol = symbol;
 	}
 
+	@JsonView({View.Member.class})
 	@Column(name = "profit_limit_amount")
 	public BigDecimal getProfitLimitAmount() {
 		return profitLimitAmount;
@@ -216,6 +235,7 @@ public class Trade extends TradeBaseEntity {
 		this.profitLimitAmount = profitLimitAmount;
 	}
 
+	@JsonView({View.Member.class})
 	@Column(name = "trailing_stop_amount")
 	public BigDecimal getTrailingStopAmount() {
 		return trailingStopAmount;
@@ -224,6 +244,7 @@ public class Trade extends TradeBaseEntity {
 		this.trailingStopAmount = trailingStopAmount;
 	}
 
+	@JsonView({View.Member.class})
 	@Column(name = "profit_limit_type")
 	public String getProfitLimitType() {
 		return profitLimitType;
@@ -232,6 +253,7 @@ public class Trade extends TradeBaseEntity {
 		this.profitLimitType = profitLimitType;
 	}
 
+	@JsonView({View.Member.class})
 	@Column(name = "trailing_stop_type")
 	public String getTrailingStopType() {
 		return trailingStopType;
@@ -240,6 +262,7 @@ public class Trade extends TradeBaseEntity {
 		this.trailingStopType = trailingStopType;
 	}
 
+	@JsonView({View.Member.class})
 	@Column(name = "currency_type")
 	public String getCurrencyType() {
 		return currencyType;
@@ -248,6 +271,7 @@ public class Trade extends TradeBaseEntity {
 		this.currencyType = currencyType;
 	}
 
+	@JsonView({View.Member.class})
 	@Column(name = "sell_condition")
 	public String getSellCondition() {
 		return sellCondition;
@@ -256,6 +280,7 @@ public class Trade extends TradeBaseEntity {
 		this.sellCondition = sellCondition;
 	}
 
+	@JsonView({View.Member.class})
 	@Column(name = "buy_condition")
 	public String getBuyCondition() {
 		return buyCondition;
@@ -264,6 +289,7 @@ public class Trade extends TradeBaseEntity {
 		this.buyCondition = buyCondition;
 	}
 
+	@JsonView({View.Member.class})
 	@Column(name = "currency_amount")
 	public BigDecimal getCurrencyAmount() {
 		return currencyAmount;
@@ -272,6 +298,7 @@ public class Trade extends TradeBaseEntity {
 		this.currencyAmount = currencyAmount;
 	}
 
+	@JsonView({View.Member.class})
 	@Column(name = "order_side")
 	public String getOrderSide() {
 		return orderSide;
@@ -280,6 +307,7 @@ public class Trade extends TradeBaseEntity {
 		this.orderSide = orderSide;
 	}
 
+	@JsonView({View.Member.class})
 	@Column(name = "name")
 	public String getName() {
 		return name;
@@ -288,6 +316,7 @@ public class Trade extends TradeBaseEntity {
 		this.name = name;
 	}
 
+	@JsonView({View.Member.class})
 	@Column(name = "order_type")
 	public String getOrderType() {
 		return orderType;

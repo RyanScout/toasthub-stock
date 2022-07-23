@@ -10,7 +10,10 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
+import org.toasthub.core.general.api.View;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonView;
 
 @Entity
 @Table(name = "ta_symbol")
@@ -41,6 +44,7 @@ public class Symbol extends TradeBaseEntity {
         this.customTechnicalIndicator = customTechnicalIndicator;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "symbol")
     public String getSymbol() {
         return symbol;
