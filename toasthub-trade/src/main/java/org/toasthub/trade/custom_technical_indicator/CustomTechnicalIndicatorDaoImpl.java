@@ -41,7 +41,7 @@ public class CustomTechnicalIndicatorDaoImpl implements CustomTechnicalIndicator
 
     @Override
     public void items(RestRequest request, RestResponse response) throws Exception {
-        String queryStr = "SELECT DISTINCT x FROM CustomTechnicalIndicator AS x";
+        String queryStr = "SELECT DISTINCT x FROM CustomTechnicalIndicator AS x JOIN FETCH x.symbols";
         Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
         List<?> result = query.getResultList();
 

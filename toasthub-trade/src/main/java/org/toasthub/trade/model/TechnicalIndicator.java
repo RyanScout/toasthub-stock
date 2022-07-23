@@ -11,6 +11,10 @@ import javax.persistence.Entity;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
+import org.toasthub.core.general.api.View;
+
+import com.fasterxml.jackson.annotation.JsonView;
+
 @Entity
 @Table(name = "ta_technical_indicator")
 public class TechnicalIndicator extends TradeBaseEntity {
@@ -53,6 +57,7 @@ public class TechnicalIndicator extends TradeBaseEntity {
 
     
     // Setter/Getter
+    @JsonView({View.Member.class})
     @OneToMany(mappedBy = "technicalIndicator", cascade = CascadeType.ALL)
     public Set<TechnicalIndicatorDetail> getDetails() {
         return details;
@@ -61,6 +66,7 @@ public class TechnicalIndicator extends TradeBaseEntity {
         this.details = details;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "symbol")
     public String getSymbol() {
         return symbol;
@@ -69,6 +75,7 @@ public class TechnicalIndicator extends TradeBaseEntity {
         this.symbol = symbol;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "technical_indicator_type")
     public String getTechnicalIndicatorType() {
         return technicalIndicatorType;
@@ -77,6 +84,7 @@ public class TechnicalIndicator extends TradeBaseEntity {
         this.technicalIndicatorType = technicalIndicatorType;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "technical_indicator_key")
     public String getTechnicalIndicatorKey() {
         return technicalIndicatorKey;
@@ -85,6 +93,7 @@ public class TechnicalIndicator extends TradeBaseEntity {
         this.technicalIndicatorKey = technicalIndicatorKey;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "evaluation_period")
     public String getEvaluationPeriod() {
         return evaluationPeriod;
@@ -93,6 +102,7 @@ public class TechnicalIndicator extends TradeBaseEntity {
         this.evaluationPeriod = evaluationPeriod;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "ubb_type")
     public String getUBBType() {
         return UBBType;
@@ -101,6 +111,7 @@ public class TechnicalIndicator extends TradeBaseEntity {
         this.UBBType = uBBType;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "standard_deviations")
     public BigDecimal getStandardDeviations() {
         return standardDeviations;
@@ -109,6 +120,7 @@ public class TechnicalIndicator extends TradeBaseEntity {
         this.standardDeviations = standardDeviations;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "lbb_type")
     public String getLBBType() {
         return LBBType;
@@ -117,6 +129,7 @@ public class TechnicalIndicator extends TradeBaseEntity {
         this.LBBType = lBBType;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "short_sma_type")
     public String getShortSMAType() {
         return shortSMAType;
@@ -125,6 +138,7 @@ public class TechnicalIndicator extends TradeBaseEntity {
         this.shortSMAType = shortSMAType;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "long_sma_type")
     public String getLongSMAType() {
         return longSMAType;
@@ -133,6 +147,7 @@ public class TechnicalIndicator extends TradeBaseEntity {
         this.longSMAType = longSMAType;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "last_flash")
     public long getLastFlash() {
         return lastFlash;
@@ -141,6 +156,7 @@ public class TechnicalIndicator extends TradeBaseEntity {
         this.lastFlash = lastFlash;
     }
     
+    @JsonView({View.Member.class})
     @Column(name = "flashing")
     public boolean isFlashing() {
         return flashing;
@@ -149,6 +165,7 @@ public class TechnicalIndicator extends TradeBaseEntity {
         this.flashing = flashing;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "last_check")
     public long getLastCheck() {
         return lastCheck;
@@ -157,6 +174,7 @@ public class TechnicalIndicator extends TradeBaseEntity {
         this.lastCheck = lastCheck;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "first_check")
     public long getFirstCheck() {
         return firstCheck;
@@ -165,6 +183,7 @@ public class TechnicalIndicator extends TradeBaseEntity {
         this.firstCheck = firstCheck;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "checked")
     public long getChecked() {
         return checked;
@@ -173,6 +192,7 @@ public class TechnicalIndicator extends TradeBaseEntity {
         this.checked = checked;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "flashed")
     public long getFlashed() {
         return flashed;
@@ -181,6 +201,7 @@ public class TechnicalIndicator extends TradeBaseEntity {
         this.flashed = flashed;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "successes")
     public long getSuccesses() {
         return successes;
@@ -189,6 +210,7 @@ public class TechnicalIndicator extends TradeBaseEntity {
         this.successes = successes;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "updating")
     public boolean isUpdating() {
         return updating;

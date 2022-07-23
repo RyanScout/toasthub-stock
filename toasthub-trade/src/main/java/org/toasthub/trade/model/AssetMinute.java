@@ -8,8 +8,12 @@ import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
+import javax.persistence.Transient;
+
+import org.toasthub.core.general.api.View;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonView;
 
 @Entity
 @Table(name = "ta_asset_minute")
@@ -30,8 +34,13 @@ public class AssetMinute extends TradeBaseEntity {
         this.setIdentifier("AssetMinute");
         this.setType("AssetMinute");
     }
+    
+    public AssetMinute(final String code, final Boolean defaultLang, final String dir) {
+        super();
+    }
 
     // Setter/Getter
+    @JsonView({View.Member.class})
     @Column(name = "symbol")
     public String getSymbol() {
         return symbol;
@@ -40,6 +49,7 @@ public class AssetMinute extends TradeBaseEntity {
         this.symbol = symbol;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "type")
     public String getType() {
         return type;
@@ -48,6 +58,7 @@ public class AssetMinute extends TradeBaseEntity {
         this.type = type;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "value")
     public BigDecimal getValue() {
         return value;
@@ -64,6 +75,33 @@ public class AssetMinute extends TradeBaseEntity {
     }
     public void setAssetDay(final AssetDay assetDay) {
         this.assetDay = assetDay;
+    }
+
+    @JsonView({View.Member.class})
+    @Column(name = "vwap")
+    public BigDecimal getVwap() {
+        return vwap;
+    }
+    public void setVwap(final BigDecimal vwap) {
+        this.vwap = vwap;
+    }
+
+    @JsonView({View.Member.class})
+    @Column(name = "volume")
+    public long getVolume() {
+        return volume;
+    }
+    public void setVolume(final long volume) {
+        this.volume = volume;
+    }
+
+    @JsonView({View.Member.class})
+    @Column(name = "epoch_seconds")
+    public long getEpochSeconds() {
+        return epochSeconds;
+    }
+    public void setEpochSeconds(final long epochSeconds) {
+        this.epochSeconds = epochSeconds;
     }
 
     @Override
@@ -114,32 +152,5 @@ public class AssetMinute extends TradeBaseEntity {
             return false;
         return true;
     }
-
-    @Column(name = "vwap")
-    public BigDecimal getVwap() {
-        return vwap;
-    }
-    public void setVwap(final BigDecimal vwap) {
-        this.vwap = vwap;
-    }
-
-    @Column(name = "volume")
-    public long getVolume() {
-        return volume;
-    }
-    public void setVolume(final long volume) {
-        this.volume = volume;
-    }
-
-    @Column(name = "epoch_seconds")
-    public long getEpochSeconds() {
-        return epochSeconds;
-    }
-    public void setEpochSeconds(final long epochSeconds) {
-        this.epochSeconds = epochSeconds;
-    }
-
-    public AssetMinute(final String code, final Boolean defaultLang, final String dir) {
-        super();
-    }
+    
 }
