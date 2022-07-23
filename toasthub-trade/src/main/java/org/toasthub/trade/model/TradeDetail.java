@@ -10,7 +10,10 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
+import org.toasthub.core.general.api.View;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonView;
 
 
 @Entity
@@ -43,6 +46,7 @@ public class TradeDetail extends TradeBaseEntity{
 	}
 
     // Setter/Getter
+    @JsonView({View.Member.class})
 	@Column(name = "filled_at")
     public long getFilledAt() {
         return filledAt;
@@ -51,6 +55,7 @@ public class TradeDetail extends TradeBaseEntity{
         this.filledAt = filledAt;
     }
 
+    @JsonView({View.Member.class})
 	@Column(name = "placed_at")
     public long getPlacedAt() {
         return placedAt;
@@ -59,6 +64,7 @@ public class TradeDetail extends TradeBaseEntity{
         this.placedAt = placedAt;
     }
 
+    @JsonView({View.Member.class})
 	@Column(name = "dollar_amount")
     public BigDecimal getDollarAmount() {
         return dollarAmount;
@@ -67,6 +73,7 @@ public class TradeDetail extends TradeBaseEntity{
         this.dollarAmount = dollarAmount;
     }
 
+    @JsonView({View.Member.class})
 	@Column(name = "share_amount")
     public BigDecimal getShareAmount() {
         return shareAmount;
@@ -85,6 +92,7 @@ public class TradeDetail extends TradeBaseEntity{
         this.trade = trade;
     }
 
+    @JsonView({View.Member.class})
 	@Column(name = "asset_price")
     public BigDecimal getAssetPrice() {
         return assetPrice;
@@ -93,6 +101,7 @@ public class TradeDetail extends TradeBaseEntity{
         this.assetPrice = assetPrice;
     }
     
+    @JsonView({View.Member.class})
 	@Column(name = "order_side")
     public String getOrderSide() {
         return orderSide;
@@ -101,6 +110,7 @@ public class TradeDetail extends TradeBaseEntity{
         this.orderSide = orderSide;
     }
     
+    @JsonView({View.Member.class})
 	@Column(name = "status")
     public String getStatus() {
         return status;
@@ -109,6 +119,7 @@ public class TradeDetail extends TradeBaseEntity{
         this.status = status;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "order_id")
     public String getOrderID() {
         return orderID;
@@ -117,6 +128,7 @@ public class TradeDetail extends TradeBaseEntity{
         this.orderID = orderID;
     }
     
+    @JsonView({View.Member.class})
 	@Column(name = "total_value")
     public BigDecimal getTotalValue() {
         return totalValue;
@@ -125,6 +137,7 @@ public class TradeDetail extends TradeBaseEntity{
         this.totalValue = totalValue;
     }
     
+    @JsonView({View.Member.class})
 	@Column(name = "available_budget")
     public BigDecimal getAvailableBudget() {
         return availableBudget;
@@ -133,6 +146,7 @@ public class TradeDetail extends TradeBaseEntity{
         this.availableBudget = availableBudget;
     }
     
+    @JsonView({View.Member.class})
 	@Column(name = "shares_held")
     public BigDecimal getSharesHeld() {
         return sharesHeld;
@@ -141,6 +155,7 @@ public class TradeDetail extends TradeBaseEntity{
         this.sharesHeld = sharesHeld;
     }
     
+    @JsonView({View.Member.class})
 	@Column(name = "order_condition")
     public String getOrderCondition() {
         return orderCondition;

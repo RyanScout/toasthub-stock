@@ -31,6 +31,10 @@ import javax.persistence.Entity;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
+import org.toasthub.core.general.api.View;
+
+import com.fasterxml.jackson.annotation.JsonView;
+
 
 @Entity
 @Table(name = "ta_historical_analysis")
@@ -81,6 +85,7 @@ public class HistoricalAnalysis extends TradeBaseEntity {
 	}
 
 	// Setter/Getter
+	@JsonView({View.Member.class})
 	@Column(name = "symbol")
 	public String getSymbol() {
 		return symbol;
@@ -89,6 +94,7 @@ public class HistoricalAnalysis extends TradeBaseEntity {
 		this.symbol = symbol;
 	}
 
+	@JsonView({View.Member.class})
 	@Column(name = "historical_analysis_type")
 	public String getHistoricalAnalysisType() {
 		return historicalAnalysisType;
@@ -97,6 +103,7 @@ public class HistoricalAnalysis extends TradeBaseEntity {
 		this.historicalAnalysisType = historicalAnalysisType;
 	}
 	
+	@JsonView({View.Member.class})
 	@Column(name = "order_type")
 	public String getOrderType() {
 		return orderType;
@@ -105,6 +112,7 @@ public class HistoricalAnalysis extends TradeBaseEntity {
 		this.orderType = orderType;
 	}
 
+	@JsonView({View.Member.class})
 	@Column(name = "name")
 	public String getName() {
 		return name;
@@ -113,6 +121,7 @@ public class HistoricalAnalysis extends TradeBaseEntity {
 		this.name = name;
 	}
 	
+	@JsonView({View.Member.class})
 	@Column(name = "amount")
 	public BigDecimal getAmount() {
 		return amount;
@@ -121,6 +130,7 @@ public class HistoricalAnalysis extends TradeBaseEntity {
 		this.amount = amount;
 	}
 	
+	@JsonView({View.Member.class})
 	@Column(name = "algorithm")
 	public String getAlgorithm() {
 		return algorithm;
@@ -129,6 +139,7 @@ public class HistoricalAnalysis extends TradeBaseEntity {
 		this.algorithm = algorithm;
 	}
 	
+	@JsonView({View.Member.class})
 	@Column(name = "trailing_stop_percent")
 	public BigDecimal getTrailingStopPercent() {
 		return trailingStopPercent;
@@ -137,6 +148,7 @@ public class HistoricalAnalysis extends TradeBaseEntity {
 		this.trailingStopPercent = trailingStopPercent;
 	}
 	
+	@JsonView({View.Member.class})
 	@Column(name = "profit_limit")
 	public BigDecimal getProfitLimit() {
 		return profitLimit;
@@ -145,6 +157,7 @@ public class HistoricalAnalysis extends TradeBaseEntity {
 		this.profitLimit = profitLimit;
 	}
 	
+	@JsonView({View.Member.class})
 	@Column(name = "total_value")
 	public BigDecimal getTotalValue() {
 		return totalValue;
@@ -153,6 +166,7 @@ public class HistoricalAnalysis extends TradeBaseEntity {
 		this.totalValue = totalValue;
 	}
 	
+	@JsonView({View.Member.class})
 	@Column(name = "money_spent")
 	public BigDecimal getMoneySpent() {
 		return moneySpent;
@@ -161,6 +175,7 @@ public class HistoricalAnalysis extends TradeBaseEntity {
 		this.moneySpent = moneySpent;
 	}
 	
+	@JsonView({View.Member.class})
 	@Column(name="end_time")
 	public long getEndTime() {
 		return endTime;
@@ -169,6 +184,7 @@ public class HistoricalAnalysis extends TradeBaseEntity {
 		this.endTime = endTime;
 	}
 	
+	@JsonView({View.Member.class})
 	@Column(name="start_time")
 	public long getStartTime() {
 		return startTime;
@@ -177,6 +193,7 @@ public class HistoricalAnalysis extends TradeBaseEntity {
 		this.startTime = startTime;
 	}
 	
+	@JsonView({View.Member.class})
 	@OneToMany(mappedBy = "historicalAnalysis" , cascade = CascadeType.ALL)
 	public Set<HistoricalDetail> getHistoricalDetails() {
 		return historicalDetails;

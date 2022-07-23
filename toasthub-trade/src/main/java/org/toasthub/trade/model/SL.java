@@ -27,6 +27,7 @@ import java.util.List;
 
 import javax.persistence.Entity;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 
 @Entity
 @Table(name = "ta_SL")
@@ -64,6 +65,7 @@ public class SL extends BaseAlg {
 	}
 
 	// Methods
+	@Transient
 	public static BigDecimal calculateSL(List<BigDecimal> list){
         BigDecimal multiplier = BigDecimal.valueOf( 2.0/(9+1) );
         BigDecimal macdAverage = BigDecimal.ZERO;
@@ -77,6 +79,7 @@ public class SL extends BaseAlg {
         return MACD.calculateMACD(list).multiply(multiplier).add(macdAverage);
     }
 
+	@Transient
     public static BigDecimal calculateSL(BigDecimal[] macdArr){
         BigDecimal multiplier = BigDecimal.valueOf( 2.0/(10) );
         BigDecimal macdAverage = BigDecimal.ZERO;

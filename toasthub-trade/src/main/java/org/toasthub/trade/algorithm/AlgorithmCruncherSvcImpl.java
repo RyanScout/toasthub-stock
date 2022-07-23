@@ -799,7 +799,7 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 		final String longSMAType = (String) request.getParam("LONG_SMA_TYPE");
 		final String symbol = (String) request.getParam(TradeConstant.SYMBOL);
 
-		final int daysToBackload = (int) request.getParam("DAYS_TO_BACKLOAD");
+		final int daysToBackload = (int) request.getParam(TradeConstant.DAYS_TO_BACKLOAD);
 
 		final SMA shortSMA = new SMA();
 		shortSMA.setType(shortSMAType);
@@ -939,7 +939,7 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 
 		final BigDecimal standardDeviations = (BigDecimal) request.getParam("STANDARD_DEVIATIONS");
 
-		final int daysToBackload = (int) request.getParam("DAYS_TO_BACKLOAD");
+		final int daysToBackload = (int) request.getParam(TradeConstant.DAYS_TO_BACKLOAD);
 
 		final LBB lbbPrototype = new LBB();
 		lbbPrototype.setType(lbbType);

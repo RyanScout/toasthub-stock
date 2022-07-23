@@ -5,6 +5,10 @@ import java.math.BigDecimal;
 import javax.persistence.Column;
 import javax.persistence.MappedSuperclass;
 
+import org.toasthub.core.general.api.View;
+
+import com.fasterxml.jackson.annotation.JsonView;
+
 
 @MappedSuperclass()
 public abstract class BaseAlg extends TradeBaseEntity {
@@ -29,6 +33,7 @@ public abstract class BaseAlg extends TradeBaseEntity {
     }
 
     // Setter/Getter
+    @JsonView({View.Member.class})
     @Column(name = "corresponding_day")
     public long getCorrespondingDay() {
         return correspondingDay;
@@ -37,6 +42,7 @@ public abstract class BaseAlg extends TradeBaseEntity {
         this.correspondingDay = correspondingDay;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "type")
     public String getType() {
         return type;
@@ -45,6 +51,7 @@ public abstract class BaseAlg extends TradeBaseEntity {
         this.type = type;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "value")
     public BigDecimal getValue() {
         return value;
@@ -53,6 +60,7 @@ public abstract class BaseAlg extends TradeBaseEntity {
         this.value = value;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "symbol")
     public String getSymbol() {
         return symbol;
@@ -61,6 +69,7 @@ public abstract class BaseAlg extends TradeBaseEntity {
         this.symbol = symbol;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "epoch_seconds")
     public long getEpochSeconds() {
         return epochSeconds;

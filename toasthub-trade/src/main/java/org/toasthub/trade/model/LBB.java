@@ -27,6 +27,11 @@ import java.util.List;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Table;
+import javax.persistence.Transient;
+
+import org.toasthub.core.general.api.View;
+
+import com.fasterxml.jackson.annotation.JsonView;
 
 @Entity
 @Table(name = "ta_LBB")
@@ -64,6 +69,7 @@ public class LBB extends BaseAlg {
 	}
 	
 	// Setter/Getter
+	@JsonView({View.Member.class})
 	@Column(name = "standard_deviations")
 	public BigDecimal getStandardDeviations() {
 		return standardDeviations;
@@ -97,6 +103,7 @@ public class LBB extends BaseAlg {
 		return true;
 	}
 
+	@Transient
 	public static BigDecimal calculateLBB(final List<BigDecimal> list, final BigDecimal standardDeviations) {
 		final BigDecimal sma = SMA.calculateSMA(list);
 
@@ -104,6 +111,7 @@ public class LBB extends BaseAlg {
 				SMA.calculateSD(list).multiply(standardDeviations));
 	}
 
+	@Transient
 	public static BigDecimal calculateLBB(final List<BigDecimal> list, final BigDecimal sma, final BigDecimal standardDeviations) {
 		return sma.subtract(
 				SMA.calculateSD(list).multiply(standardDeviations));

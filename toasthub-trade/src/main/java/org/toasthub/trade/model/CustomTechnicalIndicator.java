@@ -12,6 +12,10 @@ import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 
+import org.toasthub.core.general.api.View;
+
+import com.fasterxml.jackson.annotation.JsonView;
+
 @Entity
 @Table(name = "ta_custom_technical_indicator")
 public class CustomTechnicalIndicator extends TradeBaseEntity {
@@ -32,6 +36,7 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
    
 
     // Setter/Getter
+    @JsonView({View.Member.class})
     @Column(name = "technical_indicator_type")
     public String getTechnicalIndicatorType() {
         return technicalIndicatorType;
@@ -40,6 +45,7 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
         this.technicalIndicatorType = technicalIndicatorType;
     }
     
+    @JsonView({View.Member.class})
     @Column(name = "standard_deviations")
     public BigDecimal getStandardDeviations() {
         return standardDeviations;
@@ -48,6 +54,7 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
         this.standardDeviations = standardDeviations;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "ubb_type")
     public String getUBBType() {
         return UBBType;
@@ -56,6 +63,7 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
         this.UBBType = uBBType;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "lbb_type")
     public String getLBBType() {
         return LBBType;
@@ -64,6 +72,7 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
         this.LBBType = lBBType;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "long_sma_type")
     public String getLongSMAType() {
         return longSMAType;
@@ -72,6 +81,7 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
         this.longSMAType = longSMAType;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "short_sma_type")
     public String getShortSMAType() {
         return shortSMAType;
@@ -80,6 +90,7 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
         this.shortSMAType = shortSMAType;
     }
 
+    @JsonView({View.Member.class})
     @OneToMany(mappedBy = "customTechnicalIndicator", cascade = CascadeType.ALL, orphanRemoval = true)
     public Set<Symbol> getSymbols() {
         return symbols;
@@ -88,6 +99,7 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
         this.symbols = symbols;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "technical_indicator_key")
     public String getTechnicalIndicatorKey() {
         return technicalIndicatorKey;
@@ -96,6 +108,7 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
         this.technicalIndicatorKey = technicalIndicatorKey;
     }
 
+    @JsonView({View.Member.class})
     @Transient
     public ArrayList<Object> getTechnicalIndicators() {
         return technicalIndicators;
@@ -104,6 +117,7 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
         this.technicalIndicators = technicalIndicators;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "evaluation_period")
     public String getEvaluationPeriod() {
         return evaluationPeriod;
@@ -112,6 +126,7 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
         this.evaluationPeriod = evaluationPeriod;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "name")
     public String getName() {
         return name;
