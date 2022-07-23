@@ -437,7 +437,7 @@ public class CacheManager {
         final long endingEpochSeconds = currentTechnicalIndicator.getLastCheck();
 
         final long startingEpochSeconds = endingEpochSeconds
-                - ((int) request.getParam("DAYS_TO_BACKLOAD") * 60 * 60 * 24);
+                - ((int) request.getParam(TradeConstant.DAYS_TO_BACKLOAD) * 60 * 60 * 24);
 
         final TechnicalIndicator backloadedTechnicalIndicator = new TechnicalIndicator();
 
@@ -753,7 +753,7 @@ public class CacheManager {
         final long endingEpochSeconds = currentTechnicalIndicator.getFirstCheck();
 
         final long startingEpochSeconds = endingEpochSeconds
-                - ((int) request.getParam("DAYS_TO_BACKLOAD") * 60 * 60 * 24);
+                - ((int) request.getParam(TradeConstant.DAYS_TO_BACKLOAD) * 60 * 60 * 24);
 
         final TechnicalIndicator backloadedTechnicalIndicator = new TechnicalIndicator();
 
