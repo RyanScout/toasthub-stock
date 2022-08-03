@@ -23,13 +23,11 @@ import org.toasthub.core.general.model.RestRequest;
 import org.toasthub.core.general.model.RestResponse;
 import org.toasthub.trade.model.AssetDay;
 import org.toasthub.trade.model.AssetMinute;
-import org.toasthub.trade.model.LBB;
 import org.toasthub.trade.model.Symbol;
 import org.toasthub.trade.model.TechnicalIndicator;
 import org.toasthub.trade.model.TechnicalIndicatorDetail;
 import org.toasthub.trade.model.TradeConstant;
 import org.toasthub.trade.model.TradeSignalCache;
-import org.toasthub.trade.model.UBB;
 
 @Component
 public class CacheManager {
@@ -70,171 +68,57 @@ public class CacheManager {
 
         Stream.of(Symbol.SYMBOLS).forEach(symbol -> {
 
-            request.addParam(TradeConstant.SYMBOL, symbol);
-
-            AssetDay recentAsesetDay = null;
-
             try {
-                cacheDao.getLatestAssetDay(request, response);
-                recentAsesetDay = (AssetDay) response.getParam(GlobalConstant.ITEM);
+                final AssetDay latestAssetDay = cacheDao.getLatestAssetDay(symbol);
+                tradeSignalCache.getRecentClosingPriceMap().put("DAY::" + symbol, latestAssetDay.getClose());
+                tradeSignalCache.getRecentEpochSecondsMap().put("DAY::" + symbol, latestAssetDay.getEpochSeconds());
+                tradeSignalCache.getRecentVolumeMap().put("DAY::" + symbol, latestAssetDay.getVolume());
+                tradeSignalCache.getRecentVwapMap().put("DAY::" + symbol, latestAssetDay.getVwap());
+
             } catch (final NoResultException e) {
                 System.out.println("No assetdays in database");
             }
 
-            if (recentAsesetDay != null) {
-                tradeSignalCache.getRecentClosingPriceMap().put("DAY::" + symbol, recentAsesetDay.getClose());
-                tradeSignalCache.getRecentEpochSecondsMap().put("DAY::" + symbol, recentAsesetDay.getEpochSeconds());
-                tradeSignalCache.getRecentVolumeMap().put("DAY::" + symbol, recentAsesetDay.getVolume());
-                tradeSignalCache.getRecentVwapMap().put("DAY::" + symbol, recentAsesetDay.getVwap());
-            }
-
-            AssetMinute recentAsesetMinute = null;
-
             try {
-                cacheDao.getLatestAssetMinute(request, response);
-                recentAsesetMinute = (AssetMinute) response.getParam(GlobalConstant.ITEM);
+                final AssetMinute latestAssetMinute = cacheDao.getLatestAssetMinute(symbol);
+                tradeSignalCache.getRecentClosingPriceMap().put("MINUTE::" + symbol, latestAssetMinute.getValue());
+                tradeSignalCache.getRecentEpochSecondsMap().put("MINUTE::" + symbol,
+                        latestAssetMinute.getEpochSeconds());
+                tradeSignalCache.getRecentVolumeMap().put("MINUTE::" + symbol, latestAssetMinute.getVolume());
+                tradeSignalCache.getRecentVwapMap().put("MINUTE::" + symbol, latestAssetMinute.getVwap());
             } catch (final NoResultException e) {
                 System.out.println("No assetminutes in database");
             }
 
-            if (recentAsesetMinute != null) {
-                tradeSignalCache.getRecentClosingPriceMap().put("MINUTE::" + symbol, recentAsesetMinute.getValue());
-                tradeSignalCache.getRecentEpochSecondsMap().put("MINUTE::" + symbol,
-                        recentAsesetMinute.getEpochSeconds());
-                tradeSignalCache.getRecentVolumeMap().put("MINUTE::" + symbol, recentAsesetMinute.getVolume());
-                tradeSignalCache.getRecentVwapMap().put("MINUTE::" + symbol, recentAsesetMinute.getVwap());
-            }
         });
     }
 
     public void updateRawData(final RestRequest request, final RestResponse response) {
         Stream.of(Symbol.SYMBOLS).forEach(symbol -> {
 
-            request.addParam(TradeConstant.SYMBOL, symbol);
-
-            AssetDay recentAsesetDay = null;
-
             try {
-                cacheDao.getLatestAssetDay(request, response);
-                recentAsesetDay = (AssetDay) response.getParam(GlobalConstant.ITEM);
+                final AssetDay latestAssetDay = cacheDao.getLatestAssetDay(symbol);
+                tradeSignalCache.getRecentClosingPriceMap().put("DAY::" + symbol, latestAssetDay.getClose());
+                tradeSignalCache.getRecentEpochSecondsMap().put("DAY::" + symbol, latestAssetDay.getEpochSeconds());
+                tradeSignalCache.getRecentVolumeMap().put("DAY::" + symbol, latestAssetDay.getVolume());
+                tradeSignalCache.getRecentVwapMap().put("DAY::" + symbol, latestAssetDay.getVwap());
+
             } catch (final NoResultException e) {
                 System.out.println("No assetdays in database");
             }
 
-            if (recentAsesetDay != null) {
-                tradeSignalCache.getRecentClosingPriceMap().put("DAY::" + symbol, recentAsesetDay.getClose());
-                tradeSignalCache.getRecentEpochSecondsMap().put("DAY::" + symbol, recentAsesetDay.getEpochSeconds());
-                tradeSignalCache.getRecentVolumeMap().put("DAY::" + symbol, recentAsesetDay.getVolume());
-                tradeSignalCache.getRecentVwapMap().put("DAY::" + symbol, recentAsesetDay.getVwap());
-            }
-
-            AssetMinute recentAsesetMinute = null;
-
             try {
-                cacheDao.getLatestAssetMinute(request, response);
-                recentAsesetMinute = (AssetMinute) response.getParam(GlobalConstant.ITEM);
+                final AssetMinute latestAssetMinute = cacheDao.getLatestAssetMinute(symbol);
+                tradeSignalCache.getRecentClosingPriceMap().put("MINUTE::" + symbol, latestAssetMinute.getValue());
+                tradeSignalCache.getRecentEpochSecondsMap().put("MINUTE::" + symbol,
+                        latestAssetMinute.getEpochSeconds());
+                tradeSignalCache.getRecentVolumeMap().put("MINUTE::" + symbol, latestAssetMinute.getVolume());
+                tradeSignalCache.getRecentVwapMap().put("MINUTE::" + symbol, latestAssetMinute.getVwap());
             } catch (final NoResultException e) {
                 System.out.println("No assetminutes in database");
             }
 
-            if (recentAsesetMinute != null) {
-                tradeSignalCache.getRecentClosingPriceMap().put("MINUTE::" + symbol, recentAsesetMinute.getValue());
-                tradeSignalCache.getRecentEpochSecondsMap().put("MINUTE::" + symbol,
-                        recentAsesetMinute.getEpochSeconds());
-                tradeSignalCache.getRecentVolumeMap().put("MINUTE::" + symbol, recentAsesetMinute.getVolume());
-                tradeSignalCache.getRecentVwapMap().put("MINUTE::" + symbol, recentAsesetMinute.getVwap());
-            }
         });
-    }
-
-    public boolean goldenCrossIsFlashing(final RestRequest request, final RestResponse response) {
-        boolean result = false;
-
-        final String shortSMAType = (String) request.getParam("SHORT_SMA_TYPE");
-        final String longSMAType = (String) request.getParam("LONG_SMA_TYPE");
-
-        request.addParam(TradeConstant.TYPE, shortSMAType);
-
-        try {
-            cacheDao.getSMAValue(request, response);
-        } catch (final NoResultException e) {
-            response.addParam("INSUFFICIENT_DATA", true);
-            return result;
-        }
-
-        final BigDecimal shortSMAValue = (BigDecimal) response.getParam(GlobalConstant.ITEM);
-
-        request.addParam(TradeConstant.TYPE, longSMAType);
-
-        try {
-            cacheDao.getSMAValue(request, response);
-        } catch (final NoResultException e) {
-            response.addParam("INSUFFICIENT_DATA", true);
-            return result;
-        }
-
-        final BigDecimal longSMAValue = (BigDecimal) response.getParam(GlobalConstant.ITEM);
-
-        if (shortSMAValue.compareTo(longSMAValue) > 0) {
-            result = true;
-        }
-        return result;
-    }
-
-    public boolean lowerBollingerBandIsFlashing(final RestRequest request, final RestResponse response) {
-        boolean result = false;
-
-        final String symbol = (String) request.getParam(TradeConstant.SYMBOL);
-        final String evaluationPeriod = (String) request.getParam("EVALUATION_PERIOD");
-        final String lbbType = (String) request.getParam("LBB_TYPE");
-        final BigDecimal standardDeviations = (BigDecimal) request.getParam("STANDARD_DEVIATIONS");
-
-        request.addParam(TradeConstant.TYPE, lbbType);
-        request.addParam("STANDARD_DEVIATIONS", standardDeviations);
-
-        try {
-            cacheDao.getLBB(request, response);
-        } catch (final NoResultException e) {
-            response.addParam("INSUFFICIENT_DATA", true);
-            return result;
-        }
-
-        final LBB lbb = (LBB) response.getParam(GlobalConstant.ITEM);
-
-        if (tradeSignalCache.getRecentClosingPriceMap().get(evaluationPeriod + "::" + symbol)
-                .compareTo(lbb.getValue()) < 0) {
-            result = true;
-        }
-
-        return result;
-    }
-
-    public boolean upperBollingerBandIsFlashing(final RestRequest request, final RestResponse response) {
-        boolean result = false;
-
-        final String symbol = (String) request.getParam(TradeConstant.SYMBOL);
-        final String evaluationPeriod = (String) request.getParam("EVALUATION_PERIOD");
-        final String ubbType = (String) request.getParam("UBB_TYPE");
-        final BigDecimal standardDeviations = (BigDecimal) request.getParam("STANDARD_DEVIATIONS");
-
-        request.addParam(TradeConstant.TYPE, ubbType);
-        request.addParam("STANDARD_DEVIATIONS", standardDeviations);
-
-        try {
-            cacheDao.getUBB(request, response);
-        } catch (final NoResultException e) {
-            response.addParam("INSUFFICIENT_DATA", true);
-            return result;
-        }
-
-        final UBB ubb = (UBB) response.getParam(GlobalConstant.ITEM);
-
-        if (tradeSignalCache.getRecentClosingPriceMap().get(evaluationPeriod + "::" + symbol)
-                .compareTo(ubb.getValue()) > 0) {
-            result = true;
-        }
-
-        return result;
     }
 
     public void updateTechnicalIndicatorCache(final RestRequest request, final RestResponse response) {
@@ -249,17 +133,9 @@ public class CacheManager {
 
         updatingTechnicalIndicator.set(true);
 
-        try {
-            cacheDao.items(request, response);
-        } catch (final Exception e) {
-            e.printStackTrace();
-        }
-
         final List<TechnicalIndicator> technicalIndicators = new ArrayList<TechnicalIndicator>();
 
-        for (final Object o : ArrayList.class.cast(response.getParam(GlobalConstant.ITEMS))) {
-            technicalIndicators.add((TechnicalIndicator) o);
-        }
+        technicalIndicators.addAll(cacheDao.getTechnicalIndicators());
 
         technicalIndicators.stream()
                 .forEach(technicalIndicator -> {
@@ -306,11 +182,14 @@ public class CacheManager {
 
                         technicalIndicator.setLastCheck(currentMinute);
 
-                        technicalIndicator.getDetails().stream()
+                        final List<TechnicalIndicatorDetail> technicalIndicatorDetails = cacheDao
+                                .getTechnicalIndicatorDetails(technicalIndicator);
+
+                        technicalIndicatorDetails.stream()
                                 .filter(detail -> detail.getChecked() < 100)
                                 .forEach(detail -> {
 
-                                    if (!(!dayBased || !checkedToday)) {
+                                    if (!dayBased || !checkedToday) {
 
                                         detail.setChecked(detail.getChecked() + 1);
                                     }
@@ -339,36 +218,34 @@ public class CacheManager {
 
                         boolean flashing = false;
 
-                        request.addParam(TradeConstant.SYMBOL, symbol);
-                        request.addParam("EVALUATION_PERIOD", evaluationPeriod);
-                        response.getParams().remove("INSUFFICIENT_DATA");
+                        try {
+                            switch (technicalIndicator.getTechnicalIndicatorType()) {
+                                case TechnicalIndicator.GOLDENCROSS:
+                                    final BigDecimal shortSMAValue = cacheDao.getSMAValue(symbol, evaluationPeriod,
+                                            technicalIndicator.getShortSMAEvaluationDuration(), currentMinute);
+                                    final BigDecimal longSMAValue = cacheDao.getSMAValue(symbol, evaluationPeriod,
+                                            technicalIndicator.getLongSMAEvaluationDuration(), currentMinute);
+                                    flashing = shortSMAValue.compareTo(longSMAValue) > 0;
 
-                        switch (technicalIndicator.getTechnicalIndicatorType()) {
-                            case TechnicalIndicator.GOLDENCROSS:
-                                request.addParam(TradeConstant.EPOCHSECONDS, currentMinute);
-                                request.addParam("SHORT_SMA_TYPE", technicalIndicator.getShortSMAType());
-                                request.addParam("LONG_SMA_TYPE", technicalIndicator.getLongSMAType());
-                                flashing = goldenCrossIsFlashing(request, response);
-                                break;
-                            case TechnicalIndicator.LOWERBOLLINGERBAND:
-                                request.addParam(TradeConstant.EPOCHSECONDS, currentMinute);
-                                request.addParam("LBB_TYPE", technicalIndicator.getLBBType());
-                                request.addParam("STANDARD_DEVIATIONS", technicalIndicator.getStandardDeviations());
-                                flashing = lowerBollingerBandIsFlashing(request, response);
-                                break;
-                            case TechnicalIndicator.UPPERBOLLINGERBAND:
-                                request.addParam(TradeConstant.EPOCHSECONDS, currentMinute);
-                                request.addParam("UBB_TYPE", technicalIndicator.getUBBType());
-                                request.addParam("STANDARD_DEVIATIONS", technicalIndicator.getStandardDeviations());
-                                flashing = upperBollingerBandIsFlashing(request, response);
-                                break;
-                            default:
-                                System.out.print(
-                                        "Invalid technical indicator type in current testing service- update technical indicator cache method");
-                        }
-
-                        if (response.getParam("INSUFFICIENT_DATA") != null
-                                && (boolean) response.getParam("INSUFFICIENT_DATA") == true) {
+                                    break;
+                                case TechnicalIndicator.LOWERBOLLINGERBAND:
+                                    final BigDecimal lbbValue = cacheDao.getLBBValue(symbol, evaluationPeriod,
+                                            technicalIndicator.getLbbEvaluationDuration(), currentMinute,
+                                            technicalIndicator.getStandardDeviations());
+                                    flashing = currentPrice.compareTo(lbbValue) < 0;
+                                    break;
+                                case TechnicalIndicator.UPPERBOLLINGERBAND:
+                                    final BigDecimal ubbValue = cacheDao.getUBBValue(symbol, evaluationPeriod,
+                                            technicalIndicator.getUbbEvaluationDuration(), currentMinute,
+                                            technicalIndicator.getStandardDeviations());
+                                    flashing = currentPrice.compareTo(ubbValue) > 0;
+                                    break;
+                                default:
+                                    System.out.print(
+                                            "Invalid technical indicator type in current testing service- update technical indicator cache method");
+                            }
+                        } catch (final NoResultException e) {
+                            System.out.println("Insufficient Data");
                             return;
                         }
 
@@ -398,17 +275,11 @@ public class CacheManager {
 
                             technicalIndicatorDetail.setVwap(vWap);
 
-                            technicalIndicator.getDetails().add(technicalIndicatorDetail);
+                            cacheDao.saveItem(technicalIndicatorDetail);
                         }
                     }
 
-                    request.addParam(GlobalConstant.ITEM, technicalIndicator);
-
-                    try {
-                        cacheDao.save(request, response);
-                    } catch (final Exception e) {
-                        e.printStackTrace();
-                    }
+                    cacheDao.saveItem(technicalIndicator);
 
                 });
 
@@ -575,41 +446,46 @@ public class CacheManager {
 
                                     queryTimer.start();
 
-                                    switch (currentTechnicalIndicator.getTechnicalIndicatorType()) {
-                                        case TechnicalIndicator.GOLDENCROSS:
-                                            request.addParam(TradeConstant.EPOCHSECONDS, currentMinute);
-                                            request.addParam("SHORT_SMA_TYPE",
-                                                    currentTechnicalIndicator.getShortSMAType());
-                                            request.addParam("LONG_SMA_TYPE",
-                                                    currentTechnicalIndicator.getLongSMAType());
-                                            flashing = goldenCrossIsFlashing(request, response);
-                                            break;
-                                        case TechnicalIndicator.LOWERBOLLINGERBAND:
-                                            request.addParam(TradeConstant.EPOCHSECONDS, currentMinute);
-                                            request.addParam("LBB_TYPE", currentTechnicalIndicator.getLBBType());
-                                            request.addParam("STANDARD_DEVIATIONS",
-                                                    currentTechnicalIndicator.getStandardDeviations());
-                                            flashing = lowerBollingerBandIsFlashing(request, response);
-                                            break;
-                                        case TechnicalIndicator.UPPERBOLLINGERBAND:
-                                            request.addParam(TradeConstant.EPOCHSECONDS, currentMinute);
-                                            request.addParam("UBB_TYPE", currentTechnicalIndicator.getUBBType());
-                                            request.addParam("STANDARD_DEVIATIONS",
-                                                    currentTechnicalIndicator.getStandardDeviations());
-                                            flashing = upperBollingerBandIsFlashing(request, response);
-                                            break;
-                                        default:
-                                            System.out.print(
-                                                    "Invalid technical indicator type in current testing service- update technical indicator cache method");
-                                    }
+                                    try {
+                                        switch (currentTechnicalIndicator.getTechnicalIndicatorType()) {
+                                            case TechnicalIndicator.GOLDENCROSS:
+                                                final BigDecimal shortSMAValue = cacheDao.getSMAValue(symbol,
+                                                        currentTechnicalIndicator.getEvaluationPeriod(),
+                                                        currentTechnicalIndicator.getShortSMAEvaluationDuration(),
+                                                        currentMinute);
+                                                final BigDecimal longSMAValue = cacheDao.getSMAValue(symbol,
+                                                        currentTechnicalIndicator.getEvaluationPeriod(),
+                                                        currentTechnicalIndicator.getLongSMAEvaluationDuration(),
+                                                        currentMinute);
+                                                flashing = shortSMAValue.compareTo(longSMAValue) > 0;
 
-                                    queryTimer.stop();
-
-                                    if (response.getParam("INSUFFICIENT_DATA") != null
-                                            && (boolean) response.getParam("INSUFFICIENT_DATA") == true) {
-                                        minuteTimer.stop();
+                                                break;
+                                            case TechnicalIndicator.LOWERBOLLINGERBAND:
+                                                final BigDecimal lbbValue = cacheDao.getLBBValue(symbol,
+                                                        currentTechnicalIndicator.getEvaluationPeriod(),
+                                                        currentTechnicalIndicator.getLbbEvaluationDuration(),
+                                                        currentMinute,
+                                                        currentTechnicalIndicator.getStandardDeviations());
+                                                flashing = currentPrice.compareTo(lbbValue) < 0;
+                                                break;
+                                            case TechnicalIndicator.UPPERBOLLINGERBAND:
+                                                final BigDecimal ubbValue = cacheDao.getUBBValue(symbol,
+                                                        currentTechnicalIndicator.getEvaluationPeriod(),
+                                                        currentTechnicalIndicator.getUbbEvaluationDuration(),
+                                                        currentMinute,
+                                                        currentTechnicalIndicator.getStandardDeviations());
+                                                flashing = currentPrice.compareTo(ubbValue) > 0;
+                                                break;
+                                            default:
+                                                System.out.print(
+                                                        "Invalid technical indicator type in current testing service- update technical indicator cache method");
+                                        }
+                                    } catch (final NoResultException e) {
+                                        System.out.println("Insufficient Data");
+                                        queryTimer.stop();
                                         return;
                                     }
+                                    queryTimer.stop();
 
                                     backloadedTechnicalIndicator.setFlashing(flashing);
 
@@ -653,7 +529,7 @@ public class CacheManager {
                                     minuteTimer.stop();
 
                                 });
-                                
+
                         if (minuteTimer.getTaskCount() == 0) {
                             System.out.println("No minutes in assetminutes");
                         } else {
@@ -725,296 +601,6 @@ public class CacheManager {
         }
 
         tradeSignalCache.insertTechnicalIndicator(currentTechnicalIndicator);
-
-        updatingTechnicalIndicator.set(false);
-
-        response.setStatus(RestResponse.SUCCESS);
-    }
-
-    public void backloadTechnicalIndicatorNoStreams(final RestRequest request, final RestResponse response) {
-
-        if (request.getParam(GlobalConstant.ITEMID) == null) {
-            response.setStatus(RestResponse.ERROR);
-            System.out.println("No item id given at backload technical indicator");
-            return;
-        }
-
-        try {
-            cacheDao.item(request, response);
-        } catch (final Exception e) {
-            e.printStackTrace();
-        }
-
-        final TechnicalIndicator currentTechnicalIndicator = (TechnicalIndicator) response
-                .getParam(GlobalConstant.ITEM);
-
-        request.addParam(TradeConstant.SYMBOL, currentTechnicalIndicator.getSymbol());
-
-        final long endingEpochSeconds = currentTechnicalIndicator.getFirstCheck();
-
-        final long startingEpochSeconds = endingEpochSeconds
-                - ((int) request.getParam(TradeConstant.DAYS_TO_BACKLOAD) * 60 * 60 * 24);
-
-        final TechnicalIndicator backloadedTechnicalIndicator = new TechnicalIndicator();
-
-        final List<AssetDay> assetDays = new ArrayList<AssetDay>();
-
-        request.addParam(TradeConstant.SYMBOL, currentTechnicalIndicator.getSymbol());
-        request.addParam("STARTING_EPOCH_SECONDS", startingEpochSeconds);
-        request.addParam("ENDING_EPOCH_SECONDS", endingEpochSeconds);
-
-        cacheDao.getAssetDays(request, response);
-
-        for (final Object o : ArrayList.class.cast(response.getParam(GlobalConstant.ITEMS))) {
-            assetDays.add((AssetDay) o);
-        }
-
-        assetDays.sort((a, b) -> (int) (a.getEpochSeconds() - b.getEpochSeconds()));
-
-        for (final AssetDay assetDay : assetDays) {
-
-            final StopWatch minuteTimer = new StopWatch();
-            final StopWatch queryTimer = new StopWatch();
-
-            final List<AssetMinute> assetMinutes = new ArrayList<AssetMinute>();
-
-            request.addParam("STARTING_EPOCH_SECONDS", assetDay.getEpochSeconds());
-            request.addParam("ENDING_EPOCH_SECONDS", assetDay.getEpochSeconds() + (60 * 60 * 24));
-            request.addParam(TradeConstant.SYMBOL, currentTechnicalIndicator.getSymbol());
-
-            if (assetDay.getEpochSeconds() + (60 * 60 * 24) > endingEpochSeconds) {
-                request.addParam("ENDING_EPOCH_SECONDS", endingEpochSeconds);
-            }
-
-            cacheDao.getAssetMinutes(request, response);
-
-            for (final Object o : ArrayList.class.cast(response.getParam(GlobalConstant.ITEMS))) {
-                assetMinutes.add((AssetMinute) o);
-            }
-
-            assetMinutes.removeIf(assetMinute -> assetDay
-                    .getEpochSeconds() != ZonedDateTime
-                            .ofInstant(Instant.ofEpochSecond(assetMinute.getEpochSeconds()),
-                                    ZoneId.of("America/New_York"))
-                            .truncatedTo(ChronoUnit.DAYS).toEpochSecond());
-
-            assetMinutes.sort((a, b) -> (int) (a.getEpochSeconds() - b.getEpochSeconds()));
-
-            for (final AssetMinute assetMinute : assetMinutes) {
-
-                minuteTimer.start();
-
-                final String symbol = currentTechnicalIndicator.getSymbol();
-
-                final long currentMinute = assetMinute.getEpochSeconds();
-
-                final long currentDay = ZonedDateTime
-                        .ofInstant(Instant.ofEpochSecond(currentMinute),
-                                ZoneId.of("America/New_York"))
-                        .truncatedTo(ChronoUnit.DAYS).toEpochSecond();
-
-                final BigDecimal currentPrice = assetMinute.getValue();
-
-                boolean flashing = false;
-
-                request.addParam(TradeConstant.SYMBOL, symbol);
-                request.addParam("EVALUATION_PERIOD",
-                        currentTechnicalIndicator.getEvaluationPeriod());
-                response.getParams().remove("INSUFFICIENT_DATA");
-
-                queryTimer.start();
-
-                switch (currentTechnicalIndicator.getTechnicalIndicatorType()) {
-                    case TechnicalIndicator.GOLDENCROSS:
-                        request.addParam(TradeConstant.EPOCHSECONDS, currentMinute);
-                        request.addParam("SHORT_SMA_TYPE",
-                                currentTechnicalIndicator.getShortSMAType());
-                        request.addParam("LONG_SMA_TYPE",
-                                currentTechnicalIndicator.getLongSMAType());
-                        flashing = goldenCrossIsFlashing(request, response);
-                        break;
-                    case TechnicalIndicator.LOWERBOLLINGERBAND:
-                        request.addParam(TradeConstant.EPOCHSECONDS, currentMinute);
-                        request.addParam("LBB_TYPE", currentTechnicalIndicator.getLBBType());
-                        request.addParam("STANDARD_DEVIATIONS",
-                                currentTechnicalIndicator.getStandardDeviations());
-                        flashing = lowerBollingerBandIsFlashing(request, response);
-                        break;
-                    case TechnicalIndicator.UPPERBOLLINGERBAND:
-                        request.addParam(TradeConstant.EPOCHSECONDS, currentMinute);
-                        request.addParam("UBB_TYPE", currentTechnicalIndicator.getUBBType());
-                        request.addParam("STANDARD_DEVIATIONS",
-                                currentTechnicalIndicator.getStandardDeviations());
-                        flashing = upperBollingerBandIsFlashing(request, response);
-                        break;
-                    default:
-                        System.out.print(
-                                "Invalid technical indicator type in current testing service- update technical indicator cache method");
-                }
-
-                queryTimer.stop();
-
-                if (response.getParam("INSUFFICIENT_DATA") != null
-                        && (boolean) response.getParam("INSUFFICIENT_DATA") == true) {
-                    minuteTimer.stop();
-                    return;
-                }
-
-                backloadedTechnicalIndicator.setFlashing(flashing);
-
-                if (backloadedTechnicalIndicator.getLastCheck() < currentMinute) {
-
-                    final boolean dayBased = currentTechnicalIndicator.getEvaluationPeriod()
-                            .equals("DAY");
-
-                    final boolean checkedToday = backloadedTechnicalIndicator
-                            .getLastCheck() >= currentDay;
-                    final boolean flashedToday = backloadedTechnicalIndicator
-                            .getLastFlash() >= currentDay;
-
-                    if (!(dayBased && checkedToday)) {
-                        backloadedTechnicalIndicator
-                                .setChecked(backloadedTechnicalIndicator.getChecked() + 1);
-                    }
-
-                    if (backloadedTechnicalIndicator.getFirstCheck() == 0) {
-                        backloadedTechnicalIndicator.setFirstCheck(currentMinute);
-                    }
-
-                    backloadedTechnicalIndicator.setLastCheck(currentMinute);
-
-                    for (final TechnicalIndicatorDetail detail : backloadedTechnicalIndicator.getDetails()) {
-                        if (detail.getChecked() < 100) {
-                            return;
-                        }
-                        if (detail.getFlashTime() < currentMinute) {
-                            return;
-                        }
-
-                        if (!(dayBased && checkedToday)) {
-                            detail.setChecked(detail.getChecked() + 1);
-                        }
-
-                        BigDecimal tempSuccessPercent = (currentPrice
-                                .subtract(detail.getFlashPrice()))
-                                .divide(detail.getFlashPrice(), MathContext.DECIMAL32)
-                                .multiply(BigDecimal.valueOf(100));
-
-                        if (currentTechnicalIndicator.getTechnicalIndicatorType()
-                                .equals(TechnicalIndicator.UPPERBOLLINGERBAND)) {
-                            tempSuccessPercent = tempSuccessPercent.negate();
-                        }
-
-                        if (detail.getSuccessPercent() == null
-                                || detail.getSuccessPercent()
-                                        .compareTo(tempSuccessPercent) < 0) {
-                            detail.setSuccessPercent(tempSuccessPercent);
-                        }
-
-                        if (detail.isSuccess() == false
-                                && detail.getFlashPrice().compareTo(currentPrice) < 0) {
-                            detail.setSuccess(true);
-                            backloadedTechnicalIndicator
-                                    .setSuccesses(
-                                            backloadedTechnicalIndicator.getSuccesses()
-                                                    + 1);
-                        }
-                    }
-
-                    if (backloadedTechnicalIndicator.isFlashing() && !(dayBased && flashedToday)) {
-
-                        long volume = 0;
-                        BigDecimal vWap = BigDecimal.ZERO;
-
-                        if (dayBased) {
-                            volume = assetDay.getVolume();
-
-                            vWap = assetDay.getVwap();
-                        }
-                        if (!dayBased) {
-                            volume = assetMinute.getVolume();
-
-                            vWap = assetMinute.getVwap();
-                        }
-
-                        backloadedTechnicalIndicator.setLastFlash(currentMinute);
-
-                        backloadedTechnicalIndicator
-                                .setFlashed(backloadedTechnicalIndicator.getFlashed() + 1);
-
-                        final TechnicalIndicatorDetail technicalIndicatorDetail = new TechnicalIndicatorDetail();
-
-                        technicalIndicatorDetail
-                                .setTechnicalIndicator(backloadedTechnicalIndicator);
-
-                        technicalIndicatorDetail.setFlashTime(currentMinute);
-
-                        technicalIndicatorDetail.setFlashPrice(currentPrice);
-
-                        technicalIndicatorDetail.setVolume(volume);
-
-                        technicalIndicatorDetail.setVwap(vWap);
-
-                        backloadedTechnicalIndicator.getDetails().add(technicalIndicatorDetail);
-                    }
-                }
-                minuteTimer.stop();
-            }
-
-            System.out
-                    .println("Backloading day of technical indicator took roughly "
-                            + minuteTimer.getTotalTimeMillis() / minuteTimer.getTaskCount()
-                            + " milliseconds per minute");
-            System.out
-                    .println("Querying data for day took roughly "
-                            + queryTimer.getTotalTimeMillis() / queryTimer.getTaskCount()
-                            + " milliseconds per minute");
-
-            System.out.println("Iterations in this day - " + minuteTimer.getTaskCount());
-
-            System.out.println("Query calls in this day - " + minuteTimer.getTaskCount());
-
-            System.out.println("Epoch seconds for this assetday- " + assetDay.getEpochSeconds());
-        }
-
-        while (updatingTechnicalIndicator.get()) {
-            try {
-                Thread.sleep(1000);
-            } catch (final Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-        updatingTechnicalIndicator.set(true);
-
-        request.addParam(GlobalConstant.ITEM, currentTechnicalIndicator);
-
-        cacheDao.refresh(request, response);
-
-        currentTechnicalIndicator.setFirstCheck(backloadedTechnicalIndicator.getFirstCheck());
-
-        currentTechnicalIndicator
-                .setChecked(currentTechnicalIndicator.getChecked() + backloadedTechnicalIndicator.getChecked());
-
-        currentTechnicalIndicator
-                .setFlashed(currentTechnicalIndicator.getFlashed() + backloadedTechnicalIndicator.getFlashed());
-
-        currentTechnicalIndicator
-                .setSuccesses(currentTechnicalIndicator.getSuccesses() + backloadedTechnicalIndicator.getSuccesses());
-
-        for (final TechnicalIndicatorDetail t : backloadedTechnicalIndicator.getDetails()) {
-            t.setTechnicalIndicator(currentTechnicalIndicator);
-        }
-
-        currentTechnicalIndicator.getDetails().addAll(backloadedTechnicalIndicator.getDetails());
-
-        request.addParam(GlobalConstant.ITEM, currentTechnicalIndicator);
-
-        try {
-            cacheDao.save(request, response);
-        } catch (final Exception e) {
-            e.printStackTrace();
-        }
 
         updatingTechnicalIndicator.set(false);
 

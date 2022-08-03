@@ -2,151 +2,24 @@ package org.toasthub.trade.model;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Arrays;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Configurable;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Configuration;
 import org.toasthub.core.general.model.RestRequest;
 import org.toasthub.core.general.model.RestResponse;
+import org.toasthub.trade.custom_technical_indicator.CustomTechnicalIndicatorDao;
 
+@Configuration("TARequestValidation")
 public class RequestValidation {
 
-    public static void validateShortSMAType(RestRequest request, RestResponse response) {
-        String string = "";
-        String substring = "";
-        int i = 0;
+    @Autowired
+    @Qualifier("TACustomTechnicalIndicatorDao")
+    private CustomTechnicalIndicatorDao customTechnicalIndicatorDao;
 
-        string = (String) request.getParam("shortSMAType");
-
-        if (!string.endsWith("-" + ((String) request.getParam("EVALUATION_PERIOD")).toLowerCase())) {
-            response.setStatus(RestResponse.ERROR);
-            return;
-        }
-
-        substring = string.substring(0,
-                string.length() - ((String) request.getParam("EVALUATION_PERIOD")).length() - 1);
-        try {
-            i = Integer.parseInt(substring);
-        } catch (NumberFormatException e) {
-            response.setStatus(RestResponse.ERROR);
-            return;
-        }
-
-        if (i <= 0 || i > 1000) {
-            response.setStatus("Short SMA period must be between 0 and 1000");
-            return;
-        }
-
-        request.addParam("SHORT_SMA_TYPE", request.getParam("shortSMAType"));
-    }
-
-    public static void validateLongSMAType(RestRequest request, RestResponse response) {
-        String string = "";
-        String substring = "";
-        int i = 0;
-
-        string = (String) request.getParam("longSMAType");
-
-        if (!string.endsWith("-" + ((String) request.getParam("EVALUATION_PERIOD")).toLowerCase())) {
-            response.setStatus(RestResponse.ERROR);
-            return;
-        }
-        substring = string.substring(0,
-                string.length() - ((String) request.getParam("EVALUATION_PERIOD")).length() - 1);
-        try {
-            i = Integer.parseInt(substring);
-        } catch (NumberFormatException e) {
-            response.setStatus(RestResponse.ERROR);
-            return;
-        }
-
-        if (i <= 0 || i > 1000) {
-            response.setStatus("Short SMA period must be between 0 and 1000");
-            return;
-        }
-
-        request.addParam("LONG_SMA_TYPE", request.getParam("longSMAType"));
-    }
-
-    public static void validateLBBType(RestRequest request, RestResponse response) {
-        String string = "";
-        String substring = "";
-        int i = 0;
-
-        string = (String) request.getParam("lbbType");
-
-        if (!string.endsWith("-" + ((String) request.getParam("EVALUATION_PERIOD")).toLowerCase())) {
-            response.setStatus(RestResponse.ERROR);
-            return;
-        }
-        substring = string.substring(0,
-                string.length() - ((String) request.getParam("EVALUATION_PERIOD")).length() - 1);
-        try {
-            i = Integer.parseInt(substring);
-        } catch (NumberFormatException e) {
-            response.setStatus(RestResponse.ERROR);
-            return;
-        }
-
-        if (i <= 0 || i > 1000) {
-            response.setStatus("Lower bollinger band amount must be between 0 and 1000");
-            return;
-        }
-
-        request.addParam("LBB_TYPE", (String) request.getParam("lbbType"));
-    }
-
-    public static void validateUBBType(RestRequest request, RestResponse response) {
-        String string = "";
-        String substring = "";
-        int i = 0;
-
-        string = (String) request.getParam("ubbType");
-
-        if (!string.endsWith("-" + ((String) request.getParam("EVALUATION_PERIOD")).toLowerCase())) {
-            response.setStatus(RestResponse.ERROR);
-            return;
-        }
-        substring = string.substring(0,
-                string.length() - ((String) request.getParam("EVALUATION_PERIOD")).length() - 1);
-        try {
-            i = Integer.parseInt(substring);
-        } catch (NumberFormatException e) {
-            response.setStatus(RestResponse.ERROR);
-            return;
-        }
-
-        if (i <= 0 || i > 1000) {
-            response.setStatus("Upper bollinger band period must be between 0 and 1000");
-            return;
-        }
-
-        request.addParam("UBB_TYPE", (String) request.getParam("ubbType"));
-    }
-
-    public static void validateStandardDeviations(RestRequest request, RestResponse response) {
-        BigDecimal num = BigDecimal.ZERO;
-
-        if (request.getParam("standardDeviations") instanceof Integer) {
-            num = new BigDecimal((Integer) request.getParam("standardDeviations"));
-        }
-
-        if (request.getParam("standardDeviations") instanceof String) {
-            num = new BigDecimal((String) request.getParam("standardDeviations"));
-        }
-
-        if (request.getParam("standardDeviations") instanceof Double) {
-            num = BigDecimal.valueOf((Double) request.getParam("standardDeviations"));
-        }
-
-        if (num.compareTo(BigDecimal.ZERO) <= 0 || num.compareTo(new BigDecimal(3)) > 0) {
-            response.setStatus("Standard Deviations must be between 3 and 0 ");
-            return;
-        }
-        
-        num = num.setScale(1, RoundingMode.HALF_UP);
-
-        request.addParam("STANDARD_DEVIATIONS", num);
-    }
-
-    public static void validateDollars(RestRequest request, RestResponse response) {
+    public static void validateDollars(final RestRequest request, final RestResponse response) {
         BigDecimal num = BigDecimal.ZERO;
 
         if (request.getParam("currencyAmount") instanceof Integer) {
@@ -169,7 +42,7 @@ public class RequestValidation {
         request.addParam("CURRENCY_AMOUNT", num);
     }
 
-    public static void validateShares(RestRequest request, RestResponse response) {
+    public static void validateShares(final RestRequest request, final RestResponse response) {
         BigDecimal num = BigDecimal.ZERO;
 
         if (request.getParam("currencyAmount") instanceof Integer) {
@@ -192,7 +65,7 @@ public class RequestValidation {
         request.addParam("CURRENCY_AMOUNT", num);
     }
 
-    public static void validateTrailingStopAmount(RestRequest request, RestResponse response){
+    public static void validateTrailingStopAmount(final RestRequest request, final RestResponse response) {
         BigDecimal num = BigDecimal.ZERO;
 
         if (request.getParam("trailingStopAmount") instanceof Integer) {
@@ -215,7 +88,7 @@ public class RequestValidation {
         request.addParam("TRAILING_STOP_AMOUNT", num);
     }
 
-    public static void validateProfitLimitAmount(RestRequest request, RestResponse response){
+    public static void validateProfitLimitAmount(final RestRequest request, final RestResponse response) {
         BigDecimal num = BigDecimal.ZERO;
 
         if (request.getParam("profitLimitAmount") instanceof Integer) {
@@ -238,7 +111,7 @@ public class RequestValidation {
         request.addParam("PROFIT_LIMIT_AMOUNT", num);
     }
 
-    public static void validateBudget(RestRequest request, RestResponse response){
+    public static void validateBudget(final RestRequest request, final RestResponse response) {
         BigDecimal num = BigDecimal.ZERO;
 
         if (request.getParam("budget") instanceof Integer) {
@@ -258,27 +131,127 @@ public class RequestValidation {
         }
 
         num = num.setScale(2, RoundingMode.HALF_UP);
-        
+
         request.addParam("BUDGET", num);
     }
 
-    public static void validateName(RestRequest request, RestResponse response){
-        String name = "";
+    public String validateName(final Object name) throws Exception {
 
-        if(request.getParam("name") instanceof String){
-            name = (String)request.getParam("name");
+        if (name == null || !(name instanceof String)) {
+            throw new Exception("Name is null or not a string");
         }
 
-        if(name.replaceAll("\\s+", "").equals("")){
-            response.setStatus("Name cannot be empty");
-            return;
+        if (String.class.cast(name).replaceAll("\\s+", "").equals("")) {
+            throw new Exception("Name is null");
         }
 
-        if(name.contains("(") || name.contains(")") || name.contains("&") || name.contains("|")){
-            response.setStatus("Name cannot contain logical operators");
-            return;
+        if (Arrays.asList("(", ")", "&", "|").contains(String.class.cast(name))) {
+            throw new Exception("Name contains logical operators");
         }
 
-        request.addParam(("NAME"), name);
+        return String.class.cast(name);
+    }
+
+    public String validateEvaluationPeriod(final Object evaluationPeriod) throws Exception {
+        if (evaluationPeriod == null || !(evaluationPeriod instanceof String)) {
+            throw new Exception("Evaluation period is null or not a string");
+        }
+
+        if (!evaluationPeriod.equals("DAY") && !evaluationPeriod.equals("MINUTE")) {
+            throw new Exception("Evaluation period does not equal DAY or MINUTE");
+        }
+
+        return String.class.cast(evaluationPeriod);
+    }
+
+    public String validateTechnicalIndicatorType(final Object technicalIndicatorType) throws Exception {
+        if (technicalIndicatorType == null || !(technicalIndicatorType instanceof String)) {
+            throw new Exception("Technical Indicator Type is null or not a string");
+        }
+
+        return String.class.cast(technicalIndicatorType);
+    }
+
+    public int validateShortSMAEvaluationDuration(final Object shortSMAEvaluationDuration) throws Exception {
+        if (shortSMAEvaluationDuration == null
+                || !(shortSMAEvaluationDuration instanceof Integer)) {
+            throw new Exception("Short SMA Evaluation Duration is null or not an instance of an integer");
+        }
+
+        if ((int) shortSMAEvaluationDuration < 1 || (int) shortSMAEvaluationDuration > 999) {
+            throw new Exception("Short SMA Evaluation Duration must be between 1 and 999");
+        }
+
+        return (int) shortSMAEvaluationDuration;
+    }
+
+    public int validateLongSMAEvaluationDuration(final Object longSMAEvaluationDuration) throws Exception {
+        if (longSMAEvaluationDuration == null
+                || !(longSMAEvaluationDuration instanceof Integer)) {
+            throw new Exception("Long SMA Evaluation Duration is null or not an instance of an integer");
+        }
+
+        if ((int) longSMAEvaluationDuration < 1 || (int) longSMAEvaluationDuration > 999) {
+            throw new Exception("Long SMA Evaluation Duration must be between 1 and 999");
+        }
+
+        return (int) longSMAEvaluationDuration;
+    }
+
+    public int validateLBBvaluationDuration(final Object lbbEvaluationDuration) throws Exception {
+        if (lbbEvaluationDuration == null
+                || !(lbbEvaluationDuration instanceof Integer)) {
+            throw new Exception("Long SMA Evaluation Duration is null or not an instance of an integer");
+        }
+
+        if ((int) lbbEvaluationDuration < 1 || (int) lbbEvaluationDuration > 999) {
+            throw new Exception("Long SMA Evaluation Duration must be between 1 and 999");
+        }
+
+        return (int) lbbEvaluationDuration;
+    }
+
+    public int validateUBBvaluationDuration(final Object ubbEvaluationDuration) throws Exception {
+        if (ubbEvaluationDuration == null
+                || !(ubbEvaluationDuration instanceof Integer)) {
+            throw new Exception("Long SMA Evaluation Duration is null or not an instance of an integer");
+        }
+
+        if ((int) ubbEvaluationDuration < 1 || (int) ubbEvaluationDuration > 999) {
+            throw new Exception("Long SMA Evaluation Duration must be between 1 and 999");
+        }
+
+        return (int) ubbEvaluationDuration;
+    }
+
+    public BigDecimal validateStandardDeviations(final Object standardDeviations) throws Exception {
+        if (standardDeviations == null || !(standardDeviations instanceof String)) {
+            throw new Exception("Standard Deviations are null or not a String");
+        }
+
+        final BigDecimal tempSD = new BigDecimal(String.class.cast(standardDeviations));
+
+        if (tempSD.compareTo(BigDecimal.ZERO) <= 0 || tempSD.compareTo(new BigDecimal("3")) > 0) {
+            throw new Exception("Standard Deviations must be between 3 and 0 ");
+        }
+
+        return tempSD.setScale(1, RoundingMode.HALF_UP);
+    }
+
+    public CustomTechnicalIndicator validateID(final Object id) throws Exception {
+
+        if (id == null) {
+            return new CustomTechnicalIndicator();
+        }
+
+        if (id instanceof Integer) {
+            return customTechnicalIndicatorDao.find(Long.valueOf((Integer) id));
+        }
+
+        if (id instanceof Long) {
+            return customTechnicalIndicatorDao.find(Long.class.cast(id));
+        }
+
+        throw new Exception("ID is not an integer or long");
     }
 }

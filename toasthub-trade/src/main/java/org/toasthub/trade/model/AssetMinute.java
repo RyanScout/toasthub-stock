@@ -8,7 +8,6 @@ import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
-import javax.persistence.Transient;
 
 import org.toasthub.core.general.api.View;
 
@@ -26,13 +25,11 @@ public class AssetMinute extends TradeBaseEntity {
     private long epochSeconds;
     private long volume;
     private BigDecimal vwap;
-    private String type;
 
     // Constructors
     public AssetMinute() {
         super();
         this.setIdentifier("AssetMinute");
-        this.setType("AssetMinute");
     }
     
     public AssetMinute(final String code, final Boolean defaultLang, final String dir) {
@@ -49,14 +46,6 @@ public class AssetMinute extends TradeBaseEntity {
         this.symbol = symbol;
     }
 
-    @JsonView({View.Member.class})
-    @Column(name = "type")
-    public String getType() {
-        return type;
-    }
-    public void setType(final String type) {
-        this.type = type;
-    }
 
     @JsonView({View.Member.class})
     @Column(name = "value")
@@ -108,9 +97,9 @@ public class AssetMinute extends TradeBaseEntity {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
+        result = prime * result + ((assetDay == null) ? 0 : assetDay.hashCode());
         result = prime * result + (int) (epochSeconds ^ (epochSeconds >>> 32));
         result = prime * result + ((symbol == null) ? 0 : symbol.hashCode());
-        result = prime * result + ((type == null) ? 0 : type.hashCode());
         result = prime * result + ((value == null) ? 0 : value.hashCode());
         result = prime * result + (int) (volume ^ (volume >>> 32));
         result = prime * result + ((vwap == null) ? 0 : vwap.hashCode());
@@ -126,17 +115,17 @@ public class AssetMinute extends TradeBaseEntity {
         if (getClass() != obj.getClass())
             return false;
         final AssetMinute other = (AssetMinute) obj;
+        if (assetDay == null) {
+            if (other.assetDay != null)
+                return false;
+        } else if (!assetDay.equals(other.assetDay))
+            return false;
         if (epochSeconds != other.epochSeconds)
             return false;
         if (symbol == null) {
             if (other.symbol != null)
                 return false;
         } else if (!symbol.equals(other.symbol))
-            return false;
-        if (type == null) {
-            if (other.type != null)
-                return false;
-        } else if (!type.equals(other.type))
             return false;
         if (value == null) {
             if (other.value != null)

@@ -2,6 +2,7 @@ package org.toasthub.trade.custom_technical_indicator;
 
 import java.util.List;
 
+import javax.persistence.EntityManager;
 import javax.persistence.NoResultException;
 import javax.persistence.Query;
 
@@ -36,7 +37,21 @@ public class CustomTechnicalIndicatorDaoImpl implements CustomTechnicalIndicator
     @Override
     public void save(RestRequest request, RestResponse response) throws Exception {
     	entityManagerDataSvc.getInstance().merge((request.getParam(GlobalConstant.ITEM)));
+    }
 
+    @Override
+    public void saveItem(Object o){
+        entityManagerDataSvc.getInstance().merge(o);
+    }
+
+    @Override
+    public CustomTechnicalIndicator getReference(long id){
+        return entityManagerDataSvc.getInstance().getReference(CustomTechnicalIndicator.class, id);
+    }
+
+    @Override
+    public CustomTechnicalIndicator find(long id){
+        return entityManagerDataSvc.getInstance().find(CustomTechnicalIndicator.class, id);
     }
 
     @Override

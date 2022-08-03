@@ -1,6 +1,5 @@
 package org.toasthub.trade.cache;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -70,67 +69,32 @@ public class CacheSvcImpl implements ServiceProcessor, CacheSvc {
     }
 
     @Override
-    public void save(final RestRequest request, final RestResponse response) {
-        final Collection<String> symbols = new ArrayList<String>();
-
-        for (final Object o : ArrayList.class.cast(request.getParam("SYMBOLS"))) {
-            symbols.add(String.class.cast(o));
-        }
-
-        symbols.stream()
-                .distinct()
-                .filter(symbol -> Arrays.asList(Symbol.SYMBOLS).contains(symbol))
+    public void save(CustomTechnicalIndicator c) {
+        c.getSymbols().stream()
+                .map(symbol -> symbol.getSymbol())
                 .forEach(symbol -> {
-                    request.addParam(TradeConstant.SYMBOL, symbol);
-                    try {
-                        cacheDao.itemCount(request, response);
-                    } catch (final Exception e) {
-                        e.printStackTrace();
+                    final long itemCount = cacheDao.itemCount(c.getTechnicalIndicatorType(), c.getEvaluationPeriod(),
+                            c.getTechnicalIndicatorKey(), symbol);
+
+                    if (itemCount >= 1) {
                         return;
                     }
 
-                    if ((Long) response.getParam(GlobalConstant.ITEMCOUNT) == 1) {
-                        return;
-                    }
+                    final TechnicalIndicator t = new TechnicalIndicator();
 
-                    final TechnicalIndicator temp = new TechnicalIndicator();
+                    t.setSymbol(symbol);
+                    t.setEvaluationPeriod(c.getEvaluationPeriod());
+                    t.setTechnicalIndicatorKey(c.getTechnicalIndicatorKey());
+                    t.setTechnicalIndicatorType(c.getTechnicalIndicatorType());
+                    t.setShortSMAEvaluationDuration(c.getShortSMAEvaluationDuration());
+                    t.setLongSMAEvaluationDuration(c.getLongSMAEvaluationDuration());
+                    t.setLbbEvaluationDuration(c.getLbbEvaluationDuration());
+                    t.setUbbEvaluationDuration(c.getUbbEvaluationDuration());
+                    t.setStandardDeviations(c.getStandardDeviations());
 
-                    temp.setEvaluationPeriod((String) request.getParam("EVALUATION_PERIOD"));
-                    temp.setTechnicalIndicatorType((String) request.getParam("TECHNICAL_INDICATOR_TYPE"));
-                    temp.setTechnicalIndicatorKey((String) request.getParam("TECHNICAL_INDICATOR_KEY"));
+                    cacheDao.saveItem(t);
 
-                    temp.setSymbol(symbol);
-
-                    if (request.getParam("SHORT_SMA_TYPE") != null) {
-                        temp.setShortSMAType((String) request.getParam("SHORT_SMA_TYPE"));
-                    }
-
-                    if (request.getParam("LONG_SMA_TYPE") != null) {
-                        temp.setLongSMAType((String) request.getParam("LONG_SMA_TYPE"));
-                    }
-
-                    if (request.getParam("LBB_TYPE") != null) {
-                        temp.setLBBType((String) request.getParam("LBB_TYPE"));
-                    }
-
-                    if (request.getParam("UBB_TYPE") != null) {
-                        temp.setUBBType((String) request.getParam("UBB_TYPE"));
-                    }
-
-                    if (request.getParam("STANDARD_DEVIATIONS") != null) {
-                        temp.setStandardDeviations((BigDecimal) request.getParam("STANDARD_DEVIATIONS"));
-                    }
-
-                    request.addParam(GlobalConstant.ITEM, temp);
-
-                    try {
-                        cacheDao.save(request, response);
-                    } catch (final Exception e) {
-                        e.printStackTrace();
-                    }
                 });
-
-        response.setStatus(RestResponse.SUCCESS);
 
     }
 
@@ -171,5 +135,11 @@ public class CacheSvcImpl implements ServiceProcessor, CacheSvc {
         });
 
         response.addParam(GlobalConstant.ITEMS, customTechnicalIndicators);
+    }
+
+    @Override
+    public void save(RestRequest request, RestResponse response) {
+        // TODO Auto-generated method stub
+        
     }
 }

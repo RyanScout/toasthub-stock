@@ -21,17 +21,22 @@ import com.fasterxml.jackson.annotation.JsonView;
 public class CustomTechnicalIndicator extends TradeBaseEntity {
    
 	private static final long serialVersionUID = 1L;
+
 	private String name;
     private String evaluationPeriod;
     private String technicalIndicatorType;
     private String technicalIndicatorKey;
-    private String shortSMAType;
-    private String longSMAType;
-    private String LBBType;
-    private String UBBType;
+
+    private int shortSMAEvaluationDuration;
+    private int longSMAEvaluationDuration;
+    private int lbbEvaluationDuration;
+    private int ubbEvaluationDuration;
+
+    
     private BigDecimal standardDeviations;
 
     private Set<Symbol> symbols = new LinkedHashSet<Symbol>();
+    
     private ArrayList<Object> technicalIndicators = new ArrayList<Object>();
    
 
@@ -55,39 +60,36 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
     }
 
     @JsonView({View.Member.class})
-    @Column(name = "ubb_type")
-    public String getUBBType() {
-        return UBBType;
+    @Column(name = "short_sma_evaluation_duration")
+    public int getShortSMAEvaluationDuration() {
+        return shortSMAEvaluationDuration;
     }
-    public void setUBBType(String uBBType) {
-        this.UBBType = uBBType;
+    public void setShortSMAEvaluationDuration(int shortSMAEvaluationDuration) {
+        this.shortSMAEvaluationDuration = shortSMAEvaluationDuration;
     }
-
     @JsonView({View.Member.class})
-    @Column(name = "lbb_type")
-    public String getLBBType() {
-        return LBBType;
+    @Column(name = "long_sma_evaluation_duration")
+    public int getLongSMAEvaluationDuration() {
+        return longSMAEvaluationDuration;
     }
-    public void setLBBType(String lBBType) {
-        this.LBBType = lBBType;
+    public void setLongSMAEvaluationDuration(int longSMAEvaluationDuration) {
+        this.longSMAEvaluationDuration = longSMAEvaluationDuration;
     }
-
     @JsonView({View.Member.class})
-    @Column(name = "long_sma_type")
-    public String getLongSMAType() {
-        return longSMAType;
+    @Column(name = "lbb_evaluation_duration")
+    public int getLbbEvaluationDuration() {
+        return lbbEvaluationDuration;
     }
-    public void setLongSMAType(String longSMAType) {
-        this.longSMAType = longSMAType;
+    public void setLbbEvaluationDuration(int lbbEvaluationDuration) {
+        this.lbbEvaluationDuration = lbbEvaluationDuration;
     }
-
     @JsonView({View.Member.class})
-    @Column(name = "short_sma_type")
-    public String getShortSMAType() {
-        return shortSMAType;
+    @Column(name = "ubb_evaluation_duration")
+    public int getUbbEvaluationDuration() {
+        return ubbEvaluationDuration;
     }
-    public void setShortSMAType(String shortSMAType) {
-        this.shortSMAType = shortSMAType;
+    public void setUbbEvaluationDuration(int ubbEvaluationDuration) {
+        this.ubbEvaluationDuration = ubbEvaluationDuration;
     }
 
     @JsonView({View.Member.class})

@@ -22,7 +22,9 @@ package org.toasthub.trade.model;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -40,7 +42,7 @@ public class LBB extends BaseAlg {
 
 	private static final long serialVersionUID = 1L;
 	private BigDecimal standardDeviations = BigDecimal.ZERO;
-	
+
 	// Constructors
 	public LBB() {
 		super();
@@ -50,6 +52,7 @@ public class LBB extends BaseAlg {
 		this.setCreated(Instant.now());
 		this.setIdentifier("LBB");
 	}
+
 	public LBB(final String symbol) {
 		super();
 		this.setSymbol(symbol);
@@ -67,13 +70,14 @@ public class LBB extends BaseAlg {
 		this.setCreated(Instant.now());
 		this.setIdentifier("LBB");
 	}
-	
+
 	// Setter/Getter
-	@JsonView({View.Member.class})
+	@JsonView({ View.Member.class })
 	@Column(name = "standard_deviations")
 	public BigDecimal getStandardDeviations() {
 		return standardDeviations;
 	}
+
 	public void setStandardDeviations(final BigDecimal standardDeviations) {
 		this.standardDeviations = standardDeviations;
 	}
@@ -112,8 +116,135 @@ public class LBB extends BaseAlg {
 	}
 
 	@Transient
-	public static BigDecimal calculateLBB(final List<BigDecimal> list, final BigDecimal sma, final BigDecimal standardDeviations) {
+	public static BigDecimal calculateLBB(final List<BigDecimal> list, final BigDecimal sma,
+			final BigDecimal standardDeviations) {
 		return sma.subtract(
 				SMA.calculateSD(list).multiply(standardDeviations));
 	}
+
+	public LBB configureLBB(final List<AssetMinute> assetMinutes) throws Exception {
+		final LBB configuredLBB = new LBB();
+
+		configuredLBB.setSymbol(this.symbol);
+		configuredLBB.setEvaluationPeriod(this.evaluationPeriod);
+		configuredLBB.setEvaluationDuration(this.evaluationDuration);
+		configuredLBB.setStandardDeviations(this.standardDeviations);
+
+		// ensures there is enough data to configure SMA value
+		if (assetMinutes.size() < configuredLBB.evaluationDuration) {
+			throw new Exception("Insufficient Data to configure LBB.");
+		}
+
+		configuredLBB.setEpochSeconds(assetMinutes.get(assetMinutes.size() - 1).getEpochSeconds());
+
+		final List<BigDecimal> values = assetMinutes
+				.subList(assetMinutes.size() - evaluationDuration, assetMinutes.size())
+				.stream()
+				.map(assetMinute -> assetMinute.getValue())
+				.toList();
+
+		configuredLBB.setValue(
+				calculateLBB(
+						values,
+						configuredLBB.standardDeviations));
+
+		return configuredLBB;
+	}
+
+	public LBB configureLBB(final List<AssetMinute> assetMinutes, final BigDecimal smaValue) throws Exception {
+		final LBB configuredLBB = new LBB();
+
+		configuredLBB.setSymbol(this.symbol);
+		configuredLBB.setEvaluationPeriod(this.evaluationPeriod);
+		configuredLBB.setEvaluationDuration(this.evaluationDuration);
+		configuredLBB.setStandardDeviations(this.standardDeviations);
+
+		// ensures there is enough data to configure SMA value
+		if (assetMinutes.size() < configuredLBB.evaluationDuration) {
+			throw new Exception("Insufficient Data to configure LBB.");
+		}
+
+		configuredLBB.setEpochSeconds(assetMinutes.get(assetMinutes.size() - 1).getEpochSeconds());
+
+		final List<BigDecimal> values = assetMinutes
+				.subList(assetMinutes.size() - evaluationDuration, assetMinutes.size())
+				.stream()
+				.map(assetMinute -> assetMinute.getValue())
+				.toList();
+
+		configuredLBB.setValue(
+				calculateLBB(
+						values,
+						smaValue,
+						configuredLBB.standardDeviations));
+
+		return configuredLBB;
+	}
+
+	public LBB configureLBB(final List<AssetDay> assetDays, final AssetMinute assetMinute) throws Exception {
+		final LBB configuredLBB = new LBB();
+
+		configuredLBB.setSymbol(this.symbol);
+		configuredLBB.setEvaluationPeriod(this.evaluationPeriod);
+		configuredLBB.setEvaluationDuration(this.evaluationDuration);
+		configuredLBB.setStandardDeviations(this.standardDeviations);
+
+		// ensures there is enough data to configure SMA value
+		if (assetDays.size() < configuredLBB.evaluationDuration) {
+			throw new Exception("Insufficient Data to configure LBB.");
+		}
+
+		configuredLBB.setEpochSeconds(assetMinute.getEpochSeconds());
+
+		final List<BigDecimal> values = assetDays
+				.subList(assetDays.size() - this.evaluationDuration, assetDays.size())
+				.stream()
+				.map(assetDay -> assetDay.getClose())
+				.collect(Collectors.toCollection(ArrayList::new));
+
+		// configures calculation of assetDay with minute based accuracy
+		values.set(values.size() - 1, assetMinute.getValue());
+
+		configuredLBB.setValue(
+				calculateLBB(
+						values,
+						configuredLBB.standardDeviations));
+
+		return configuredLBB;
+	}
+
+	public LBB configureLBB(final List<AssetDay> assetDays, final AssetMinute assetMinute, final BigDecimal smaValue)
+			throws Exception {
+		final LBB configuredLBB = new LBB();
+
+		configuredLBB.setSymbol(this.symbol);
+		configuredLBB.setEvaluationPeriod(this.evaluationPeriod);
+		configuredLBB.setEvaluationDuration(this.evaluationDuration);
+		configuredLBB.setStandardDeviations(this.standardDeviations);
+
+		// ensures there is enough data to configure SMA value
+		if (assetDays.size() < configuredLBB.evaluationDuration) {
+			throw new Exception("Insufficient Data to configure LBB.");
+		}
+
+		configuredLBB.setEpochSeconds(assetMinute.getEpochSeconds());
+
+		final List<BigDecimal> values = assetDays
+				.subList(assetDays.size() - this.evaluationDuration, assetDays.size())
+				.stream()
+				.map(assetDay -> assetDay.getClose())
+				.collect(Collectors.toCollection(ArrayList::new));
+
+		// configures calculation of assetDay with minute based accuracy
+		values.set(values.size() - 1, assetMinute.getValue());
+
+		configuredLBB.setValue(
+				calculateLBB(
+						values,
+						smaValue,
+						configuredLBB.standardDeviations));
+
+		return configuredLBB;
+	}
+
 }
