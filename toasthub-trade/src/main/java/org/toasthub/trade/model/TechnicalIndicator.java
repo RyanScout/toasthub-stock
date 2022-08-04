@@ -2,7 +2,9 @@ package org.toasthub.trade.model;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.persistence.CascadeType;
@@ -10,6 +12,7 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 
 import org.toasthub.core.general.api.View;
 
@@ -50,6 +53,29 @@ public class TechnicalIndicator extends TradeBaseEntity {
     private BigDecimal standardDeviations = BigDecimal.ZERO;
 
     private Set<TechnicalIndicatorDetail> details = new LinkedHashSet<TechnicalIndicatorDetail>();
+
+    private List<TechnicalIndicatorDetail> effectiveDetails = new ArrayList<TechnicalIndicatorDetail>();
+
+    // Constructors
+    public TechnicalIndicator() {
+        super();
+        this.setActive(true);
+        this.setArchive(false);
+        this.setLocked(false);
+        this.setCreated(Instant.now());
+    }
+
+    // Setter/Getter
+
+    @JsonView({ View.Member.class })
+    @Transient
+    public List<TechnicalIndicatorDetail> getEffectiveDetails() {
+        return effectiveDetails;
+    }
+
+    public void setEffectiveDetails(final List<TechnicalIndicatorDetail> effectiveDetails) {
+        this.effectiveDetails = effectiveDetails;
+    }
 
     @JsonView({ View.Member.class })
     @Column(name = "short_sma_evaluation_duration")
@@ -101,17 +127,6 @@ public class TechnicalIndicator extends TradeBaseEntity {
         this.standardDeviations = standardDeviations;
     }
 
-    // Constructors
-    public TechnicalIndicator() {
-        super();
-        this.setActive(true);
-        this.setArchive(false);
-        this.setLocked(false);
-        this.setCreated(Instant.now());
-    }
-
-    // Setter/Getter
-    @JsonView({ View.Member.class })
     @OneToMany(mappedBy = "technicalIndicator", cascade = CascadeType.ALL)
     public Set<TechnicalIndicatorDetail> getDetails() {
         return details;

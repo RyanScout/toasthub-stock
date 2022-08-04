@@ -183,7 +183,7 @@ public class CacheManager {
                         technicalIndicator.setLastCheck(currentMinute);
 
                         final List<TechnicalIndicatorDetail> technicalIndicatorDetails = cacheDao
-                                .getTechnicalIndicatorDetails(technicalIndicator);
+                                .getIncompleteTechnicalIndicatorDetails(technicalIndicator);
 
                         technicalIndicatorDetails.stream()
                                 .filter(detail -> detail.getChecked() < 100)

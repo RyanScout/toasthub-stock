@@ -37,7 +37,7 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
 
     private Set<Symbol> symbols = new LinkedHashSet<Symbol>();
     
-    private ArrayList<Object> technicalIndicators = new ArrayList<Object>();
+    private ArrayList<TechnicalIndicator> technicalIndicators = new ArrayList<TechnicalIndicator>();
    
 
     // Setter/Getter
@@ -112,10 +112,10 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
 
     @JsonView({View.Member.class})
     @Transient
-    public ArrayList<Object> getTechnicalIndicators() {
+    public ArrayList<TechnicalIndicator> getTechnicalIndicators() {
         return technicalIndicators;
     }
-    public void setTechnicalIndicators(ArrayList<Object> technicalIndicators) {
+    public void setTechnicalIndicators(ArrayList<TechnicalIndicator> technicalIndicators) {
         this.technicalIndicators = technicalIndicators;
     }
 

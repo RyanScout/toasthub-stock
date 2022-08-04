@@ -16,6 +16,7 @@ import org.toasthub.trade.custom_technical_indicator.CustomTechnicalIndicatorDao
 import org.toasthub.trade.model.CustomTechnicalIndicator;
 import org.toasthub.trade.model.Symbol;
 import org.toasthub.trade.model.TechnicalIndicator;
+import org.toasthub.trade.model.TechnicalIndicatorDetail;
 import org.toasthub.trade.model.TradeConstant;
 import org.toasthub.trade.model.TradeSignalCache;
 
@@ -110,36 +111,37 @@ public class CacheSvcImpl implements ServiceProcessor, CacheSvc {
 
     @Override
     public void items(final RestRequest request, final RestResponse response) {
-        try {
-            customTechnicalIndicatorDao.items(request, response);
-        } catch (final Exception e) {
-            e.printStackTrace();
-        }
 
-        final List<CustomTechnicalIndicator> customTechnicalIndicators = new ArrayList<CustomTechnicalIndicator>();
+        final List<CustomTechnicalIndicator> customTechnicalIndicators = customTechnicalIndicatorDao
+                .getCustomTechnicalIndicators();
 
-        for (final Object o : ArrayList.class.cast(response.getParam(GlobalConstant.ITEMS))) {
-            customTechnicalIndicators.add(CustomTechnicalIndicator.class.cast(o));
-        }
-
-        customTechnicalIndicators.stream().forEach(item -> {
-            item.getSymbols().stream()
+        customTechnicalIndicators.stream().forEach(customTechnicalIndicator -> {
+            customTechnicalIndicator.getSymbols().stream()
                     .map(symbol -> symbol.getSymbol())
                     .forEach(symbol -> {
-                        item.getTechnicalIndicators()
-                                .add(tradeSignalCache.getTechnicalIndicatorMap()
-                                        .get(item.getTechnicalIndicatorType() + "::" + item.getTechnicalIndicatorKey()
-                                                + "::"
-                                                + item.getEvaluationPeriod() + "::" + symbol));
+
+                        final TechnicalIndicator technicalIndicator = tradeSignalCache.getTechnicalIndicatorMap()
+                                .get(customTechnicalIndicator.getTechnicalIndicatorType() + "::"
+                                        + customTechnicalIndicator.getTechnicalIndicatorKey()
+                                        + "::"
+                                        + customTechnicalIndicator.getEvaluationPeriod() + "::" + symbol);
+                        
+                        final List <TechnicalIndicatorDetail> technicalIndicatorDetails = cacheDao.getCompleteTechnicalIndicatorDetails(technicalIndicator);
+
+                        technicalIndicator.setEffectiveDetails(technicalIndicatorDetails);
+
+                        customTechnicalIndicator.getTechnicalIndicators().add(technicalIndicator);
+
                     });
         });
 
         response.addParam(GlobalConstant.ITEMS, customTechnicalIndicators);
+        response.setStatus(RestResponse.SUCCESS);
     }
 
     @Override
     public void save(RestRequest request, RestResponse response) {
         // TODO Auto-generated method stub
-        
+
     }
 }

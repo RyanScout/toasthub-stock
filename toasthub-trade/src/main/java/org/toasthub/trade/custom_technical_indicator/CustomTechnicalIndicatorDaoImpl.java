@@ -1,5 +1,6 @@
 package org.toasthub.trade.custom_technical_indicator;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.persistence.EntityManager;
@@ -36,21 +37,21 @@ public class CustomTechnicalIndicatorDaoImpl implements CustomTechnicalIndicator
 
     @Override
     public void save(RestRequest request, RestResponse response) throws Exception {
-    	entityManagerDataSvc.getInstance().merge((request.getParam(GlobalConstant.ITEM)));
+        entityManagerDataSvc.getInstance().merge((request.getParam(GlobalConstant.ITEM)));
     }
 
     @Override
-    public void saveItem(Object o){
+    public void saveItem(Object o) {
         entityManagerDataSvc.getInstance().merge(o);
     }
 
     @Override
-    public CustomTechnicalIndicator getReference(long id){
+    public CustomTechnicalIndicator getReference(long id) {
         return entityManagerDataSvc.getInstance().getReference(CustomTechnicalIndicator.class, id);
     }
 
     @Override
-    public CustomTechnicalIndicator find(long id){
+    public CustomTechnicalIndicator find(long id) {
         return entityManagerDataSvc.getInstance().find(CustomTechnicalIndicator.class, id);
     }
 
@@ -61,6 +62,20 @@ public class CustomTechnicalIndicatorDaoImpl implements CustomTechnicalIndicator
         List<?> result = query.getResultList();
 
         response.addParam(GlobalConstant.ITEMS, result);
+    }
+
+    @Override
+    public List<CustomTechnicalIndicator> getCustomTechnicalIndicators() {
+        String queryStr = "SELECT DISTINCT x FROM CustomTechnicalIndicator AS x JOIN FETCH x.symbols";
+        Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+
+        List<CustomTechnicalIndicator> list = new ArrayList<CustomTechnicalIndicator>();
+
+        for (Object o : query.getResultList()) {
+            list.add(CustomTechnicalIndicator.class.cast(o));
+        }
+
+        return list;
     }
 
     @Override

@@ -39,7 +39,10 @@ public interface CacheDao extends BaseDao {
 
     public List<TechnicalIndicator> getTechnicalIndicators();
 
-    public List<TechnicalIndicatorDetail> getTechnicalIndicatorDetails(TechnicalIndicator t);
+    public List<TechnicalIndicatorDetail> getIncompleteTechnicalIndicatorDetails(TechnicalIndicator t);
+
+    public List<TechnicalIndicatorDetail> getCompleteTechnicalIndicatorDetails(TechnicalIndicator t);
+
 
     public long itemCount(String technicalIndicatorType , String evaluationPeriod , String technicalIndicatorKey, String symbol);
 

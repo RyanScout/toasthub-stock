@@ -1,5 +1,7 @@
 package org.toasthub.trade.custom_technical_indicator;
 
+import java.util.List;
+
 import org.toasthub.core.common.BaseDao;
 import org.toasthub.trade.model.CustomTechnicalIndicator;
 
@@ -9,4 +11,6 @@ public interface CustomTechnicalIndicatorDao extends BaseDao {
     public CustomTechnicalIndicator getReference(long id);
 
     public CustomTechnicalIndicator find(long id);
+
+    public List<CustomTechnicalIndicator> getCustomTechnicalIndicators();
 }

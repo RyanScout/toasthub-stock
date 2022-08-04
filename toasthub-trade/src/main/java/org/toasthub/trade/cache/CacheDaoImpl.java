@@ -89,14 +89,15 @@ public class CacheDaoImpl implements CacheDao {
     }
 
     @Override
-    public List<TechnicalIndicatorDetail> getTechnicalIndicatorDetails(TechnicalIndicator technicalIndicator){
-        final String queryStr = "SELECT DISTINCT(x) FROM TechnicalIndicatorDetail x WHERE x.technicalIndicator =: technicalIndicator";
+    public List<TechnicalIndicatorDetail> getIncompleteTechnicalIndicatorDetails(TechnicalIndicator technicalIndicator){
+        final String queryStr = "SELECT DISTINCT(x) FROM TechnicalIndicatorDetail x WHERE x.technicalIndicator =: technicalIndicator AND x.checked <: checked";
 
         final List<TechnicalIndicatorDetail> technicalIndicatorDetails = new ArrayList<TechnicalIndicatorDetail>();
 
         final Query query = entityManagerDataSvc.getInstance()
         .createQuery(queryStr)
         .setParameter("technicalIndicator", technicalIndicator)
+        .setParameter("checked", 100)
         .setMaxResults(1000);
 
         for(Object o : query.getResultList()){
@@ -104,6 +105,25 @@ public class CacheDaoImpl implements CacheDao {
         }
 
         return technicalIndicatorDetails;
+    }
+
+    @Override
+        public List<TechnicalIndicatorDetail> getCompleteTechnicalIndicatorDetails(TechnicalIndicator technicalIndicator){
+            final String queryStr = "SELECT DISTINCT(x) FROM TechnicalIndicatorDetail x WHERE x.technicalIndicator =: technicalIndicator AND x.checked =: checked";
+    
+            final List<TechnicalIndicatorDetail> technicalIndicatorDetails = new ArrayList<TechnicalIndicatorDetail>();
+    
+            final Query query = entityManagerDataSvc.getInstance()
+            .createQuery(queryStr)
+            .setParameter("technicalIndicator", technicalIndicator)
+            .setParameter("checked", 100)
+            .setMaxResults(1000);
+    
+            for(Object o : query.getResultList()){
+                technicalIndicatorDetails.add(TechnicalIndicatorDetail.class.cast(o));
+            }
+    
+            return technicalIndicatorDetails;
     }
 
 
