@@ -3,7 +3,6 @@ package org.toasthub.trade.custom_technical_indicator;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.persistence.EntityManager;
 import javax.persistence.NoResultException;
 import javax.persistence.Query;
 
@@ -25,53 +24,72 @@ public class CustomTechnicalIndicatorDaoImpl implements CustomTechnicalIndicator
     private EntityManagerDataSvc entityManagerDataSvc;
 
     @Override
-    public void delete(RestRequest request, RestResponse response) throws Exception {
+    public void delete(final RestRequest request, final RestResponse response) throws Exception {
         if (request.containsParam(GlobalConstant.ITEMID) && !"".equals(request.getParam(GlobalConstant.ITEMID))) {
 
-            CustomTechnicalIndicator c = (CustomTechnicalIndicator) entityManagerDataSvc.getInstance().getReference(
-                    CustomTechnicalIndicator.class,
-                    Long.valueOf((Integer) request.getParam(GlobalConstant.ITEMID)));
+            final CustomTechnicalIndicator c = (CustomTechnicalIndicator) entityManagerDataSvc.getInstance()
+                    .getReference(
+                            CustomTechnicalIndicator.class,
+                            Long.valueOf((Integer) request.getParam(GlobalConstant.ITEMID)));
             entityManagerDataSvc.getInstance().remove(c);
         }
     }
 
     @Override
-    public void save(RestRequest request, RestResponse response) throws Exception {
+    public void save(final RestRequest request, final RestResponse response) throws Exception {
         entityManagerDataSvc.getInstance().merge((request.getParam(GlobalConstant.ITEM)));
     }
 
     @Override
-    public void saveItem(Object o) {
+    public void saveItem(final Object o) {
         entityManagerDataSvc.getInstance().merge(o);
     }
 
     @Override
-    public CustomTechnicalIndicator getReference(long id) {
+    public CustomTechnicalIndicator getReference(final long id) {
         return entityManagerDataSvc.getInstance().getReference(CustomTechnicalIndicator.class, id);
     }
 
     @Override
-    public CustomTechnicalIndicator find(long id) {
+    public CustomTechnicalIndicator findById(final long id) {
         return entityManagerDataSvc.getInstance().find(CustomTechnicalIndicator.class, id);
     }
 
     @Override
-    public void items(RestRequest request, RestResponse response) throws Exception {
-        String queryStr = "SELECT DISTINCT x FROM CustomTechnicalIndicator AS x JOIN FETCH x.symbols";
-        Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
-        List<?> result = query.getResultList();
+    public long countByName(final String name) {
+        final String queryStr = "SELECT COUNT(DISTINCT x) FROM CustomTechnicalIndicator as x WHERE x.name =:name";
+        final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+
+        query.setParameter("name", name);
+
+        return Long.class.cast(query.getSingleResult());
+    }
+
+    @Override
+    public CustomTechnicalIndicator findByName(final String name) throws NoResultException {
+        final String queryStr = "SELECT DISTINCT x FROM CustomTechnicalIndicator AS x JOIN FETCH x.symbols AS s WHERE x.name =: name";
+        final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr).setParameter("name", name);
+
+        return CustomTechnicalIndicator.class.cast(query.getSingleResult());
+    }
+
+    @Override
+    public void items(final RestRequest request, final RestResponse response) throws Exception {
+        final String queryStr = "SELECT DISTINCT x FROM CustomTechnicalIndicator AS x JOIN FETCH x.symbols";
+        final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+        final List<?> result = query.getResultList();
 
         response.addParam(GlobalConstant.ITEMS, result);
     }
 
     @Override
     public List<CustomTechnicalIndicator> getCustomTechnicalIndicators() {
-        String queryStr = "SELECT DISTINCT x FROM CustomTechnicalIndicator AS x JOIN FETCH x.symbols";
-        Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+        final String queryStr = "SELECT DISTINCT x FROM CustomTechnicalIndicator AS x LEFT OUTER JOIN FETCH x.symbols";
+        final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
 
-        List<CustomTechnicalIndicator> list = new ArrayList<CustomTechnicalIndicator>();
+        final List<CustomTechnicalIndicator> list = new ArrayList<CustomTechnicalIndicator>();
 
-        for (Object o : query.getResultList()) {
+        for (final Object o : query.getResultList()) {
             list.add(CustomTechnicalIndicator.class.cast(o));
         }
 
@@ -79,9 +97,9 @@ public class CustomTechnicalIndicatorDaoImpl implements CustomTechnicalIndicator
     }
 
     @Override
-    public void itemCount(RestRequest request, RestResponse response) throws Exception {
-        String queryStr = "SELECT COUNT(DISTINCT x) FROM CustomTechnicalIndicator as x WHERE x.name =:name";
-        Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+    public void itemCount(final RestRequest request, final RestResponse response) throws Exception {
+        final String queryStr = "SELECT COUNT(DISTINCT x) FROM CustomTechnicalIndicator as x WHERE x.name =:name";
+        final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
 
         query.setParameter("name", request.getParam("NAME"));
 
@@ -93,10 +111,10 @@ public class CustomTechnicalIndicatorDaoImpl implements CustomTechnicalIndicator
     }
 
     @Override
-    public void item(RestRequest request, RestResponse response) throws Exception, NoResultException {
+    public void item(final RestRequest request, final RestResponse response) throws Exception, NoResultException {
         if (request.containsParam(GlobalConstant.ITEMID) && (request.getParam(GlobalConstant.ITEMID) != null)) {
-            String queryStr = "SELECT DISTINCT x FROM CustomTechnicalIndicator AS x WHERE x.id =:id";
-            Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+            final String queryStr = "SELECT DISTINCT x FROM CustomTechnicalIndicator AS x WHERE x.id =:id";
+            final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
 
             if (request.getParam(GlobalConstant.ITEMID) instanceof Integer) {
                 query.setParameter("id", Long.valueOf((Integer) request.getParam(GlobalConstant.ITEMID)));
@@ -110,14 +128,14 @@ public class CustomTechnicalIndicatorDaoImpl implements CustomTechnicalIndicator
                 query.setParameter("id", Long.valueOf((String) request.getParam(GlobalConstant.ITEMID)));
             }
 
-            CustomTechnicalIndicator c = CustomTechnicalIndicator.class.cast(query.getSingleResult());
+            final CustomTechnicalIndicator c = CustomTechnicalIndicator.class.cast(query.getSingleResult());
             Hibernate.initialize(c.getSymbols());
             response.addParam(GlobalConstant.ITEM, c);
             return;
         }
 
-        String queryStr = "SELECT DISTINCT x FROM CustomTechnicalIndicator as x WHERE x.name =:name";
-        Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+        final String queryStr = "SELECT DISTINCT x FROM CustomTechnicalIndicator as x WHERE x.name =:name";
+        final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
 
         query.setParameter("name", request.getParam("NAME"));
 

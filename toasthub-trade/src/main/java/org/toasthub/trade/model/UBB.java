@@ -120,7 +120,7 @@ public class UBB extends BaseAlg {
 		return sma.add(SMA.calculateSD(list).multiply(standardDeviations));
 	}
 
-	public UBB configureUBB(final List<AssetMinute> assetMinutes) throws Exception {
+	public UBB configureUBB(final List<AssetMinute> assetMinutes) throws InsufficientDataException {
 		final UBB configuredUBB = new UBB();
 
 		configuredUBB.setSymbol(this.symbol);
@@ -130,7 +130,7 @@ public class UBB extends BaseAlg {
 
 		// ensures there is enough data to configure SMA value
 		if (assetMinutes.size() < configuredUBB.evaluationDuration) {
-			throw new Exception("Insufficient Data to configure UBB.");
+			throw new InsufficientDataException();
 		}
 
 		configuredUBB.setEpochSeconds(assetMinutes.get(assetMinutes.size() - 1).getEpochSeconds());
@@ -149,7 +149,8 @@ public class UBB extends BaseAlg {
 		return configuredUBB;
 	}
 
-	public UBB configureUBB(final List<AssetMinute> assetMinutes, final BigDecimal smaValue) throws Exception {
+	public UBB configureUBB(final List<AssetMinute> assetMinutes, final BigDecimal smaValue)
+			throws InsufficientDataException {
 		final UBB configuredUBB = new UBB();
 
 		configuredUBB.setSymbol(this.symbol);
@@ -159,7 +160,7 @@ public class UBB extends BaseAlg {
 
 		// ensures there is enough data to configure SMA value
 		if (assetMinutes.size() < configuredUBB.evaluationDuration) {
-			throw new Exception("Insufficient Data to configure UBB.");
+			throw new InsufficientDataException();
 		}
 
 		configuredUBB.setEpochSeconds(assetMinutes.get(assetMinutes.size() - 1).getEpochSeconds());
@@ -179,7 +180,8 @@ public class UBB extends BaseAlg {
 		return configuredUBB;
 	}
 
-	public UBB configureUBB(final List<AssetDay> assetDays, final AssetMinute assetMinute) throws Exception {
+	public UBB configureUBB(final List<AssetDay> assetDays, final AssetMinute assetMinute)
+			throws InsufficientDataException {
 		final UBB configuredUBB = new UBB();
 
 		configuredUBB.setSymbol(this.symbol);
@@ -188,8 +190,8 @@ public class UBB extends BaseAlg {
 		configuredUBB.setStandardDeviations(this.standardDeviations);
 
 		// ensures there is enough data to configure SMA value
-		if (assetDays.size() < configuredUBB.evaluationDuration) {
-			throw new Exception("Insufficient Data to configure UBB.");
+		if (assetDays.size() < configuredUBB.getEvaluationDuration()) {
+			throw new InsufficientDataException();
 		}
 
 		configuredUBB.setEpochSeconds(assetMinute.getEpochSeconds());
@@ -212,7 +214,7 @@ public class UBB extends BaseAlg {
 	}
 
 	public UBB configureUBB(final List<AssetDay> assetDays, final AssetMinute assetMinute, final BigDecimal smaValue)
-			throws Exception {
+			throws InsufficientDataException {
 		final UBB configuredUBB = new UBB();
 
 		configuredUBB.setSymbol(this.symbol);
@@ -222,7 +224,7 @@ public class UBB extends BaseAlg {
 
 		// ensures there is enough data to configure SMA value
 		if (assetDays.size() < configuredUBB.evaluationDuration) {
-			throw new Exception("Insufficient Data to configure UBB.");
+			throw new InsufficientDataException();
 		}
 
 		configuredUBB.setEpochSeconds(assetMinute.getEpochSeconds());

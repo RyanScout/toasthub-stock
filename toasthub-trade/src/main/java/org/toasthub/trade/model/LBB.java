@@ -122,7 +122,7 @@ public class LBB extends BaseAlg {
 				SMA.calculateSD(list).multiply(standardDeviations));
 	}
 
-	public LBB configureLBB(final List<AssetMinute> assetMinutes) throws Exception {
+	public LBB configureLBB(final List<AssetMinute> assetMinutes) throws InsufficientDataException {
 		final LBB configuredLBB = new LBB();
 
 		configuredLBB.setSymbol(this.symbol);
@@ -132,7 +132,7 @@ public class LBB extends BaseAlg {
 
 		// ensures there is enough data to configure SMA value
 		if (assetMinutes.size() < configuredLBB.evaluationDuration) {
-			throw new Exception("Insufficient Data to configure LBB.");
+			throw new InsufficientDataException();
 		}
 
 		configuredLBB.setEpochSeconds(assetMinutes.get(assetMinutes.size() - 1).getEpochSeconds());
@@ -151,7 +151,8 @@ public class LBB extends BaseAlg {
 		return configuredLBB;
 	}
 
-	public LBB configureLBB(final List<AssetMinute> assetMinutes, final BigDecimal smaValue) throws Exception {
+	public LBB configureLBB(final List<AssetMinute> assetMinutes, final BigDecimal smaValue)
+			throws InsufficientDataException {
 		final LBB configuredLBB = new LBB();
 
 		configuredLBB.setSymbol(this.symbol);
@@ -161,7 +162,7 @@ public class LBB extends BaseAlg {
 
 		// ensures there is enough data to configure SMA value
 		if (assetMinutes.size() < configuredLBB.evaluationDuration) {
-			throw new Exception("Insufficient Data to configure LBB.");
+			throw new InsufficientDataException();
 		}
 
 		configuredLBB.setEpochSeconds(assetMinutes.get(assetMinutes.size() - 1).getEpochSeconds());
@@ -181,7 +182,8 @@ public class LBB extends BaseAlg {
 		return configuredLBB;
 	}
 
-	public LBB configureLBB(final List<AssetDay> assetDays, final AssetMinute assetMinute) throws Exception {
+	public LBB configureLBB(final List<AssetDay> assetDays, final AssetMinute assetMinute)
+			throws InsufficientDataException {
 		final LBB configuredLBB = new LBB();
 
 		configuredLBB.setSymbol(this.symbol);
@@ -191,7 +193,7 @@ public class LBB extends BaseAlg {
 
 		// ensures there is enough data to configure SMA value
 		if (assetDays.size() < configuredLBB.evaluationDuration) {
-			throw new Exception("Insufficient Data to configure LBB.");
+			throw new InsufficientDataException();
 		}
 
 		configuredLBB.setEpochSeconds(assetMinute.getEpochSeconds());
@@ -214,7 +216,7 @@ public class LBB extends BaseAlg {
 	}
 
 	public LBB configureLBB(final List<AssetDay> assetDays, final AssetMinute assetMinute, final BigDecimal smaValue)
-			throws Exception {
+			throws InsufficientDataException {
 		final LBB configuredLBB = new LBB();
 
 		configuredLBB.setSymbol(this.symbol);
@@ -224,7 +226,7 @@ public class LBB extends BaseAlg {
 
 		// ensures there is enough data to configure SMA value
 		if (assetDays.size() < configuredLBB.evaluationDuration) {
-			throw new Exception("Insufficient Data to configure LBB.");
+			throw new InsufficientDataException();
 		}
 
 		configuredLBB.setEpochSeconds(assetMinute.getEpochSeconds());

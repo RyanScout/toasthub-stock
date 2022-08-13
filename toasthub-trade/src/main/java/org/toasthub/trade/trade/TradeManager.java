@@ -268,19 +268,19 @@ public class TradeManager {
                 return;
             }
 
-            if (trade.getParseableBuyCondition() == null) {
+            if (trade.getParsedBuyCondition() == null) {
                 response.setStatus("Buy Condition is null in buy test for" + trade.getName());
                 return;
             }
 
-            if (trade.getParseableBuyCondition().equals("")) {
+            if (trade.getParsedBuyCondition().equals("")) {
                 return;
             }
 
             final List<String> buyReasons = new ArrayList<String>();
             String sellOrderCondition = "";
 
-            String[] stringArr = trade.getParseableBuyCondition().split(" ");
+            String[] stringArr = trade.getParsedBuyCondition().split(" ");
             stringArr = Stream.of(stringArr).map(s -> {
                 if (s.equals("(") || s.equals(")") || s.equals("||") || s.equals("&&")) {
                     return s;
@@ -505,19 +505,19 @@ public class TradeManager {
                 return;
             }
 
-            if (trade.getParseableSellCondition() == null) {
+            if (trade.getParsedSellCondition() == null) {
                 System.out.println("Sell Condition is null in buy test for" + trade.getName());
                 response.setStatus("Sell Condition is null in buy test for" + trade.getName());
                 return;
             }
 
-            if (trade.getParseableSellCondition().equals("")) {
+            if (trade.getParsedSellCondition().equals("")) {
                 return;
             }
 
             final List<String> sellReasons = new ArrayList<String>();
 
-            String[] stringArr = trade.getParseableSellCondition().split(" ");
+            String[] stringArr = trade.getParsedSellCondition().split(" ");
             stringArr = Stream.of(stringArr).map(s -> {
                 if (s.equals("(") || s.equals(")") || s.equals("||") || s.equals("&&")) {
                     return s;

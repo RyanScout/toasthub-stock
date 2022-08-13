@@ -2,7 +2,6 @@ package org.toasthub.trade.custom_technical_indicator;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -65,6 +64,7 @@ public class CustomTechnicalIndicatorSvcImpl implements ServiceProcessor, Custom
                     || !(request.getParam(GlobalConstant.ITEM) instanceof LinkedHashMap)) {
                 throw new Exception("Invalid Item Object at Custom Technical Indicator Service Save");
             }
+
             final Map<?, ?> m = Map.class.cast(request.getParam(GlobalConstant.ITEM));
 
             final Map<String, Object> itemProperties = new HashMap<String, Object>();
@@ -73,9 +73,10 @@ public class CustomTechnicalIndicatorSvcImpl implements ServiceProcessor, Custom
                 itemProperties.put(String.class.cast(o), m.get(String.class.cast(o)));
             }
 
-            final CustomTechnicalIndicator item = validator.validateID(itemProperties.get("id"));
+            final CustomTechnicalIndicator item = validator
+                    .validateCustomTechnicalIndicatorID(itemProperties.get("id"));
 
-            item.setName(validator.validateName(itemProperties.get("name")));
+            item.setName(validator.validateCustomTechnicalIndicatorName(itemProperties.get("name")));
             item.setEvaluationPeriod(
                     validator.validateEvaluationPeriod(itemProperties.get("evaluationPeriod")));
             item.setTechnicalIndicatorType(
@@ -103,7 +104,7 @@ public class CustomTechnicalIndicatorSvcImpl implements ServiceProcessor, Custom
                 case TechnicalIndicator.LOWERBOLLINGERBAND:
 
                     final int lbbEvaluationDuration = validator
-                            .validateLBBvaluationDuration(itemProperties.get("lbbEvaluationDuration"));
+                            .validateLBBEvaluationDuration(itemProperties.get("lbbEvaluationDuration"));
                     final BigDecimal lbbStandardDeviations = validator
                             .validateStandardDeviations(itemProperties.get("standardDeviations"));
 
@@ -117,11 +118,11 @@ public class CustomTechnicalIndicatorSvcImpl implements ServiceProcessor, Custom
                 case TechnicalIndicator.UPPERBOLLINGERBAND:
 
                     final int ubbEvaluationDuration = validator
-                            .validateLBBvaluationDuration(itemProperties.get("ubbEvaluationDuration"));
+                            .validateUBBEvaluationDuration(itemProperties.get("ubbEvaluationDuration"));
                     final BigDecimal ubbStandardDeviations = validator
                             .validateStandardDeviations(itemProperties.get("standardDeviations"));
 
-                    item.setLbbEvaluationDuration(ubbEvaluationDuration);
+                    item.setUbbEvaluationDuration(ubbEvaluationDuration);
                     item.setStandardDeviations(ubbStandardDeviations);
 
                     item.setTechnicalIndicatorKey(ubbEvaluationDuration + ":" + ubbStandardDeviations);
@@ -133,7 +134,7 @@ public class CustomTechnicalIndicatorSvcImpl implements ServiceProcessor, Custom
 
             final List<String> symbols = new ArrayList<String>();
 
-            for (final Object o : ArrayList.class.cast(itemProperties.get("symbols"))) {
+            for (final Object o : ArrayList.class.cast(itemProperties.get("effectiveSymbols"))) {
                 if (o instanceof String) {
                     symbols.add((String.class.cast(o)));
                 }
@@ -143,7 +144,7 @@ public class CustomTechnicalIndicatorSvcImpl implements ServiceProcessor, Custom
 
             symbols.stream()
                     .distinct()
-                    .filter(symbol -> Arrays.asList(Symbol.SYMBOLS).contains(symbol))
+                    .filter(symbol -> Symbol.SYMBOLS.contains(symbol))
                     .forEach(symbol -> {
                         final Symbol s = new Symbol();
                         s.setSymbol(symbol);

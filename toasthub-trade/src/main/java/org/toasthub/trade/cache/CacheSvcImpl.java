@@ -111,32 +111,40 @@ public class CacheSvcImpl implements ServiceProcessor, CacheSvc {
 
     @Override
     public void items(final RestRequest request, final RestResponse response) {
+        try {
+            final List<CustomTechnicalIndicator> customTechnicalIndicators = customTechnicalIndicatorDao
+                    .getCustomTechnicalIndicators();
 
-        final List<CustomTechnicalIndicator> customTechnicalIndicators = customTechnicalIndicatorDao
-                .getCustomTechnicalIndicators();
+            customTechnicalIndicators.stream().forEach(customTechnicalIndicator -> {
+                customTechnicalIndicator.getSymbols().stream()
+                        .map(symbol -> symbol.getSymbol())
+                        .forEach(symbol -> {
+                            final TechnicalIndicator technicalIndicator = tradeSignalCache.getTechnicalIndicatorMap()
+                                    .get(customTechnicalIndicator.getTechnicalIndicatorType() + "::"
+                                            + customTechnicalIndicator.getTechnicalIndicatorKey()
+                                            + "::"
+                                            + customTechnicalIndicator.getEvaluationPeriod() + "::" + symbol);
+                            if (technicalIndicator == null) {
+                                return;
+                            }
 
-        customTechnicalIndicators.stream().forEach(customTechnicalIndicator -> {
-            customTechnicalIndicator.getSymbols().stream()
-                    .map(symbol -> symbol.getSymbol())
-                    .forEach(symbol -> {
+                            final List<TechnicalIndicatorDetail> technicalIndicatorDetails = cacheDao
+                                    .getCompleteTechnicalIndicatorDetails(technicalIndicator);
 
-                        final TechnicalIndicator technicalIndicator = tradeSignalCache.getTechnicalIndicatorMap()
-                                .get(customTechnicalIndicator.getTechnicalIndicatorType() + "::"
-                                        + customTechnicalIndicator.getTechnicalIndicatorKey()
-                                        + "::"
-                                        + customTechnicalIndicator.getEvaluationPeriod() + "::" + symbol);
-                        
-                        final List <TechnicalIndicatorDetail> technicalIndicatorDetails = cacheDao.getCompleteTechnicalIndicatorDetails(technicalIndicator);
+                            technicalIndicator.setEffectiveDetails(technicalIndicatorDetails);
 
-                        technicalIndicator.setEffectiveDetails(technicalIndicatorDetails);
+                            customTechnicalIndicator.getTechnicalIndicators().add(technicalIndicator);
+                            customTechnicalIndicator.getEffectiveSymbols().add(symbol);
 
-                        customTechnicalIndicator.getTechnicalIndicators().add(technicalIndicator);
+                        });
+            });
 
-                    });
-        });
+            response.addParam(GlobalConstant.ITEMS, customTechnicalIndicators);
+            response.setStatus(RestResponse.SUCCESS);
 
-        response.addParam(GlobalConstant.ITEMS, customTechnicalIndicators);
-        response.setStatus(RestResponse.SUCCESS);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

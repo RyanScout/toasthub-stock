@@ -28,6 +28,8 @@ import org.toasthub.core.general.model.RestResponse;
 import org.toasthub.trade.model.AssetDay;
 import org.toasthub.trade.model.AssetMinute;
 import org.toasthub.trade.model.Configuration;
+import org.toasthub.trade.model.ExpectedException;
+import org.toasthub.trade.model.InsufficientDataException;
 import org.toasthub.trade.model.LBB;
 import org.toasthub.trade.model.SMA;
 import org.toasthub.trade.model.Symbol;
@@ -177,7 +179,7 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 
 	public void backloadStockData(final RestRequest request, final RestResponse response) {
 		try {
-			for (final String stockName : Symbol.STOCKSYMBOLS) {
+			for (final String stockName : Symbol.STOCK_SYMBOLS) {
 
 				System.out.println("Backloading stock data - " + stockName);
 
@@ -290,7 +292,7 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 			final Collection<Exchange> exchanges = new ArrayList<Exchange>();
 			exchanges.add(Exchange.COINBASE);
 
-			for (final String cryptoName : Symbol.CRYPTOSYMBOLS) {
+			for (final String cryptoName : Symbol.CRYPTO_SYMBOLS) {
 
 				System.out.println("Backloading crypyo data - " + cryptoName);
 
@@ -399,7 +401,7 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 	@Override
 	public void loadStockData(final RestRequest request, final RestResponse response) {
 		try {
-			for (final String stockName : Symbol.STOCKSYMBOLS) {
+			for (final String stockName : Symbol.STOCK_SYMBOLS) {
 				final ZonedDateTime today = ZonedDateTime.now(ZoneId.of("America/New_York")).minusSeconds(60 * 20);
 
 				Set<AssetMinute> preExistingStockMinutes = new LinkedHashSet<AssetMinute>();
@@ -479,7 +481,7 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 			final Collection<Exchange> exchanges = new ArrayList<Exchange>();
 			exchanges.add(Exchange.COINBASE);
 
-			for (final String cryptoName : Symbol.CRYPTOSYMBOLS) {
+			for (final String cryptoName : Symbol.CRYPTO_SYMBOLS) {
 				final ZonedDateTime today = ZonedDateTime.now(ZoneId.of("America/New_York"));
 				Set<AssetMinute> preExistingCryptoMinutes = new LinkedHashSet<AssetMinute>();
 
@@ -550,13 +552,11 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 
 	@Override
 	public void loadAlgorithmData(final RestRequest request, final RestResponse response) {
-
 		final Set<SMA> smaSet = algorithmCruncherDao.getSMAPrototypes();
 		final Set<LBB> lbbSet = algorithmCruncherDao.getLBBPrototypes();
 		final Set<UBB> ubbSet = algorithmCruncherDao.getUBBPrototypes();
 
-		Stream.of(Symbol.SYMBOLS).forEach(symbol -> {
-
+		Symbol.SYMBOLS.stream().forEach(symbol -> {
 			final ZonedDateTime now = ZonedDateTime.now(ZoneId.of("America/New_York"));
 
 			final long startingEpochSecondsDay = now.minusDays(1000).toEpochSecond();
@@ -566,7 +566,7 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 					.getAssetDays(symbol, startingEpochSecondsDay, endingEpochSecondsDay).stream()
 					.sorted((a, b) -> (int) (a.getEpochSeconds() - b.getEpochSeconds())).toList();
 
-			if (assetDays.size() - 1 < 0)
+			if (assetDays.size() == 0)
 				return;
 
 			final long startingEpochSecondsMinute = now.minusMinutes(1000).toEpochSecond();
@@ -576,10 +576,10 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 					.getAssetMinutes(symbol, startingEpochSecondsMinute, endingEpochSecondsMinute).stream()
 					.sorted((a, b) -> (int) (a.getEpochSeconds() - b.getEpochSeconds())).toList();
 
-			final AssetMinute latestAssetMinute = assetMinutes.get(assetMinutes.size() - 1);
-
-			if (assetMinutes.size() - 1 < 0)
+			if (assetMinutes.size() == 0)
 				return;
+
+			final AssetMinute latestAssetMinute = assetMinutes.get(assetMinutes.size() - 1);
 
 			final List<Object> saveList = new ArrayList<Object>();
 
@@ -594,7 +594,7 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 											latestAssetMinute.getEpochSeconds());
 
 									if (itemCountDay >= 1) {
-										return;
+										throw new ExpectedException("Entity already exists");
 									}
 
 									final SMA configuredDaySMA = sma.configureSMA(assetDays, latestAssetMinute);
@@ -609,7 +609,7 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 											latestAssetMinute.getEpochSeconds());
 
 									if (itemCountMinute >= 1) {
-										return;
+										throw new ExpectedException("Entity already exists");
 									}
 
 									final SMA configuredMinuteSMA = sma.configureSMA(assetMinutes);
@@ -618,12 +618,13 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 
 									break;
 								default:
-									System.out.println("Invalid evaluationPeriod");
-									return;
+									throw new ExpectedException("Invalid evaluationPeriod");
 							}
 
-						} catch (final Exception e) {
+						} catch (final ExpectedException e) {
 							e.printStackTrace();
+						} catch (final InsufficientDataException e) {
+							return;
 						}
 
 					});
@@ -641,7 +642,7 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 											latestAssetMinute.getEpochSeconds(), lbb.getStandardDeviations());
 
 									if (itemCountDay >= 1) {
-										return;
+										throw new ExpectedException("Entity already exists");
 									}
 
 									final LBB configuredLBBDay = lbb.configureLBB(assetDays,
@@ -657,19 +658,20 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 											latestAssetMinute.getEpochSeconds(), lbb.getStandardDeviations());
 
 									if (itemCountMinute >= 1) {
-										return;
+										throw new ExpectedException("Entity already exists");
 									}
 
 									final LBB configuredLBBMinute = lbb.configureLBB(assetMinutes);
 									saveList.add(configuredLBBMinute);
 									break;
 								default:
-									System.out.println("Invalid evaluationPeriod");
-									return;
+									throw new ExpectedException("Invalid evaluationPeriod");
 							}
 
-						} catch (final Exception e) {
+						} catch (final ExpectedException e) {
 							e.printStackTrace();
+						} catch (final InsufficientDataException e) {
+							return;
 						}
 
 					});
@@ -687,7 +689,7 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 											latestAssetMinute.getEpochSeconds(), ubb.getStandardDeviations());
 
 									if (itemCountDay >= 1) {
-										return;
+										throw new ExpectedException("Entity already exists");
 									}
 
 									final UBB configuredUBBDay = ubb.configureUBB(assetDays,
@@ -703,22 +705,22 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 											latestAssetMinute.getEpochSeconds(), ubb.getStandardDeviations());
 
 									if (itemCountMinute >= 1) {
-										return;
+										throw new ExpectedException("Entity already exists");
 									}
 
 									final UBB configuredUBBMinute = ubb.configureUBB(assetMinutes);
 									saveList.add(configuredUBBMinute);
 									break;
 								default:
-									System.out.println("Invalid evaluationPeriod");
-									return;
+									throw new ExpectedException("Invalid evaluationPeriod");
 							}
 
-						} catch (final Exception e) {
+						} catch (final ExpectedException e) {
 							e.printStackTrace();
+						} catch (final InsufficientDataException e) {
+							return;
 						}
 					});
-
 			algorithmCruncherDao.saveList(saveList);
 		});
 	}

@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Stream;
 
 import javax.persistence.NoResultException;
 
@@ -23,6 +22,8 @@ import org.toasthub.core.general.model.RestRequest;
 import org.toasthub.core.general.model.RestResponse;
 import org.toasthub.trade.model.AssetDay;
 import org.toasthub.trade.model.AssetMinute;
+import org.toasthub.trade.model.ExpectedException;
+import org.toasthub.trade.model.InsufficientDataException;
 import org.toasthub.trade.model.Symbol;
 import org.toasthub.trade.model.TechnicalIndicator;
 import org.toasthub.trade.model.TechnicalIndicatorDetail;
@@ -66,7 +67,7 @@ public class CacheManager {
                                     + technicalIndicator.getSymbol(), technicalIndicator);
                 });
 
-        Stream.of(Symbol.SYMBOLS).forEach(symbol -> {
+        Symbol.SYMBOLS.stream().forEach(symbol -> {
 
             try {
                 final AssetDay latestAssetDay = cacheDao.getLatestAssetDay(symbol);
@@ -94,7 +95,7 @@ public class CacheManager {
     }
 
     public void updateRawData(final RestRequest request, final RestResponse response) {
-        Stream.of(Symbol.SYMBOLS).forEach(symbol -> {
+        Symbol.SYMBOLS.stream().forEach(symbol -> {
 
             try {
                 final AssetDay latestAssetDay = cacheDao.getLatestAssetDay(symbol);
@@ -133,38 +134,39 @@ public class CacheManager {
 
         updatingTechnicalIndicator.set(true);
 
-        final List<TechnicalIndicator> technicalIndicators = new ArrayList<TechnicalIndicator>();
-
-        technicalIndicators.addAll(cacheDao.getTechnicalIndicators());
+        final List<TechnicalIndicator> technicalIndicators = cacheDao.getTechnicalIndicators();
 
         technicalIndicators.stream()
                 .forEach(technicalIndicator -> {
+                    try {
+                        tradeSignalCache.insertTechnicalIndicator(technicalIndicator);
 
-                    tradeSignalCache.insertTechnicalIndicator(technicalIndicator);
+                        final String symbol = technicalIndicator.getSymbol();
 
-                    final String symbol = technicalIndicator.getSymbol();
+                        final String evaluationPeriod = technicalIndicator.getEvaluationPeriod();
 
-                    final String evaluationPeriod = technicalIndicator.getEvaluationPeriod();
+                        final long currentMinute = tradeSignalCache.getRecentEpochSecondsMap()
+                                .get("MINUTE::" + symbol);
 
-                    final long currentMinute = tradeSignalCache.getRecentEpochSecondsMap()
-                            .get("MINUTE::" + symbol);
+                        final long currentDay = ZonedDateTime
+                                .ofInstant(Instant.ofEpochSecond(currentMinute), ZoneId.of("America/New_York"))
+                                .truncatedTo(ChronoUnit.DAYS).toEpochSecond();
 
-                    final long currentDay = ZonedDateTime
-                            .ofInstant(Instant.ofEpochSecond(currentMinute), ZoneId.of("America/New_York"))
-                            .truncatedTo(ChronoUnit.DAYS).toEpochSecond();
+                        final BigDecimal currentPrice = tradeSignalCache.getRecentClosingPriceMap()
+                                .get("MINUTE::" + symbol);
 
-                    final BigDecimal currentPrice = tradeSignalCache.getRecentClosingPriceMap()
-                            .get("MINUTE::" + symbol);
+                        if (tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol) == null) {
+                            throw new ExpectedException("Epoch Seconds for asset data not in cache");
+                        }
 
-                    if (tradeSignalCache.getRecentEpochSecondsMap().get("MINUTE::" + symbol) == null) {
-                        return;
-                    }
+                        if (tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol) == null) {
+                            throw new ExpectedException("Closing price for asset data not in cache");
+                        }
 
-                    if (tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol) == null) {
-                        return;
-                    }
-
-                    if (technicalIndicator.getLastCheck() < currentMinute) {
+                        // minute already checked
+                        if (technicalIndicator.getLastCheck() == currentMinute) {
+                            return;
+                        }
 
                         request.addParam(technicalIndicator.getSymbol() + "::CACHE_UPDATED", true);
 
@@ -216,6 +218,7 @@ public class CacheManager {
                                     }
                                 });
 
+                        cacheDao.saveList(technicalIndicatorDetails);
                         boolean flashing = false;
 
                         try {
@@ -241,12 +244,11 @@ public class CacheManager {
                                     flashing = currentPrice.compareTo(ubbValue) > 0;
                                     break;
                                 default:
-                                    System.out.print(
+                                    throw new ExpectedException(
                                             "Invalid technical indicator type in current testing service- update technical indicator cache method");
                             }
                         } catch (final NoResultException e) {
-                            System.out.println("Insufficient Data");
-                            return;
+                            throw new InsufficientDataException();
                         }
 
                         technicalIndicator.setFlashing(flashing);
@@ -277,9 +279,14 @@ public class CacheManager {
 
                             cacheDao.saveItem(technicalIndicatorDetail);
                         }
-                    }
 
-                    cacheDao.saveItem(technicalIndicator);
+                        cacheDao.saveItem(technicalIndicator);
+
+                    } catch (final ExpectedException e) {
+                        e.printStackTrace();
+                    } catch (final InsufficientDataException e) {
+                        return;
+                    }
 
                 });
 

@@ -33,4 +33,10 @@ public interface TradeDao extends BaseDao {
     public void resetTrade(RestRequest request, RestResponse response);
 
     public void getSymbolData(RestRequest request, RestResponse response);
+
+    public Trade find(long id);
+
+    public List<Trade> getTrades();
+
+    public void saveItem(Object o);
 }

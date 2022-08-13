@@ -68,7 +68,6 @@ public class SMA extends BaseAlg {
 	}
 
 	// Methods
-	@Transient
 	public static BigDecimal calculateSMA(final List<BigDecimal> list) {
 		BigDecimal sma = BigDecimal.ZERO;
 		for (int i = 0; i < list.size(); i++)
@@ -76,7 +75,6 @@ public class SMA extends BaseAlg {
 		return sma.divide(new BigDecimal(list.size()), MathContext.DECIMAL32);
 	}
 
-	@Transient
 	public static BigDecimal calculateSD(final List<BigDecimal> list) {
 		double sum = 0.0, standardDeviation = 0.0;
 		final int length = list.size();
@@ -92,7 +90,7 @@ public class SMA extends BaseAlg {
 		return BigDecimal.valueOf(Math.sqrt(standardDeviation / length));
 	}
 
-	public SMA configureSMA(final List<AssetMinute> assetMinutes) throws Exception {
+	public SMA configureSMA(final List<AssetMinute> assetMinutes) throws InsufficientDataException {
 
 		final SMA configuredSMA = new SMA();
 
@@ -102,7 +100,7 @@ public class SMA extends BaseAlg {
 
 		// ensures there is enough data to configure SMA value
 		if (assetMinutes.size() < configuredSMA.getEvaluationDuration()) {
-			throw new Exception("Insufficient data to configure SMA.");
+			throw new InsufficientDataException();
 		}
 
 		configuredSMA.setEpochSeconds(assetMinutes.get(assetMinutes.size() - 1).getEpochSeconds());
@@ -118,7 +116,7 @@ public class SMA extends BaseAlg {
 	}
 
 	public SMA configureSMA(final List<AssetDay> assetDays, final AssetMinute assetMinute)
-			throws Exception {
+			throws InsufficientDataException {
 
 		final SMA configuredSMA = new SMA();
 
@@ -128,7 +126,7 @@ public class SMA extends BaseAlg {
 
 		// ensures there is enough data to configure SMA value
 		if (assetDays.size() < configuredSMA.getEvaluationDuration()) {
-			throw new Exception("Insufficient data to configure SMA.");
+			throw new InsufficientDataException();
 		}
 
 		configuredSMA.setEpochSeconds(assetMinute.getEpochSeconds());

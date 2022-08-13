@@ -234,6 +234,11 @@ public class TradeDaoImpl implements TradeDao {
 	}
 
 	@Override
+	public void saveItem(Object o) {
+		entityManagerDataSvc.getInstance().merge(o);
+	}
+
+	@Override
 	public void getSymbolData(RestRequest request, RestResponse response) {
 		String symbol = (String) request.getParam("SYMBOL");
 
@@ -262,5 +267,23 @@ public class TradeDaoImpl implements TradeDao {
 		Query query = entityManagerDataSvc.getInstance().createNativeQuery(queryStr);
 
 		response.addParam("SYMBOLS", query.getResultList());
+	}
+
+	public Trade find(long id) {
+		return entityManagerDataSvc.getInstance().find(Trade.class, id);
+	}
+
+	@Override
+	public List<Trade> getTrades() {
+		String queryStr = "SELECT DISTINCT x FROM Trade AS x";
+
+		Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+
+		final List<Trade> items = new ArrayList<Trade>();
+
+		for (Object o : query.getResultList()) {
+			items.add(Trade.class.cast(o));
+		}
+		return items;
 	}
 }
