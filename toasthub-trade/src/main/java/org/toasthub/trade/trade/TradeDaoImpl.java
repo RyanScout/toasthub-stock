@@ -33,7 +33,9 @@ import org.toasthub.core.common.EntityManagerDataSvc;
 import org.toasthub.core.general.model.GlobalConstant;
 import org.toasthub.core.general.model.RestRequest;
 import org.toasthub.core.general.model.RestResponse;
+import org.toasthub.trade.model.CustomTechnicalIndicator;
 import org.toasthub.trade.model.Symbol;
+import org.toasthub.trade.model.TechnicalIndicator;
 import org.toasthub.trade.model.Trade;
 import org.toasthub.trade.model.TradeConstant;
 import org.toasthub.trade.model.TradeDetail;
@@ -46,10 +48,10 @@ public class TradeDaoImpl implements TradeDao {
 	protected EntityManagerDataSvc entityManagerDataSvc;
 
 	@Override
-	public void delete(RestRequest request, RestResponse response) throws Exception {
+	public void delete(final RestRequest request, final RestResponse response) throws Exception {
 		if (request.containsParam(GlobalConstant.ITEMID) && !"".equals(request.getParam(GlobalConstant.ITEMID))) {
 
-			Trade trade = (Trade) entityManagerDataSvc.getInstance().getReference(Trade.class,
+			final Trade trade = (Trade) entityManagerDataSvc.getInstance().getReference(Trade.class,
 					Long.valueOf((Integer) request.getParam(GlobalConstant.ITEMID)));
 			entityManagerDataSvc.getInstance().remove(trade);
 
@@ -60,13 +62,13 @@ public class TradeDaoImpl implements TradeDao {
 	}
 
 	@Override
-	public void save(RestRequest request, RestResponse response) throws Exception {
-		Trade trade = (Trade) request.getParam(GlobalConstant.ITEM);
+	public void save(final RestRequest request, final RestResponse response) throws Exception {
+		final Trade trade = (Trade) request.getParam(GlobalConstant.ITEM);
 		entityManagerDataSvc.getInstance().merge(trade);
 	}
 
 	@Override
-	public void items(RestRequest request, RestResponse response) throws Exception {
+	public void items(final RestRequest request, final RestResponse response) throws Exception {
 		String queryStr = "SELECT DISTINCT x FROM Trade AS x ";
 
 		boolean and = false;
@@ -85,7 +87,7 @@ public class TradeDaoImpl implements TradeDao {
 			and = true;
 		}
 
-		Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
 
 		if (request.containsParam(GlobalConstant.ACTIVE)) {
 			query.setParameter("active", (Boolean) request.getParam(GlobalConstant.ACTIVE));
@@ -98,7 +100,7 @@ public class TradeDaoImpl implements TradeDao {
 	}
 
 	@Override
-	public void itemCount(RestRequest request, RestResponse response) throws Exception {
+	public void itemCount(final RestRequest request, final RestResponse response) throws Exception {
 		String queryStr = "SELECT COUNT(DISTINCT x) FROM Trade as x ";
 		boolean and = false;
 		if (request.containsParam(GlobalConstant.ACTIVE)) {
@@ -123,7 +125,7 @@ public class TradeDaoImpl implements TradeDao {
 			and = true;
 		}
 
-		Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
 
 		if (request.containsParam(GlobalConstant.ACTIVE)) {
 			query.setParameter("active", (Boolean) request.getParam(GlobalConstant.ACTIVE));
@@ -144,10 +146,10 @@ public class TradeDaoImpl implements TradeDao {
 	}
 
 	@Override
-	public void item(RestRequest request, RestResponse response) throws Exception {
+	public void item(final RestRequest request, final RestResponse response) throws Exception {
 		if (request.containsParam(GlobalConstant.ITEMID) && !"".equals(request.getParam(GlobalConstant.ITEMID))) {
-			String queryStr = "SELECT x FROM Trade AS x WHERE x.id =:id";
-			Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+			final String queryStr = "SELECT x FROM Trade AS x WHERE x.id =:id";
+			final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
 
 			if (request.getParam(GlobalConstant.ITEMID) instanceof Long) {
 				query.setParameter("id", (Long) request.getParam(GlobalConstant.ITEMID));
@@ -155,7 +157,7 @@ public class TradeDaoImpl implements TradeDao {
 			if (request.getParam(GlobalConstant.ITEMID) instanceof Integer) {
 				query.setParameter("id", Long.valueOf((Integer) request.getParam(GlobalConstant.ITEMID)));
 			}
-			Trade trade = (Trade) query.getSingleResult();
+			final Trade trade = (Trade) query.getSingleResult();
 
 			response.addParam(GlobalConstant.ITEM, trade);
 		} else {
@@ -167,15 +169,15 @@ public class TradeDaoImpl implements TradeDao {
 
 	@Override
 	public List<Trade> getRunningTrades() {
-		String queryStr = "SELECT DISTINCT x FROM Trade AS x WHERE x.status =:status";
+		final String queryStr = "SELECT DISTINCT x FROM Trade AS x WHERE x.status =:status";
 
-		Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
 		query.setParameter("status", "Running");
 
-		List<Trade> trades = new ArrayList<Trade>();
-		List<?> objects = query.getResultList();
-		for (Object o : objects) {
-			Trade t = Trade.class.cast(o);
+		final List<Trade> trades = new ArrayList<Trade>();
+		final List<?> objects = query.getResultList();
+		for (final Object o : objects) {
+			final Trade t = Trade.class.cast(o);
 			Hibernate.initialize(t.getTradeDetails());
 			trades.add(t);
 		}
@@ -186,25 +188,25 @@ public class TradeDaoImpl implements TradeDao {
 	@Override
 	@SuppressWarnings("unchecked")
 	public List<Trade> getAllRunningTrades() {
-		String queryStr = "SELECT DISTINCT x FROM Trade AS x LEFT JOIN FETCH x.tradeDetails AS d WHERE x.status =:status AND d.status !=:detailStatus";
-		Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+		final String queryStr = "SELECT DISTINCT x FROM Trade AS x LEFT JOIN FETCH x.tradeDetails AS d WHERE x.status =:status AND d.status !=:detailStatus";
+		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
 		query.setParameter("status", "Running");
 		query.setParameter("detailStatus", "FILLED");
-		List<Trade> trades = (List<Trade>) query.getResultList();
+		final List<Trade> trades = (List<Trade>) query.getResultList();
 		return trades;
 	}
 
-	public void resetTrade(RestRequest request, RestResponse response) {
+	public void resetTrade(final RestRequest request, final RestResponse response) {
 
 		if (request.containsParam(GlobalConstant.ITEMID) && !"".equals(request.getParam(GlobalConstant.ITEMID))) {
 
-			Trade trade = (Trade) entityManagerDataSvc.getInstance().getReference(Trade.class,
+			final Trade trade = (Trade) entityManagerDataSvc.getInstance().getReference(Trade.class,
 					Long.valueOf((Integer) request.getParam(GlobalConstant.ITEMID)));
 			trade.getTradeDetails().stream().forEach(t -> {
 				entityManagerDataSvc.getInstance().remove(t);
 			});
 
-			Set<TradeDetail> trades = new LinkedHashSet<TradeDetail>();
+			final Set<TradeDetail> trades = new LinkedHashSet<TradeDetail>();
 			trade.setTradeDetails(trades);
 			trade.setAvailableBudget(trade.getBudget());
 			trade.setTotalValue(trade.getBudget());
@@ -216,16 +218,16 @@ public class TradeDaoImpl implements TradeDao {
 
 	@Override
 	public List<Trade> getRunningDayTrades() {
-		String queryStr = "SELECT DISTINCT x FROM Trade AS x WHERE x.status =:status AND x.evaluationPeriod =:evaluationPeriod";
+		final String queryStr = "SELECT DISTINCT x FROM Trade AS x WHERE x.status =:status AND x.evaluationPeriod =:evaluationPeriod";
 
-		Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
 		query.setParameter("status", "Running");
 		query.setParameter("evaluationPeriod", "DAY");
 
-		List<Trade> trades = new ArrayList<Trade>();
-		List<?> objects = query.getResultList();
-		for (Object o : objects) {
-			Trade t = Trade.class.cast(o);
+		final List<Trade> trades = new ArrayList<Trade>();
+		final List<?> objects = query.getResultList();
+		for (final Object o : objects) {
+			final Trade t = Trade.class.cast(o);
 			Hibernate.initialize(t.getTradeDetails());
 			trades.add(t);
 		}
@@ -234,22 +236,22 @@ public class TradeDaoImpl implements TradeDao {
 	}
 
 	@Override
-	public void saveItem(Object o) {
+	public void saveItem(final Object o) {
 		entityManagerDataSvc.getInstance().merge(o);
 	}
 
 	@Override
-	public void getSymbolData(RestRequest request, RestResponse response) {
-		String symbol = (String) request.getParam("SYMBOL");
+	public void getSymbolData(final RestRequest request, final RestResponse response) {
+		final String symbol = (String) request.getParam("SYMBOL");
 
 		if (!Arrays.asList(Symbol.SYMBOLS).contains(symbol)) {
 			return;
 		}
 
-		String evaluationPeriod = (String) request.getParam("EVALUATION_PERIOD");
+		final String evaluationPeriod = (String) request.getParam("EVALUATION_PERIOD");
 		String classStr = "";
-		Integer firstPoint = (Integer) request.getParam("FIRST_POINT");
-		Integer lastPoint = (Integer) request.getParam("LAST_POINT");
+		final Integer firstPoint = (Integer) request.getParam("FIRST_POINT");
+		final Integer lastPoint = (Integer) request.getParam("LAST_POINT");
 
 		switch (evaluationPeriod) {
 			case "DAY":
@@ -260,30 +262,70 @@ public class TradeDaoImpl implements TradeDao {
 				break;
 		}
 
-		String queryStr = "SELECT epoch_seconds , value FROM tradeanalyzer_main.ta_" + classStr
+		final String queryStr = "SELECT epoch_seconds , value FROM tradeanalyzer_main.ta_" + classStr
 				+ " AS x WHERE epoch_seconds >= "
 				+ firstPoint
 				+ " AND epoch_seconds <= " + lastPoint + " AND symbol = \"" + symbol + "\"";
-		Query query = entityManagerDataSvc.getInstance().createNativeQuery(queryStr);
+		final Query query = entityManagerDataSvc.getInstance().createNativeQuery(queryStr);
 
 		response.addParam("SYMBOLS", query.getResultList());
 	}
 
-	public Trade find(long id) {
+	public Trade findTradeById(final long id) {
 		return entityManagerDataSvc.getInstance().find(Trade.class, id);
 	}
 
 	@Override
 	public List<Trade> getTrades() {
-		String queryStr = "SELECT DISTINCT x FROM Trade AS x";
+		final String queryStr = "SELECT DISTINCT x FROM Trade AS x";
 
-		Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
 
 		final List<Trade> items = new ArrayList<Trade>();
 
-		for (Object o : query.getResultList()) {
+		for (final Object o : query.getResultList()) {
 			items.add(Trade.class.cast(o));
 		}
 		return items;
 	}
+
+	@Override
+	public List<TradeDetail> getTradeDetails(final Trade trade) {
+		final String queryStr = "SELECT DISTINCT(x) FROM TradeDetail x WHERE x.trade =: trade";
+
+		final List<TradeDetail> tradeDetails = new ArrayList<TradeDetail>();
+
+		final Query query = entityManagerDataSvc.getInstance()
+				.createQuery(queryStr)
+				.setParameter("trade", trade);
+
+		for (final Object o : query.getResultList()) {
+			tradeDetails.add(TradeDetail.class.cast(o));
+		}
+
+		return tradeDetails;
+	}
+
+	@Override
+	public CustomTechnicalIndicator getCustomTechnicalIndicatorById(long id) {
+		return entityManagerDataSvc.getInstance().find(CustomTechnicalIndicator.class, id);
+	}
+
+	public TechnicalIndicator getTechnicalIndicatorByProperties(String symbol, String evaluationPeriod,
+			String technicalIndicatorKey) {
+		String queryStr = "SELECT DISTINCT x FROM TechnicalIndicator as x"
+				+ " WHERE x.symbol = :symbol"
+				+ " AND x.evaluationPeriod = :evaluationPeriod"
+				+ " AND x.technicalIndicatorKey = :technicalIndicatorKey";
+
+		Query query = entityManagerDataSvc.getInstance().createQuery(queryStr)
+				.setParameter("symbol", symbol)
+				.setParameter("evaluationPeriod", evaluationPeriod)
+				.setParameter("technicalIndicatorKey", technicalIndicatorKey);
+
+		final TechnicalIndicator item = TechnicalIndicator.class.cast(query.getSingleResult());
+
+		return item;
+	}
+
 }

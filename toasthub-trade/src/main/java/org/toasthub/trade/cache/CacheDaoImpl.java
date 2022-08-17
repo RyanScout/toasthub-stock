@@ -44,13 +44,13 @@ public class CacheDaoImpl implements CacheDao {
     }
 
     @Override
-    public void saveItem(Object o) {
+    public void saveItem(final Object o) {
         entityManagerDataSvc.getInstance().merge(o);
     }
 
     @Override
-    public void saveList(List<?> list) {
-        for (Object o : list) {
+    public void saveList(final List<?> list) {
+        for (final Object o : list) {
             entityManagerDataSvc.getInstance().merge(o);
         }
     }
@@ -97,7 +97,7 @@ public class CacheDaoImpl implements CacheDao {
 
     @Override
     public List<TechnicalIndicatorDetail> getIncompleteTechnicalIndicatorDetails(
-            TechnicalIndicator technicalIndicator) {
+            final TechnicalIndicator technicalIndicator) {
         final String queryStr = "SELECT DISTINCT(x) FROM TechnicalIndicatorDetail x WHERE x.technicalIndicator =: technicalIndicator AND x.checked <: checked";
 
         final List<TechnicalIndicatorDetail> technicalIndicatorDetails = new ArrayList<TechnicalIndicatorDetail>();
@@ -108,7 +108,7 @@ public class CacheDaoImpl implements CacheDao {
                 .setParameter("checked", 100)
                 .setMaxResults(1000);
 
-        for (Object o : query.getResultList()) {
+        for (final Object o : query.getResultList()) {
             technicalIndicatorDetails.add(TechnicalIndicatorDetail.class.cast(o));
         }
 
@@ -116,7 +116,8 @@ public class CacheDaoImpl implements CacheDao {
     }
 
     @Override
-    public List<TechnicalIndicatorDetail> getCompleteTechnicalIndicatorDetails(TechnicalIndicator technicalIndicator) {
+    public List<TechnicalIndicatorDetail> getCompleteTechnicalIndicatorDetails(
+            final TechnicalIndicator technicalIndicator) {
         final String queryStr = "SELECT DISTINCT(x) FROM TechnicalIndicatorDetail x WHERE x.technicalIndicator =: technicalIndicator AND x.checked =: checked";
 
         final List<TechnicalIndicatorDetail> technicalIndicatorDetails = new ArrayList<TechnicalIndicatorDetail>();
@@ -127,7 +128,7 @@ public class CacheDaoImpl implements CacheDao {
                 .setParameter("checked", 100)
                 .setMaxResults(1000);
 
-        for (Object o : query.getResultList()) {
+        for (final Object o : query.getResultList()) {
             technicalIndicatorDetails.add(TechnicalIndicatorDetail.class.cast(o));
         }
 
@@ -151,8 +152,9 @@ public class CacheDaoImpl implements CacheDao {
     }
 
     @Override
-    public long itemCount(String technicalIndicatorType, String evaluationPeriod, String technicalIndicatorKey,
-            String symbol) {
+    public long itemCount(final String technicalIndicatorType, final String evaluationPeriod,
+            final String technicalIndicatorKey,
+            final String symbol) {
         final String queryStr = "SELECT COUNT(DISTINCT x) FROM TechnicalIndicator as x WHERE x.technicalIndicatorType =:technicalIndicatorType AND x.evaluationPeriod =:evaluationPeriod AND x.technicalIndicatorKey =:technicalIndicatorKey AND x.symbol =:symbol";
         final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
         query.setParameter("technicalIndicatorType", technicalIndicatorType);
@@ -274,6 +276,42 @@ public class CacheDaoImpl implements CacheDao {
     }
 
     @Override
+    public List<AssetDay> getAssetDays(final String symbol, final long startingEpochSeconds,
+            final long endingEpochSeconds) {
+        final String queryStr = "SELECT DISTINCT x FROM AssetDay AS x WHERE x.symbol =:symbol AND x.epochSeconds >=: startingEpochSeconds AND x.epochSeconds <=:endingEpochSeconds";
+
+        final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr)
+                .setParameter("symbol", symbol)
+                .setParameter("startingEpochSeconds", startingEpochSeconds)
+                .setParameter("endingEpochSeconds", endingEpochSeconds);
+
+        final List<AssetDay> assetDays = new ArrayList<AssetDay>();
+
+        for (final Object o : query.getResultList()) {
+            assetDays.add(AssetDay.class.cast(o));
+        }
+        return assetDays;
+    }
+
+    @Override
+    public List<AssetMinute> getAssetMinutes(final String symbol, final long startingEpochSeconds,
+            final long endingEpochSeconds) {
+        final String queryStr = "SELECT DISTINCT x FROM AssetMinute AS x WHERE x.symbol =:symbol AND x.epochSeconds >=: startingEpochSeconds AND x.epochSeconds <=:endingEpochSeconds";
+
+        final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+        query.setParameter("symbol", symbol);
+        query.setParameter("startingEpochSeconds", startingEpochSeconds);
+        query.setParameter("endingEpochSeconds", endingEpochSeconds);
+
+        final List<AssetMinute> assetMinutes = new ArrayList<AssetMinute>();
+
+        for (final Object o : query.getResultList()) {
+            assetMinutes.add(AssetMinute.class.cast(o));
+        }
+        return assetMinutes;
+    }
+
+    @Override
     public void getAssetMinutes(final RestRequest request, final RestResponse response) {
         final String queryStr = "SELECT DISTINCT x FROM AssetMinute AS x WHERE x.symbol =:symbol AND x.EPOCH_SECONDS >=:startingEPOCH_SECONDS AND x.EPOCH_SECONDS <=: endingEPOCH_SECONDS";
 
@@ -328,4 +366,161 @@ public class CacheDaoImpl implements CacheDao {
 
         return (BigDecimal) query.getSingleResult();
     }
+
+    @Override
+    public TechnicalIndicator findTechnicalIndicatorById(final long id) {
+        return entityManagerDataSvc.getInstance().find(TechnicalIndicator.class, id);
+    }
+
+    @Override
+    public TechnicalIndicator refreshTechnicalIndicator(final TechnicalIndicator technicalIndicator) {
+        final TechnicalIndicator managedTechnicalIndicator = entityManagerDataSvc.getInstance().find(
+                TechnicalIndicator.class,
+                technicalIndicator.getId());
+        entityManagerDataSvc.getInstance().refresh(managedTechnicalIndicator);
+        return managedTechnicalIndicator;
+    }
+
+    @Override
+    public List<AssetMinute> getSMAAssetMinuteFlashes(final long startTime, final long endTime,
+            final String symbol, final String evaluationPeriod, final int shortSMAEvaluationDuration,
+            final int longSMAEvaluationDuration) {
+
+        final List<AssetMinute> items = new ArrayList<AssetMinute>();
+
+        final String queryStr = "SELECT DISTINCT assetMinute FROM AssetMinute as assetMinute, SMA AS shortSMA , SMA AS longSMA"
+                + " WHERE longSMA.symbol = :symbol "
+                + " AND longSMA.evaluationPeriod = :evaluationPeriod"
+                + " AND longSMA.evaluationDuration = :longSMAEvaluationDuration "
+                + " AND shortSMA.symbol = :symbol "
+                + " AND shortSMA.evaluationPeriod = :evaluationPeriod"
+                + " AND shortSMA.evaluationDuration = :shortSMAEvaluationDuration "
+                + " AND assetMinute.symbol = :symbol "
+                + " AND assetMinute.epochSeconds > :startTime"
+                + " AND assetMinute.epochSeconds < :endTime"
+                + " AND assetMinute.epochSeconds = shortSMA.epochSeconds "
+                + " AND assetMinute.epochSeconds = longSMA.epochSeconds "
+                + " AND shortSMA.value > longSMA.value ";
+
+        final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr)
+                .setParameter("symbol", symbol)
+                .setParameter("evaluationPeriod", evaluationPeriod)
+                .setParameter("shortSMAEvaluationDuration", shortSMAEvaluationDuration)
+                .setParameter("longSMAEvaluationDuration", longSMAEvaluationDuration)
+                .setParameter("startTime", startTime)
+                .setParameter("endTime", endTime);
+
+        for (final Object o : query.getResultList()) {
+            items.add(AssetMinute.class.cast(o));
+        }
+
+        return items;
+    }
+
+    @Override
+    public List<AssetMinute> getLBBAssetMinuteFlashes(final long startTime, final long endTime,
+            final BigDecimal standardDeviations,
+            final String symbol, final String evaluationPeriod, final int evaluationDuration) {
+
+        final List<AssetMinute> items = new ArrayList<AssetMinute>();
+
+        final String queryStr = "SELECT DISTINCT assetMinute FROM AssetMinute as assetMinute, LBB AS lbb"
+                + " WHERE lbb.standardDeviations = :standardDeviations "
+                + " AND lbb.symbol = :symbol "
+                + " AND lbb.evaluationPeriod = :evaluationPeriod"
+                + " AND lbb.evaluationDuration = :evaluationDuration "
+                + " AND assetMinute.symbol = :symbol "
+                + " AND assetMinute.epochSeconds > :startTime"
+                + " AND assetMinute.epochSeconds < :endTime"
+                + " AND assetMinute.epochSeconds = lbb.epochSeconds "
+                + " AND assetMinute.value < lbb.value ";
+
+        final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr)
+                .setParameter("symbol", symbol)
+                .setParameter("evaluationPeriod", evaluationPeriod)
+                .setParameter("evaluationDuration", evaluationDuration)
+                .setParameter("standardDeviations", standardDeviations)
+                .setParameter("startTime", startTime)
+                .setParameter("endTime", endTime);
+
+        for (final Object o : query.getResultList()) {
+            items.add(AssetMinute.class.cast(o));
+        }
+
+        return items;
+    }
+
+    @Override
+    public List<AssetMinute> getUBBAssetMinuteFlashes(final long startTime, final long endTime,
+            final BigDecimal standardDeviations,
+            final String symbol, final String evaluationPeriod, final int evaluationDuration) {
+
+        final List<AssetMinute> items = new ArrayList<AssetMinute>();
+
+        final String queryStr = "SELECT DISTINCT assetMinute FROM AssetMinute as assetMinute, UBB AS ubb"
+                + " WHERE ubb.standardDeviations = :standardDeviations "
+                + " AND ubb.symbol = :symbol "
+                + " AND ubb.evaluationPeriod = :evaluationPeriod"
+                + " AND ubb.evaluationDuration = :evaluationDuration "
+                + " AND assetMinute.symbol = :symbol "
+                + " AND assetMinute.epochSeconds > :startTime"
+                + " AND assetMinute.epochSeconds < :endTime"
+                + " AND assetMinute.epochSeconds = ubb.epochSeconds "
+                + " AND assetMinute.value > ubb.value ";
+
+        final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr)
+                .setParameter("symbol", symbol)
+                .setParameter("evaluationPeriod", evaluationPeriod)
+                .setParameter("evaluationDuration", evaluationDuration)
+                .setParameter("standardDeviations", standardDeviations)
+                .setParameter("startTime", startTime)
+                .setParameter("endTime", endTime);
+
+        for (final Object o : query.getResultList()) {
+            items.add(AssetMinute.class.cast(o));
+        }
+
+        return items;
+    }
+
+    public BigDecimal getHighestAssetMinuteValueWithinTimeFrame(final String symbol, final long startTime,
+            final long endTime) {
+        final String queryStr = "SELECT x.value FROM AssetMinute as x WHERE x.symbol = :symbol AND x.epochSeconds >= :startTime AND x.epochSeconds <= :endTime ORDER BY x.value DESC";
+
+        final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr)
+                .setParameter("symbol", symbol)
+                .setParameter("startTime", startTime)
+                .setParameter("endTime", endTime)
+                .setMaxResults(1);
+
+        return BigDecimal.class.cast(query.getSingleResult());
+
+    }
+
+    public BigDecimal getLowestAssetMinuteValueWithinTimeFrame(final String symbol, final long startTime,
+            final long endTime) {
+        final String queryStr = "SELECT x.value FROM AssetMinute as x WHERE x.symbol = :symbol AND x.epochSeconds >= :startTime AND x.epochSeconds <= :endTime ORDER BY x.value ASC";
+
+        final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr)
+                .setParameter("symbol", symbol)
+                .setParameter("startTime", startTime)
+                .setParameter("endTime", endTime)
+                .setMaxResults(1);
+
+        return BigDecimal.class.cast(query.getSingleResult());
+
+    }
+
+    public long getAssetDayCountWithinTimeFrame(final String symbol, final long startTime, final long endTime) {
+        final String queryStr = "SELECT COUNT (DISTINCT x) FROM AssetDay as x WHERE x.symbol = :symbol AND x.epochSeconds > :startTime AND x.epochSeconds < :endTime";
+
+        final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr)
+                .setParameter("symbol", symbol)
+                .setParameter("startTime", startTime)
+                .setParameter("endTime", endTime)
+                .setMaxResults(1);
+
+        return Long.class.cast(query.getSingleResult());
+    }
+
 }

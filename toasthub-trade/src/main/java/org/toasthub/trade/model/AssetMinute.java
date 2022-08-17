@@ -31,27 +31,28 @@ public class AssetMinute extends TradeBaseEntity {
         super();
         this.setIdentifier("AssetMinute");
     }
-    
+
     public AssetMinute(final String code, final Boolean defaultLang, final String dir) {
         super();
     }
 
     // Setter/Getter
-    @JsonView({View.Member.class})
+    @JsonView({ View.Member.class })
     @Column(name = "symbol")
     public String getSymbol() {
         return symbol;
     }
+
     public void setSymbol(final String symbol) {
         this.symbol = symbol;
     }
 
-
-    @JsonView({View.Member.class})
+    @JsonView({ View.Member.class })
     @Column(name = "value")
     public BigDecimal getValue() {
         return value;
     }
+
     public void setValue(final BigDecimal value) {
         this.value = value;
     }
@@ -62,33 +63,37 @@ public class AssetMinute extends TradeBaseEntity {
     public AssetDay getAssetDay() {
         return assetDay;
     }
+
     public void setAssetDay(final AssetDay assetDay) {
         this.assetDay = assetDay;
     }
 
-    @JsonView({View.Member.class})
+    @JsonView({ View.Member.class })
     @Column(name = "vwap")
     public BigDecimal getVwap() {
         return vwap;
     }
+
     public void setVwap(final BigDecimal vwap) {
         this.vwap = vwap;
     }
 
-    @JsonView({View.Member.class})
+    @JsonView({ View.Member.class })
     @Column(name = "volume")
     public long getVolume() {
         return volume;
     }
+
     public void setVolume(final long volume) {
         this.volume = volume;
     }
 
-    @JsonView({View.Member.class})
+    @JsonView({ View.Member.class })
     @Column(name = "epoch_seconds")
     public long getEpochSeconds() {
         return epochSeconds;
     }
+
     public void setEpochSeconds(final long epochSeconds) {
         this.epochSeconds = epochSeconds;
     }
@@ -97,7 +102,6 @@ public class AssetMinute extends TradeBaseEntity {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((assetDay == null) ? 0 : assetDay.hashCode());
         result = prime * result + (int) (epochSeconds ^ (epochSeconds >>> 32));
         result = prime * result + ((symbol == null) ? 0 : symbol.hashCode());
         result = prime * result + ((value == null) ? 0 : value.hashCode());
@@ -115,11 +119,6 @@ public class AssetMinute extends TradeBaseEntity {
         if (getClass() != obj.getClass())
             return false;
         final AssetMinute other = (AssetMinute) obj;
-        if (assetDay == null) {
-            if (other.assetDay != null)
-                return false;
-        } else if (!assetDay.equals(other.assetDay))
-            return false;
         if (epochSeconds != other.epochSeconds)
             return false;
         if (symbol == null) {
@@ -141,5 +140,5 @@ public class AssetMinute extends TradeBaseEntity {
             return false;
         return true;
     }
-    
+
 }

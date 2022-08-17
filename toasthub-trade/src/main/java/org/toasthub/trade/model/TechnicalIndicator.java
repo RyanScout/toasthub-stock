@@ -127,7 +127,7 @@ public class TechnicalIndicator extends TradeBaseEntity {
         this.standardDeviations = standardDeviations;
     }
 
-    @OneToMany(mappedBy = "technicalIndicator", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "technicalIndicator", cascade = CascadeType.ALL, orphanRemoval = true)
     public Set<TechnicalIndicatorDetail> getDetails() {
         return details;
     }

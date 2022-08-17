@@ -29,6 +29,7 @@ import org.toasthub.trade.model.AssetDay;
 import org.toasthub.trade.model.AssetMinute;
 import org.toasthub.trade.model.LBB;
 import org.toasthub.trade.model.SMA;
+import org.toasthub.trade.model.TechnicalIndicator;
 import org.toasthub.trade.model.UBB;
 
 public interface AlgorithmCruncherDao extends BaseDao {
@@ -44,6 +45,8 @@ public interface AlgorithmCruncherDao extends BaseDao {
 
 	public void getTechicalIndicator(RestRequest request, RestResponse response);
 
+	public TechnicalIndicator findTechnicalIndicatorById(long id);
+
 	public List<AssetDay> getAssetDays(String symbol, long startingEpochSeconds, long endingEpochSeconds);
 
 	public List<AssetMinute> getAssetMinutes(String symbol, long startingEpochSeconds, long endingEpochSeconds);
@@ -54,7 +57,21 @@ public interface AlgorithmCruncherDao extends BaseDao {
 
 	public Set<UBB> getUBBPrototypes();
 
-	public long getSMAItemCount(final String symbol, final String evaluationPeriod , final int evaluationDuration , final long epochSeconds);
-	public long getLBBItemCount(final String symbol, final String evaluationPeriod , final int evaluationDuration , final long epochSeconds, final BigDecimal standardDeviations);
-	public long getUBBItemCount(final String symbol, final String evaluationPeriod , final int evaluationDuration , final long epochSeconds , final BigDecimal standardDeviations);
+	public long getSMAItemCount(final String symbol, final String evaluationPeriod, final int evaluationDuration,
+			final long epochSeconds);
+
+	public long getLBBItemCount(final String symbol, final String evaluationPeriod, final int evaluationDuration,
+			final long epochSeconds, final BigDecimal standardDeviations);
+
+	public long getUBBItemCount(final String symbol, final String evaluationPeriod, final int evaluationDuration,
+			final long epochSeconds, final BigDecimal standardDeviations);
+
+	public List<AssetMinute> getAssetMinutesWithoutSma(String symbol, long startTime, long endTime,
+			final String evaluationPeriod, final int evaluationDuration);
+
+	public List<AssetMinute> getAssetMinutesWithoutLbb(String symbol, long startTime, long endTime,
+			final String evaluationPeriod, final int evaluationDuration, final BigDecimal standardDeviations);
+
+	public List<AssetMinute> getAssetMinutesWithoutUbb(String symbol, long startTime, long endTime,
+			final String evaluationPeriod, final int evaluationDuration, final BigDecimal standardDeviations);
 }

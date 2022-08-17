@@ -4,10 +4,13 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -18,13 +21,22 @@ import org.toasthub.core.general.handler.ServiceProcessor;
 import org.toasthub.core.general.model.GlobalConstant;
 import org.toasthub.core.general.model.RestRequest;
 import org.toasthub.core.general.model.RestResponse;
+import org.toasthub.trade.algorithm.AlgorithmCruncherSvc;
+import org.toasthub.trade.cache.CacheManager;
 import org.toasthub.trade.custom_technical_indicator.CustomTechnicalIndicatorDao;
+import org.toasthub.trade.historical_analysis.HistoricalAnalysisSvc;
 import org.toasthub.trade.model.CustomTechnicalIndicator;
 import org.toasthub.trade.model.RequestValidation;
+import org.toasthub.trade.model.TechnicalIndicator;
 import org.toasthub.trade.model.Trade;
+import org.toasthub.trade.model.TradeDetail;
 
 @Service("TATradeSvc")
 public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
+
+	@Autowired
+	@Qualifier("TAHistoricalAnalysisSvc")
+	private HistoricalAnalysisSvc historicalAnalysisSvc;
 
 	@Autowired
 	@Qualifier("TATradeDao")
@@ -38,6 +50,14 @@ public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 	@Qualifier("TARequestValidation")
 	private RequestValidation validator;
 
+	@Autowired
+	@Qualifier("TACacheManager")
+	private CacheManager cacheManager;
+
+	@Autowired
+	@Qualifier("TAAlgorithmCruncherSvc")
+	private AlgorithmCruncherSvc algorithmCruncherSvc;
+
 	final ExpressionParser parser = new SpelExpressionParser();
 
 	final AtomicBoolean tradeAnalysisJobRunning = new AtomicBoolean(false);
@@ -48,32 +68,96 @@ public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 
 	@Override
 	public void process(final RestRequest request, final RestResponse response) {
-		final String action = (String) request.getParams().get("action");
+		try {
+			final String action = (String) request.getParams().get("action");
+			switch (action) {
+				case "ITEM":
+					item(request, response);
+					break;
+				case "LIST":
+					items(request, response);
+					break;
+				case "SAVE":
+					save(request, response);
+					break;
+				case "DELETE":
+					delete(request, response);
+					break;
+				case "HISTORICAL_ANALYSIS":
 
-		switch (action) {
-			case "ITEM":
-				item(request, response);
-				break;
-			case "LIST":
-				items(request, response);
-				break;
-			case "SAVE":
-				save(request, response);
-				break;
-			case "DELETE":
-				delete(request, response);
-				break;
-			case "RESET":
-				reset(request, response);
-				break;
-			case "SYMBOL_DATA":
-				getSymbolData(request, response);
-				break;
+					if ((!request.containsParam(GlobalConstant.ITEM))
+							|| (request.getParam(GlobalConstant.ITEM) == null)
+							|| !(request.getParam(GlobalConstant.ITEM) instanceof LinkedHashMap)) {
+						throw new Exception("Item is null or not an instance of a linked hash map");
+					}
 
-			default:
-				break;
+					final Map<?, ?> m = Map.class.cast(request.getParam(GlobalConstant.ITEM));
+
+					final Map<String, Object> itemProperties = new HashMap<String, Object>();
+
+					for (final Object o : m.keySet()) {
+						itemProperties.put(String.class.cast(o), m.get(String.class.cast(o)));
+					}
+
+					final long tradeId = validator.validateId(itemProperties.get("id"));
+
+					final Trade trade = tradeDao.findTradeById(tradeId);
+
+					final Set<Long> technicalIndicatorIds = new HashSet<Long>();
+
+					Stream.of(trade.getParsedBuyCondition().split(" ")).forEach(s -> {
+
+						if (Arrays.asList("(", ")", "||", "&&", "").contains(s)) {
+							return;
+						}
+						final long customTechnicalIndicatorId = Long.valueOf(s);
+
+						final CustomTechnicalIndicator c = tradeDao
+								.getCustomTechnicalIndicatorById(customTechnicalIndicatorId);
+						final TechnicalIndicator t = tradeDao.getTechnicalIndicatorByProperties(trade.getSymbol(),
+								c.getEvaluationPeriod(), c.getTechnicalIndicatorKey());
+						technicalIndicatorIds.add(t.getId());
+					});
+
+					Stream.of(trade.getParsedSellCondition().split(" ")).forEach(s -> {
+						if (Arrays.asList("(", ")", "||", "&&", "").contains(s)) {
+							return;
+						}
+						final long customTechnicalIndicatorId = Long.valueOf(s);
+
+						final CustomTechnicalIndicator c = tradeDao
+								.getCustomTechnicalIndicatorById(customTechnicalIndicatorId);
+						final TechnicalIndicator t = tradeDao.getTechnicalIndicatorByProperties(trade.getSymbol(),
+								c.getEvaluationPeriod(), c.getTechnicalIndicatorKey());
+						technicalIndicatorIds.add(t.getId());
+					});
+
+					final long startTime = validator.validateDate(itemProperties.get("startTime"));
+
+					final long endTime = validator.validateDate(itemProperties.get("endTime"));
+
+					// ensure technical indicators have sufficient data to historically analyze
+					for (final long id : technicalIndicatorIds) {
+						algorithmCruncherSvc.backloadAlgorithm(id, startTime);
+						System.out.println("Backloaded algorithms for technical indicator " + id);
+						cacheManager.backloadTechnicalIndicator(id, startTime);
+						System.out.println("Backloaded technical indicator " + id);
+					}
+
+					historicalAnalysisSvc.historicalAnalysis(trade, startTime, endTime);
+
+					System.out.println("Historical Analysis Complete");
+
+					response.setStatus(RestResponse.SUCCESS);
+
+					break;
+				default:
+					throw new Exception("Action : " + action + "is not recognized");
+			}
+		} catch (final Exception e) {
+			response.setStatus("Exception : " + e.getMessage());
+			e.printStackTrace();
 		}
-
 	}
 
 	@Override
@@ -94,6 +178,8 @@ public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 			}
 
 			final Trade trade = validator.validateTradeID(itemProperties.get("id"));
+
+			final boolean preExisting = !trade.getSymbol().equals("");
 
 			final String status = validator.validateStatus(itemProperties.get("status"));
 
@@ -183,7 +269,39 @@ public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 					trade.setParsedSellCondition(botSellCondition);
 
 					final BigDecimal budget = validator.validateBudget(itemProperties.get("budget"));
-					trade.setBudget(budget);
+
+					if (!preExisting) {
+						trade.setBudget(budget);
+
+						trade.setAvailableBudget(budget);
+
+						trade.setTotalValue(budget);
+
+						trade.setSharesHeld(BigDecimal.ZERO);
+					} else {
+
+						final List<TradeDetail> tradeDetails = tradeDao.getTradeDetails(trade);
+
+						final boolean tradeHasBeenReset = tradeDetails.size() == 0;
+
+						final boolean budgetHasBeenUpdated = trade.getBudget().compareTo(budget) != 0;
+
+						if (!budgetHasBeenUpdated) {
+							break;
+						}
+
+						if (!tradeHasBeenReset) {
+							throw new Exception("Trade must be reset to update budget");
+						}
+
+						trade.setBudget(budget);
+
+						trade.setAvailableBudget(budget);
+
+						trade.setTotalValue(budget);
+
+						trade.setSharesHeld(BigDecimal.ZERO);
+					}
 
 					break;
 				case Trade.BUY:
@@ -204,12 +322,12 @@ public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 
 			tradeDao.saveItem(trade);
 
+			response.setStatus(RestResponse.SUCCESS);
+
 		} catch (final Exception e) {
 			e.printStackTrace();
 			response.setStatus("Exception: " + e.getMessage());
-			return;
 		}
-		response.setStatus(RestResponse.SUCCESS);
 	}
 
 	@Override
@@ -290,14 +408,6 @@ public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 			e.printStackTrace();
 		}
 
-	}
-
-	public void getSymbolData(final RestRequest request, final RestResponse response) {
-		if (request.getParam("FIRST_POINT") == null || request.getParam("LAST_POINT") == null
-				|| request.getParam("SYMBOL") == null || request.getParam("EVALUATION_PERIOD") == null) {
-			return;
-		}
-		tradeDao.getSymbolData(request, response);
 	}
 
 }

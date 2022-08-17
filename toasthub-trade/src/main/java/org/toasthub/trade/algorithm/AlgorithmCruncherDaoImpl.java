@@ -60,7 +60,7 @@ public class AlgorithmCruncherDaoImpl implements AlgorithmCruncherDao {
 	}
 
 	@Override
-	public void saveObject(Object object) {
+	public void saveObject(final Object object) {
 		entityManagerDataSvc.getInstance().merge(object);
 	}
 
@@ -80,10 +80,10 @@ public class AlgorithmCruncherDaoImpl implements AlgorithmCruncherDao {
 			final long endingEpochSeconds) {
 		final String queryStr = "SELECT DISTINCT x FROM AssetDay AS x WHERE x.symbol =:symbol AND x.epochSeconds >=: startingEpochSeconds AND x.epochSeconds <=:endingEpochSeconds";
 
-		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
-		query.setParameter("symbol", symbol);
-		query.setParameter("startingEpochSeconds", startingEpochSeconds);
-		query.setParameter("endingEpochSeconds", endingEpochSeconds);
+		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr)
+				.setParameter("symbol", symbol)
+				.setParameter("startingEpochSeconds", startingEpochSeconds)
+				.setParameter("endingEpochSeconds", endingEpochSeconds);
 
 		final List<AssetDay> assetDays = new ArrayList<AssetDay>();
 
@@ -428,6 +428,11 @@ public class AlgorithmCruncherDaoImpl implements AlgorithmCruncherDao {
 	}
 
 	@Override
+	public TechnicalIndicator findTechnicalIndicatorById(final long id) {
+		return entityManagerDataSvc.getInstance().find(TechnicalIndicator.class, id);
+	}
+
+	@Override
 	public long getSMAItemCount(final String symbol, final String evaluationPeriod, final int evaluationDuration,
 			final long epochSeconds) {
 		final String queryStr = "SELECT COUNT(DISTINCT x) FROM SMA x WHERE x.symbol =: symbol AND x.evaluationPeriod =: evaluationPeriod AND x.evaluationDuration =: evaluationDuration AND x.epochSeconds =: epochSeconds";
@@ -449,22 +454,116 @@ public class AlgorithmCruncherDaoImpl implements AlgorithmCruncherDao {
 		query.setParameter("evaluationPeriod", evaluationPeriod);
 		query.setParameter("evaluationDuration", evaluationDuration);
 		query.setParameter("epochSeconds", epochSeconds);
-		query.setParameter("standardDeviations" , standardDeviations);
+		query.setParameter("standardDeviations", standardDeviations);
 
 		return Long.class.cast(query.getSingleResult());
 	}
+
 	@Override
 	public long getUBBItemCount(final String symbol, final String evaluationPeriod, final int evaluationDuration,
-			final long epochSeconds , final BigDecimal standardDeviations) {
+			final long epochSeconds, final BigDecimal standardDeviations) {
 		final String queryStr = "SELECT COUNT(DISTINCT x) FROM UBB x WHERE x.symbol =: symbol AND x.evaluationPeriod =: evaluationPeriod AND x.evaluationDuration =: evaluationDuration AND x.epochSeconds =: epochSeconds AND x.standardDeviations =: standardDeviations";
 		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
 		query.setParameter("symbol", symbol);
 		query.setParameter("evaluationPeriod", evaluationPeriod);
 		query.setParameter("evaluationDuration", evaluationDuration);
 		query.setParameter("epochSeconds", epochSeconds);
-		query.setParameter("standardDeviations" , standardDeviations);
+		query.setParameter("standardDeviations", standardDeviations);
 
 		return Long.class.cast(query.getSingleResult());
 	}
 
+	@Override
+	public List<AssetMinute> getAssetMinutesWithoutSma(final String symbol, final long startTime, final long endTime,
+			final String evaluationPeriod, final int evaluationDuration) {
+		final List<AssetMinute> items = new ArrayList<AssetMinute>();
+
+		final String queryStr = "SELECT DISTINCT assetMinute FROM AssetMinute as assetMinute"
+				+ " WHERE assetMinute.epochSeconds > :startTime"
+				+ " AND assetMinute.epochSeconds < :endTime"
+				+ " AND assetMinute.symbol = :symbol"
+				+ " AND "
+				+ " (SELECT COUNT(DISTINCT sma) FROM SMA as sma "
+				+ " WHERE sma.symbol = :symbol "
+				+ " AND sma.evaluationDuration = :evaluationDuration"
+				+ " AND sma.evaluationPeriod = :evaluationPeriod"
+				+ " AND sma.epochSeconds = assetMinute.epochSeconds) = 0";
+
+		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr)
+				.setParameter("startTime", startTime)
+				.setParameter("endTime", endTime)
+				.setParameter("symbol", symbol)
+				.setParameter("evaluationPeriod", evaluationPeriod)
+				.setParameter("evaluationDuration", evaluationDuration);
+
+		for (final Object o : query.getResultList()) {
+			items.add(AssetMinute.class.cast(o));
+		}
+
+		return items;
+	}
+
+	@Override
+	public List<AssetMinute> getAssetMinutesWithoutLbb(final String symbol, final long startTime, final long endTime,
+			final String evaluationPeriod, final int evaluationDuration, final BigDecimal standardDeviations) {
+		final List<AssetMinute> items = new ArrayList<AssetMinute>();
+
+		final String queryStr = "SELECT DISTINCT assetMinute FROM AssetMinute as assetMinute"
+				+ " WHERE assetMinute.epochSeconds > :startTime"
+				+ " AND assetMinute.epochSeconds < :endTime"
+				+ " AND assetMinute.symbol = :symbol"
+				+ " AND"
+				+ " (SELECT COUNT(DISTINCT lbb) FROM LBB as lbb "
+				+ " WHERE lbb.symbol = :symbol "
+				+ " AND lbb.evaluationDuration = :evaluationDuration"
+				+ " AND lbb.evaluationPeriod = :evaluationPeriod"
+				+ " AND lbb.standardDeviations = :standardDeviations"
+				+ " AND lbb.epochSeconds = assetMinute.epochSeconds) = 0";
+
+		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr)
+				.setParameter("startTime", startTime)
+				.setParameter("endTime", endTime)
+				.setParameter("symbol", symbol)
+				.setParameter("evaluationPeriod", evaluationPeriod)
+				.setParameter("evaluationDuration", evaluationDuration)
+				.setParameter("standardDeviations", standardDeviations);
+
+		for (final Object o : query.getResultList()) {
+			items.add(AssetMinute.class.cast(o));
+		}
+
+		return items;
+	}
+
+	@Override
+	public List<AssetMinute> getAssetMinutesWithoutUbb(final String symbol, final long startTime, final long endTime,
+			final String evaluationPeriod, final int evaluationDuration, final BigDecimal standardDeviations) {
+		final List<AssetMinute> items = new ArrayList<AssetMinute>();
+
+		final String queryStr = "SELECT DISTINCT assetMinute FROM AssetMinute as assetMinute"
+				+ " WHERE assetMinute.epochSeconds > :startTime"
+				+ " AND assetMinute.epochSeconds < :endTime"
+				+ " AND assetMinute.symbol = :symbol"
+				+ " AND"
+				+ " (SELECT COUNT(DISTINCT ubb) FROM UBB as ubb "
+				+ " WHERE ubb.symbol = :symbol "
+				+ " AND ubb.evaluationDuration = :evaluationDuration"
+				+ " AND ubb.evaluationPeriod = :evaluationPeriod"
+				+ " AND ubb.standardDeviations = :standardDeviations"
+				+ " AND ubb.epochSeconds = assetMinute.epochSeconds) = 0";
+
+		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr)
+				.setParameter("startTime", startTime)
+				.setParameter("endTime", endTime)
+				.setParameter("symbol", symbol)
+				.setParameter("evaluationPeriod", evaluationPeriod)
+				.setParameter("evaluationDuration", evaluationDuration)
+				.setParameter("standardDeviations", standardDeviations);
+
+		for (final Object o : query.getResultList()) {
+			items.add(AssetMinute.class.cast(o));
+		}
+
+		return items;
+	}
 }

@@ -31,6 +31,12 @@ public interface CacheDao extends BaseDao {
 
         public void getAssetDays(RestRequest request, RestResponse response);
 
+        public List<AssetDay> getAssetDays(String symbol, long startingEpochSeconds, long endingEpochSeconds);
+
+        public List<AssetMinute> getAssetMinutes(String symbol, long startingEpochSeconds, long endingEpochSeconds);
+
+        public TechnicalIndicator refreshTechnicalIndicator(TechnicalIndicator technicalIndicator);
+
         public void getAssetMinutes(RestRequest request, RestResponse response);
 
         public void refresh(RestRequest request, RestResponse response);
@@ -49,4 +55,22 @@ public interface CacheDao extends BaseDao {
         public void saveItem(Object o);
 
         public void saveList(List<?> list);
+
+        public TechnicalIndicator findTechnicalIndicatorById(long id);
+
+        public List<AssetMinute> getSMAAssetMinuteFlashes(long startTime, long endTime,
+                        String symbol, String evaluationPeriod, int shortSMAEvaluationDuration,
+                        int longSMAEvaluationDuration);
+
+        public List<AssetMinute> getLBBAssetMinuteFlashes(long startTime, long endTime, BigDecimal standardDeviations,
+                        String symbol, String evaluationPeriod, int evaluationDuration);
+
+        public List<AssetMinute> getUBBAssetMinuteFlashes(long startTime, long endTime, BigDecimal standardDeviations,
+                        String symbol, String evaluationPeriod, int evaluationDuration);
+
+        public BigDecimal getHighestAssetMinuteValueWithinTimeFrame(String symbol, long startTime, long endTime);
+
+        public BigDecimal getLowestAssetMinuteValueWithinTimeFrame(String symbol, long startTime, long endTime);
+
+        public long getAssetDayCountWithinTimeFrame(String symbol, long startTime, long endTime);
 }

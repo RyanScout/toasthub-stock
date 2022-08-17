@@ -178,14 +178,26 @@ public class RequestValidation {
         }
 
         if (id instanceof Integer) {
-            return tradeDao.find(Long.valueOf((Integer) id));
+            return tradeDao.findTradeById(Long.valueOf((Integer) id));
         }
 
         if (id instanceof Long) {
-            return tradeDao.find(Long.class.cast(id));
+            return tradeDao.findTradeById(Long.class.cast(id));
         }
 
         throw new Exception("ID is not an integer or long");
+    }
+
+    public long validateId(final Object id) throws Exception {
+        if (id == null) {
+            throw new Exception("ID is null");
+        }
+        if (!(id instanceof String) && !(id instanceof Long) && !(id instanceof Integer)) {
+            throw new Exception("Date is not an instance of String or Long or Integer");
+        }
+
+        return Long.valueOf(String.valueOf(id));
+
     }
 
     public String validateTradeName(final Object name) throws Exception {
@@ -471,4 +483,14 @@ public class RequestValidation {
         return String.class.cast(status);
     }
 
+    public long validateDate(final Object date) throws Exception {
+        if (date == null) {
+            throw new Exception("Date is null");
+        }
+        if (!(date instanceof String) && !(date instanceof Long) && !(date instanceof Integer)) {
+            throw new Exception("Date is not an instance of String or Long or Integer");
+        }
+
+        return Long.valueOf(String.valueOf(date));
+    }
 }

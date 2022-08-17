@@ -76,7 +76,7 @@ public class Trade extends TradeBaseEntity {
 	private BigDecimal budget = BigDecimal.ZERO;
 	private BigDecimal availableBudget = BigDecimal.ZERO;
 	private BigDecimal sharesHeld = BigDecimal.ZERO;
-	private BigDecimal totalValue;
+	private BigDecimal totalValue = BigDecimal.ZERO;
 
 	private long firstOrder = 0;
 	private long lastOrder = 0;
@@ -98,7 +98,7 @@ public class Trade extends TradeBaseEntity {
 		this.setIdentifier("Trade");
 	}
 
-	public Trade(String code, Boolean defaultLang, String dir) {
+	public Trade(final String code, final Boolean defaultLang, final String dir) {
 		super();
 		this.setActive(true);
 		this.setArchive(false);
@@ -109,13 +109,44 @@ public class Trade extends TradeBaseEntity {
 
 	// Setter/Getter
 
+	@Override
+	public Trade clone() {
+
+		final Trade trade = new Trade();
+
+		trade.setName(this.name);
+		trade.setSymbol(this.symbol);
+		trade.setOrderType(this.orderType);
+		trade.setOrderSide(this.orderSide);
+		trade.setStatus(this.status);
+		trade.setEvaluationPeriod(this.evaluationPeriod);
+		trade.setCurrencyType(this.currencyType);
+		trade.setParsedBuyCondition(this.parsedBuyCondition);
+		trade.setParsedSellCondition(this.parsedSellCondition);
+		trade.setTrailingStopType(this.trailingStopType);
+		trade.setProfitLimitType(this.profitLimitType);
+		trade.setIterations(this.iterations);
+		trade.setIterationsExecuted(this.iterationsExecuted);
+		trade.setTrailingStopAmount(this.trailingStopAmount);
+		trade.setProfitLimitAmount(this.profitLimitAmount);
+		trade.setCurrencyAmount(this.currencyAmount);
+		trade.setBudget(this.budget);
+		trade.setAvailableBudget(this.availableBudget);
+		trade.setSharesHeld(this.sharesHeld);
+		trade.setTotalValue(trade.totalValue);
+		trade.setFirstOrder(trade.firstOrder);
+		trade.setLastOrder(trade.lastOrder);
+
+		return trade;
+	}
+
 	@JsonView({})
 	@Column(name = "parsed_buy_condition")
 	public String getParsedBuyCondition() {
 		return parsedBuyCondition;
 	}
 
-	public void setParsedBuyCondition(String parsedBuyCondition) {
+	public void setParsedBuyCondition(final String parsedBuyCondition) {
 		this.parsedBuyCondition = parsedBuyCondition;
 	}
 
@@ -125,7 +156,7 @@ public class Trade extends TradeBaseEntity {
 		return parsedSellCondition;
 	}
 
-	public void setParsedSellCondition(String parsedSellCondition) {
+	public void setParsedSellCondition(final String parsedSellCondition) {
 		this.parsedSellCondition = parsedSellCondition;
 	}
 
@@ -135,7 +166,7 @@ public class Trade extends TradeBaseEntity {
 		return rawBuyCondition;
 	}
 
-	public void setRawBuyCondition(String rawBuyCondition) {
+	public void setRawBuyCondition(final String rawBuyCondition) {
 		this.rawBuyCondition = rawBuyCondition;
 	}
 
@@ -145,7 +176,7 @@ public class Trade extends TradeBaseEntity {
 		return rawSellCondition;
 	}
 
-	public void setRawSellCondition(String rawSellCondition) {
+	public void setRawSellCondition(final String rawSellCondition) {
 		this.rawSellCondition = rawSellCondition;
 	}
 
@@ -155,7 +186,7 @@ public class Trade extends TradeBaseEntity {
 		return lastOrder;
 	}
 
-	public void setLastOrder(long lastOrder) {
+	public void setLastOrder(final long lastOrder) {
 		this.lastOrder = lastOrder;
 	}
 
@@ -165,7 +196,7 @@ public class Trade extends TradeBaseEntity {
 		return firstOrder;
 	}
 
-	public void setFirstOrder(long firstOrder) {
+	public void setFirstOrder(final long firstOrder) {
 		this.firstOrder = firstOrder;
 	}
 
@@ -175,7 +206,7 @@ public class Trade extends TradeBaseEntity {
 		return iterationsExecuted;
 	}
 
-	public void setIterationsExecuted(int iterationsExecuted) {
+	public void setIterationsExecuted(final int iterationsExecuted) {
 		this.iterationsExecuted = iterationsExecuted;
 	}
 
@@ -185,7 +216,7 @@ public class Trade extends TradeBaseEntity {
 		return iterations;
 	}
 
-	public void setIterations(String iterations) {
+	public void setIterations(final String iterations) {
 		this.iterations = iterations;
 	}
 
@@ -195,7 +226,7 @@ public class Trade extends TradeBaseEntity {
 		return totalValue;
 	}
 
-	public void setTotalValue(BigDecimal totalValue) {
+	public void setTotalValue(final BigDecimal totalValue) {
 		this.totalValue = totalValue;
 	}
 
@@ -205,7 +236,7 @@ public class Trade extends TradeBaseEntity {
 		return tradeDetails;
 	}
 
-	public void setTradeDetails(Set<TradeDetail> tradeDetails) {
+	public void setTradeDetails(final Set<TradeDetail> tradeDetails) {
 		this.tradeDetails = tradeDetails;
 	}
 
@@ -215,7 +246,7 @@ public class Trade extends TradeBaseEntity {
 		return evaluationPeriod;
 	}
 
-	public void setEvaluationPeriod(String evaluationPeriod) {
+	public void setEvaluationPeriod(final String evaluationPeriod) {
 		this.evaluationPeriod = evaluationPeriod;
 	}
 
@@ -225,7 +256,7 @@ public class Trade extends TradeBaseEntity {
 		return sharesHeld;
 	}
 
-	public void setSharesHeld(BigDecimal sharesHeld) {
+	public void setSharesHeld(final BigDecimal sharesHeld) {
 		this.sharesHeld = sharesHeld;
 	}
 
@@ -235,7 +266,7 @@ public class Trade extends TradeBaseEntity {
 		return budget;
 	}
 
-	public void setBudget(BigDecimal budget) {
+	public void setBudget(final BigDecimal budget) {
 		this.budget = budget;
 	}
 
@@ -245,7 +276,7 @@ public class Trade extends TradeBaseEntity {
 		return availableBudget;
 	}
 
-	public void setAvailableBudget(BigDecimal availableBudget) {
+	public void setAvailableBudget(final BigDecimal availableBudget) {
 		this.availableBudget = availableBudget;
 	}
 
@@ -255,7 +286,7 @@ public class Trade extends TradeBaseEntity {
 		return status;
 	}
 
-	public void setStatus(String status) {
+	public void setStatus(final String status) {
 		this.status = status;
 	}
 
@@ -265,7 +296,7 @@ public class Trade extends TradeBaseEntity {
 		return symbol;
 	}
 
-	public void setSymbol(String symbol) {
+	public void setSymbol(final String symbol) {
 		this.symbol = symbol;
 	}
 
@@ -275,7 +306,7 @@ public class Trade extends TradeBaseEntity {
 		return profitLimitAmount;
 	}
 
-	public void setProfitLimitAmount(BigDecimal profitLimitAmount) {
+	public void setProfitLimitAmount(final BigDecimal profitLimitAmount) {
 		this.profitLimitAmount = profitLimitAmount;
 	}
 
@@ -285,7 +316,7 @@ public class Trade extends TradeBaseEntity {
 		return trailingStopAmount;
 	}
 
-	public void setTrailingStopAmount(BigDecimal trailingStopAmount) {
+	public void setTrailingStopAmount(final BigDecimal trailingStopAmount) {
 		this.trailingStopAmount = trailingStopAmount;
 	}
 
@@ -295,7 +326,7 @@ public class Trade extends TradeBaseEntity {
 		return profitLimitType;
 	}
 
-	public void setProfitLimitType(String profitLimitType) {
+	public void setProfitLimitType(final String profitLimitType) {
 		this.profitLimitType = profitLimitType;
 	}
 
@@ -305,7 +336,7 @@ public class Trade extends TradeBaseEntity {
 		return trailingStopType;
 	}
 
-	public void setTrailingStopType(String trailingStopType) {
+	public void setTrailingStopType(final String trailingStopType) {
 		this.trailingStopType = trailingStopType;
 	}
 
@@ -315,7 +346,7 @@ public class Trade extends TradeBaseEntity {
 		return currencyType;
 	}
 
-	public void setCurrencyType(String currencyType) {
+	public void setCurrencyType(final String currencyType) {
 		this.currencyType = currencyType;
 	}
 
@@ -325,7 +356,7 @@ public class Trade extends TradeBaseEntity {
 		return currencyAmount;
 	}
 
-	public void setCurrencyAmount(BigDecimal currencyAmount) {
+	public void setCurrencyAmount(final BigDecimal currencyAmount) {
 		this.currencyAmount = currencyAmount;
 	}
 
@@ -335,7 +366,7 @@ public class Trade extends TradeBaseEntity {
 		return orderSide;
 	}
 
-	public void setOrderSide(String orderSide) {
+	public void setOrderSide(final String orderSide) {
 		this.orderSide = orderSide;
 	}
 
@@ -345,7 +376,7 @@ public class Trade extends TradeBaseEntity {
 		return name;
 	}
 
-	public void setName(String name) {
+	public void setName(final String name) {
 		this.name = name;
 	}
 
@@ -355,7 +386,7 @@ public class Trade extends TradeBaseEntity {
 		return orderType;
 	}
 
-	public void setOrderType(String orderType) {
+	public void setOrderType(final String orderType) {
 		this.orderType = orderType;
 	}
 }

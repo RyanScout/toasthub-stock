@@ -21,7 +21,10 @@ import java.util.List;
 import org.toasthub.core.common.BaseDao;
 import org.toasthub.core.general.model.RestRequest;
 import org.toasthub.core.general.model.RestResponse;
+import org.toasthub.trade.model.CustomTechnicalIndicator;
+import org.toasthub.trade.model.TechnicalIndicator;
 import org.toasthub.trade.model.Trade;
+import org.toasthub.trade.model.TradeDetail;
 
 public interface TradeDao extends BaseDao {
     public List<Trade> getRunningTrades();
@@ -34,9 +37,17 @@ public interface TradeDao extends BaseDao {
 
     public void getSymbolData(RestRequest request, RestResponse response);
 
-    public Trade find(long id);
+    public Trade findTradeById(long id);
 
     public List<Trade> getTrades();
 
+    public List<TradeDetail> getTradeDetails(Trade trade);
+
     public void saveItem(Object o);
+
+    public CustomTechnicalIndicator getCustomTechnicalIndicatorById(long id);
+
+    public TechnicalIndicator getTechnicalIndicatorByProperties(String symbol, String evaluationPeriod,
+            String technicalIndicatorKey);
+
 }
