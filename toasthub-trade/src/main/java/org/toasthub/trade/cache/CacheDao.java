@@ -45,6 +45,8 @@ public interface CacheDao extends BaseDao {
 
         public List<TechnicalIndicator> getTechnicalIndicators();
 
+        public List<TechnicalIndicatorDetail> getTechnicalIndicatorDetails(TechnicalIndicator t);
+
         public List<TechnicalIndicatorDetail> getIncompleteTechnicalIndicatorDetails(TechnicalIndicator t);
 
         public List<TechnicalIndicatorDetail> getCompleteTechnicalIndicatorDetails(TechnicalIndicator t);
@@ -52,7 +54,7 @@ public interface CacheDao extends BaseDao {
         public long itemCount(String technicalIndicatorType, String evaluationPeriod, String technicalIndicatorKey,
                         String symbol);
 
-        public void saveItem(Object o);
+        public Object saveItem(Object o);
 
         public void saveList(List<?> list);
 
@@ -73,4 +75,6 @@ public interface CacheDao extends BaseDao {
         public BigDecimal getLowestAssetMinuteValueWithinTimeFrame(String symbol, long startTime, long endTime);
 
         public long getAssetDayCountWithinTimeFrame(String symbol, long startTime, long endTime);
+
+        public void flush();
 }

@@ -140,25 +140,23 @@ public class HistoricalAnalysisDaoImpl implements HistoricalAnalysisDao {
 		return entityManagerDataSvc.getInstance().find(CustomTechnicalIndicator.class, id);
 	}
 
-	@Override
-	public TechnicalIndicator getTechnicalIndicatorByProperties(final String symbol, final String evaluationPeriod,
-			final String technicalIndicatorKey) {
-		final String queryStr = "SELECT DISTINCT x FROM TechnicalIndicator as x"
-				+ " WHERE x.symbol = :symbol"
-				+ " AND x.evaluationPeriod = :evaluationPeriod"
-				+ " AND x.technicalIndicatorKey = :technicalIndicatorKey";
-
-		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr)
-				.setParameter("symbol", symbol)
-				.setParameter("evaluationPeriod", evaluationPeriod)
-				.setParameter("technicalIndicatorKey", technicalIndicatorKey);
-
-		final TechnicalIndicator item = TechnicalIndicator.class.cast(query.getSingleResult());
-
-		return item;
-	}
-
 	public TechnicalIndicator getTechnicalIndicatorFromChild(TechnicalIndicatorDetail child) {
 		return child.getTechnicalIndicator();
+	}
+
+	@Override
+	public List<Trade> getHistoricalAnalyses() {
+		final String queryStr = "SELECT DISTINCT x FROM Trade AS x"
+				+ " WHERE x.status = :status";
+
+		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr)
+				.setParameter("status", "HISTORICAL_ANALYSIS");
+
+		final List<Trade> items = new ArrayList<Trade>();
+
+		for (final Object o : query.getResultList()) {
+			items.add(Trade.class.cast(o));
+		}
+		return items;
 	}
 }

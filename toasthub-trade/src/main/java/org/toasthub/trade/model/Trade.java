@@ -77,7 +77,11 @@ public class Trade extends TradeBaseEntity {
 	private BigDecimal availableBudget = BigDecimal.ZERO;
 	private BigDecimal sharesHeld = BigDecimal.ZERO;
 	private BigDecimal totalValue = BigDecimal.ZERO;
+	private BigDecimal firstCheckPrice = BigDecimal.ZERO;
+	private BigDecimal lastCheckPrice = BigDecimal.ZERO;
 
+	private long firstCheck = 0;
+	private long lastCheck = 0;
 	private long firstOrder = 0;
 	private long lastOrder = 0;
 
@@ -388,5 +392,45 @@ public class Trade extends TradeBaseEntity {
 
 	public void setOrderType(final String orderType) {
 		this.orderType = orderType;
+	}
+
+	@JsonView({ View.Member.class })
+	@Column(name = "first_check_price")
+	public BigDecimal getFirstCheckPrice() {
+		return firstCheckPrice;
+	}
+
+	public void setFirstCheckPrice(BigDecimal firstCheckPrice) {
+		this.firstCheckPrice = firstCheckPrice;
+	}
+
+	@JsonView({ View.Member.class })
+	@Column(name = "last_check_price")
+	public BigDecimal getLastCheckPrice() {
+		return lastCheckPrice;
+	}
+
+	public void setLastCheckPrice(BigDecimal lastCheckPrice) {
+		this.lastCheckPrice = lastCheckPrice;
+	}
+
+	@JsonView({ View.Member.class })
+	@Column(name = "first_check")
+	public long getFirstCheck() {
+		return firstCheck;
+	}
+
+	public void setFirstCheck(long firstCheck) {
+		this.firstCheck = firstCheck;
+	}
+
+	@JsonView({ View.Member.class })
+	@Column(name = "last_check")
+	public long getLastCheck() {
+		return lastCheck;
+	}
+
+	public void setLastCheck(long lastCheck) {
+		this.lastCheck = lastCheck;
 	}
 }

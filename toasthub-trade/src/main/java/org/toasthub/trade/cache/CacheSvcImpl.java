@@ -97,7 +97,7 @@ public class CacheSvcImpl implements ServiceProcessor, CacheSvc {
                             c.getEvaluationPeriod(),
                             c.getTechnicalIndicatorKey(), symbol);
 
-                    if (itemCount >= 1) {
+                    if (itemCount != 0) {
                         return;
                     }
 
@@ -113,9 +113,13 @@ public class CacheSvcImpl implements ServiceProcessor, CacheSvc {
                     t.setUbbEvaluationDuration(c.getUbbEvaluationDuration());
                     t.setStandardDeviations(c.getStandardDeviations());
 
-                    cacheDao.saveItem(t);
+                    final TechnicalIndicator managedTechnicalIndicator = TechnicalIndicator.class
+                            .cast(cacheDao.saveItem(t));
+
+                    tradeSignalCache.insertTechnicalIndicator(managedTechnicalIndicator);
 
                 });
+
     }
 
     @Override
@@ -143,12 +147,13 @@ public class CacheSvcImpl implements ServiceProcessor, CacheSvc {
                                             + customTechnicalIndicator.getTechnicalIndicatorKey()
                                             + "::"
                                             + customTechnicalIndicator.getEvaluationPeriod() + "::" + symbol);
+
                             if (technicalIndicator == null) {
                                 return;
                             }
 
                             final List<TechnicalIndicatorDetail> technicalIndicatorDetails = cacheDao
-                                    .getCompleteTechnicalIndicatorDetails(technicalIndicator);
+                                    .getTechnicalIndicatorDetails(technicalIndicator);
 
                             technicalIndicator.setEffectiveDetails(technicalIndicatorDetails);
 

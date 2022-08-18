@@ -28,8 +28,10 @@ import org.toasthub.trade.model.TradeSignalCache;
 
 import net.jacobpeterson.alpaca.AlpacaAPI;
 import net.jacobpeterson.alpaca.model.endpoint.orders.Order;
+import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderClass;
 import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderSide;
 import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderTimeInForce;
+import net.jacobpeterson.alpaca.model.endpoint.orders.enums.OrderType;
 
 @Component
 public class TradeManager {
@@ -229,27 +231,43 @@ public class TradeManager {
                 .filter(trade -> !(trade.getEvaluationPeriod().equals("DAY") && trade.getLastOrder() > today))
                 .forEach(trade -> {
 
-                    request.addParam(TradeConstant.TRADE, trade);
-
-                    System.out.println("Checking trade: " + trade.getName());
-
-                    switch (trade.getOrderSide()) {
-                        case Trade.BUY:
-                            currentBuyTest(request, response);
-                            break;
-                        case Trade.SELL:
-                            currentSellTest(request, response);
-                            break;
-                        case Trade.BOT:
-                            currentBotTest(request, response);
-                            break;
-                        default:
-                            return;
-                    }
-
-                    request.addParam(GlobalConstant.ITEM, trade);
                     try {
+
+                        final long currentTime = Instant.now().getEpochSecond();
+
+                        final BigDecimal currentPrice = tradeSignalCache.getRecentClosingPriceMap()
+                                .get("MINUTE::" + trade.getSymbol());
+
+                        if (trade.getFirstCheck() == 0) {
+                            trade.setFirstCheck(currentTime);
+                            trade.setFirstCheckPrice(currentPrice);
+                        }
+
+                        trade.setLastCheck(currentTime);
+
+                        trade.setLastCheckPrice(currentPrice);
+
+                        request.addParam(TradeConstant.TRADE, trade);
+
+                        System.out.println("Checking trade: " + trade.getName());
+
+                        switch (trade.getOrderSide().toUpperCase()) {
+                            case Trade.BUY:
+                                currentBuyTest(request, response);
+                                break;
+                            case Trade.SELL:
+                                currentSellTest(request, response);
+                                break;
+                            case Trade.BOT:
+                                currentBotTest(request, response);
+                                break;
+                            default:
+                                throw new Exception("INVALID ORDERSIDE");
+                        }
+
+                        request.addParam(GlobalConstant.ITEM, trade);
                         tradeDao.save(request, response);
+
                     } catch (final Exception e) {
                         e.printStackTrace();
                     }
@@ -261,7 +279,7 @@ public class TradeManager {
 
             final Trade trade = (Trade) request.getParam(TradeConstant.TRADE);
 
-            if (!trade.getIterations().equals("unlimited")
+            if (!trade.getOrderSide().toUpperCase().equals(Trade.BOT)
                     && trade.getIterationsExecuted() >= Integer.parseInt(trade.getIterations())) {
                 System.out.println("Trade frequency met - changing status to not running");
                 trade.setStatus("Not Running");
@@ -302,13 +320,13 @@ public class TradeManager {
                         .isFlashing();
 
                 if (bool) {
-                    buyReasons.add(c.getName());
+                    buyReasons.add(String.valueOf(c.getId()));
                 }
 
                 return String.valueOf(bool);
             }).toArray(String[]::new);
 
-            final String buyCondition = String.join(" ", stringArr);
+            final String buyCondition = String.join(", ", stringArr);
 
             if (!parser.parseExpression(buyCondition).getValue(Boolean.class)) {
                 System.out.println(trade.getName() + ":Buy Condition not met");
@@ -318,6 +336,7 @@ public class TradeManager {
             Order sellOrder = null;
             Order buyOrder = null;
             int truncatedSharesAmount = 0;
+            BigDecimal shareAmount = BigDecimal.ZERO;
             double profitLimitPrice = 0;
 
             switch (trade.getCurrencyType()) {
@@ -327,6 +346,10 @@ public class TradeManager {
                                     .get("MINUTE::" + trade.getSymbol()),
                                     MathContext.DECIMAL32)
                             .intValue();
+                    shareAmount = trade.getCurrencyAmount()
+                            .divide(tradeSignalCache.getRecentClosingPriceMap()
+                                    .get("MINUTE::" + trade.getSymbol()),
+                                    MathContext.DECIMAL32);
                     break;
                 case "Shares":
                     truncatedSharesAmount = trade.getCurrencyAmount().intValue();
@@ -340,8 +363,23 @@ public class TradeManager {
                     switch (trade.getCurrencyType()) {
 
                         case "Dollars":
-                            buyOrder = alpacaAPI.orders().requestNotionalMarketOrder(trade.getSymbol(),
-                                    trade.getCurrencyAmount().doubleValue(), OrderSide.BUY);
+                            buyOrder = alpacaAPI.orders().requestOrder(
+                                    trade.getSymbol(),
+                                    shareAmount.doubleValue(),
+                                    null,
+                                    OrderSide.BUY,
+                                    OrderType.MARKET,
+                                    OrderTimeInForce.GOOD_UNTIL_CANCELLED,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    false,
+                                    null,
+                                    OrderClass.SIMPLE,
+                                    null,
+                                    null,
+                                    null);
                             break;
                         case "Shares":
                             buyOrder = alpacaAPI.orders().requestFractionalMarketOrder(trade.getSymbol(),
@@ -498,7 +536,7 @@ public class TradeManager {
 
             final Trade trade = (Trade) request.getParam(TradeConstant.TRADE);
 
-            if (!trade.getIterations().equals("unlimited")
+            if (!trade.getOrderSide().toUpperCase().equals(Trade.BOT)
                     && trade.getIterationsExecuted() >= Integer.parseInt(trade.getIterations())) {
                 System.out.println("Trade frequency met - changing status to not running");
                 trade.setStatus("Not Running");
@@ -539,19 +577,41 @@ public class TradeManager {
                         .isFlashing();
 
                 if (bool) {
-                    sellReasons.add(c.getName());
+                    sellReasons.add(String.valueOf(c.getName()));
                 }
 
                 return String.valueOf(bool);
             }).toArray(String[]::new);
 
-            final String sellCondition = String.join(" ", stringArr);
+            final String sellCondition = String.join(", ", stringArr);
 
             if (!parser.parseExpression(sellCondition).getValue(Boolean.class)) {
                 System.out.println(trade.getName() + ":Sell Condition not met");
                 return;
             }
+
             Order sellOrder = null;
+
+            int truncatedSharesAmount = 0;
+            BigDecimal shareAmount = BigDecimal.ZERO;
+            switch (trade.getCurrencyType()) {
+                case "Dollars":
+                    truncatedSharesAmount = trade.getCurrencyAmount()
+                            .divide(tradeSignalCache.getRecentClosingPriceMap()
+                                    .get("MINUTE::" + trade.getSymbol()),
+                                    MathContext.DECIMAL32)
+                            .intValue();
+                    shareAmount = trade.getCurrencyAmount()
+                            .divide(tradeSignalCache.getRecentClosingPriceMap()
+                                    .get("MINUTE::" + trade.getSymbol()),
+                                    MathContext.DECIMAL32);
+                    break;
+                case "Shares":
+                    truncatedSharesAmount = trade.getCurrencyAmount().intValue();
+                    break;
+                default:
+                    break;
+            }
 
             switch (trade.getOrderType()) {
                 case "Market":
@@ -559,8 +619,23 @@ public class TradeManager {
                     switch (trade.getCurrencyType()) {
 
                         case "Dollars":
-                            sellOrder = alpacaAPI.orders().requestNotionalMarketOrder(trade.getSymbol(),
-                                    trade.getCurrencyAmount().doubleValue(), OrderSide.SELL);
+                            sellOrder = alpacaAPI.orders().requestOrder(
+                                    trade.getSymbol(),
+                                    shareAmount.doubleValue(),
+                                    null,
+                                    OrderSide.SELL,
+                                    OrderType.MARKET,
+                                    OrderTimeInForce.GOOD_UNTIL_CANCELLED,
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    false,
+                                    null,
+                                    OrderClass.SIMPLE,
+                                    null,
+                                    null,
+                                    null);
                             break;
                         case "Shares":
                             sellOrder = alpacaAPI.orders().requestFractionalMarketOrder(trade.getSymbol(),

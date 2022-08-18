@@ -54,7 +54,7 @@ public class TechnicalIndicator extends TradeBaseEntity {
 
     private Set<TechnicalIndicatorDetail> details = new LinkedHashSet<TechnicalIndicatorDetail>();
 
-    private List<TechnicalIndicatorDetail> effectiveDetails = new ArrayList<TechnicalIndicatorDetail>();
+    @Transient private List<TechnicalIndicatorDetail> effectiveDetails = new ArrayList<TechnicalIndicatorDetail>();
 
     // Constructors
     public TechnicalIndicator() {

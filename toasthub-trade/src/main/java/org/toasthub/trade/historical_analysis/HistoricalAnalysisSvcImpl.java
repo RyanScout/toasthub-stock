@@ -29,12 +29,14 @@ import org.toasthub.core.general.model.RestRequest;
 import org.toasthub.core.general.model.RestResponse;
 import org.toasthub.trade.algorithm.AlgorithmCruncherSvc;
 import org.toasthub.trade.cache.CacheManager;
+import org.toasthub.trade.custom_technical_indicator.CustomTechnicalIndicatorDao;
 import org.toasthub.trade.model.CustomTechnicalIndicator;
 import org.toasthub.trade.model.RequestValidation;
 import org.toasthub.trade.model.TechnicalIndicator;
 import org.toasthub.trade.model.TechnicalIndicatorDetail;
 import org.toasthub.trade.model.Trade;
 import org.toasthub.trade.model.TradeDetail;
+import org.toasthub.trade.trade.TradeDao;
 
 @Service("TAHistoricalAnalysisSvc")
 public class HistoricalAnalysisSvcImpl implements ServiceProcessor, HistoricalAnalysisSvc {
@@ -50,10 +52,22 @@ public class HistoricalAnalysisSvcImpl implements ServiceProcessor, HistoricalAn
 	private HistoricalAnalysisDao historicalAnalysisDao;
 
 	@Autowired
+	@Qualifier("TATradeDao")
+	private TradeDao tradeDao;
+
+	@Autowired
+	@Qualifier("TACustomTechnicalIndicatorDao")
+	private CustomTechnicalIndicatorDao customTechnicalIndicatorDao;
+
+	@Autowired
 	private AlgorithmCruncherSvc algorithmCruncherSvc;
 
 	@Autowired
 	private CacheManager cacheManager;
+
+	// constructor
+	public HistoricalAnalysisSvcImpl() {
+	}
 
 	@Override
 	public void process(final RestRequest request, final RestResponse response) {
@@ -172,16 +186,46 @@ public class HistoricalAnalysisSvcImpl implements ServiceProcessor, HistoricalAn
 
 	@Override
 	public void items(final RestRequest request, final RestResponse response) {
-		try {
-			historicalAnalysisDao.itemCount(request, response);
-			if ((Long) response.getParam(GlobalConstant.ITEMCOUNT) > 0) {
-				historicalAnalysisDao.items(request, response);
+
+	}
+
+	@Override
+	public List<Trade> getHistoricalAnalyses() throws Exception {
+		final List<Trade> items = historicalAnalysisDao.getHistoricalAnalyses();
+
+		items.stream().forEach(trade -> {
+			final List<String> unparsedBuyCondition = new ArrayList<String>();
+
+			for (final String string : trade.getParsedBuyCondition().split(" ")) {
+				if (Arrays.asList("(", ")", "||", "&&", "").contains(string)) {
+					unparsedBuyCondition.add(string);
+					continue;
+				}
+				final CustomTechnicalIndicator customTechnicalIndicator = customTechnicalIndicatorDao
+						.findById(Long.valueOf(string));
+
+				unparsedBuyCondition.add(customTechnicalIndicator.getName());
 			}
-			response.setStatus(RestResponse.SUCCESS);
-		} catch (final Exception e) {
-			response.setStatus(RestResponse.ACTIONFAILED);
-			e.printStackTrace();
-		}
+			final String rawBuyCondition = String.join(" ", unparsedBuyCondition);
+			trade.setRawBuyCondition(rawBuyCondition);
+
+			final List<String> unparsedSellCondition = new ArrayList<String>();
+
+			for (final String string : trade.getParsedSellCondition().split(" ")) {
+				if (Arrays.asList("(", ")", "||", "&&", "").contains(string)) {
+					unparsedSellCondition.add(string);
+					continue;
+				}
+				final CustomTechnicalIndicator customTechnicalIndicator = customTechnicalIndicatorDao
+						.findById(Long.valueOf(string));
+
+				unparsedSellCondition.add(customTechnicalIndicator.getName());
+			}
+			final String rawSellCondition = String.join(" ", unparsedSellCondition);
+			trade.setRawSellCondition(rawSellCondition);
+		});
+
+		return items;
 	}
 
 	@Override
@@ -214,10 +258,11 @@ public class HistoricalAnalysisSvcImpl implements ServiceProcessor, HistoricalAn
 			final CustomTechnicalIndicator customTechnicalIndicator = historicalAnalysisDao
 					.getCustomTechnicalIndicatorById(customTechnicalIndicatorId);
 
-			final TechnicalIndicator technicalIndicator = historicalAnalysisDao.getTechnicalIndicatorByProperties(
+			final TechnicalIndicator technicalIndicator = tradeDao.getTechnicalIndicatorByProperties(
 					trade.getSymbol(),
 					customTechnicalIndicator.getEvaluationPeriod(),
-					customTechnicalIndicator.getTechnicalIndicatorKey());
+					customTechnicalIndicator.getTechnicalIndicatorKey(),
+					customTechnicalIndicator.getTechnicalIndicatorType());
 
 			final List<TechnicalIndicatorDetail> orders = historicalAnalysisDao.getTechnicalIndicatorDetails(
 					technicalIndicator,
@@ -236,10 +281,11 @@ public class HistoricalAnalysisSvcImpl implements ServiceProcessor, HistoricalAn
 			final CustomTechnicalIndicator customTechnicalIndicator = historicalAnalysisDao
 					.getCustomTechnicalIndicatorById(customTechnicalIndicatorId);
 
-			final TechnicalIndicator technicalIndicator = historicalAnalysisDao.getTechnicalIndicatorByProperties(
+			final TechnicalIndicator technicalIndicator = tradeDao.getTechnicalIndicatorByProperties(
 					trade.getSymbol(),
 					customTechnicalIndicator.getEvaluationPeriod(),
-					customTechnicalIndicator.getTechnicalIndicatorKey());
+					customTechnicalIndicator.getTechnicalIndicatorKey(),
+					customTechnicalIndicator.getTechnicalIndicatorType());
 
 			final List<TechnicalIndicatorDetail> orders = historicalAnalysisDao.getTechnicalIndicatorDetails(
 					technicalIndicator,
@@ -288,7 +334,7 @@ public class HistoricalAnalysisSvcImpl implements ServiceProcessor, HistoricalAn
 
 			final TechnicalIndicatorDetail technicalIndicatorDetail;
 
-			if (buyDetails.get(0) != null) {
+			if (buyDetails != null && buyDetails.get(0) != null) {
 				technicalIndicatorDetail = buyDetails.get(0);
 			} else {
 				technicalIndicatorDetail = sellDetails.get(0);
@@ -316,7 +362,18 @@ public class HistoricalAnalysisSvcImpl implements ServiceProcessor, HistoricalAn
 				return;
 			}
 
-			if (trade.getAvailableBudget().compareTo(orderAmount) > 0) {
+			final long currentTime = epochSeconds;
+			final BigDecimal currentPrice = assetPrice;
+			if (trade.getFirstCheck() == 0) {
+				trade.setFirstCheck(currentTime);
+				trade.setFirstCheckPrice(currentPrice);
+			}
+
+			trade.setLastCheck(currentTime);
+
+			trade.setLastCheckPrice(currentPrice);
+
+			if (trade.getAvailableBudget().compareTo(orderAmount) > 0 && buyDetails != null) {
 
 				final List<String> buyReasons = new ArrayList<String>();
 				final String[] buyStringArr = Stream.of(trade.getParsedBuyCondition().split(" ")).map(s -> {
@@ -329,11 +386,11 @@ public class HistoricalAnalysisSvcImpl implements ServiceProcessor, HistoricalAn
 					final CustomTechnicalIndicator customTechnicalIndicator = historicalAnalysisDao
 							.getCustomTechnicalIndicatorById(customTechnicalIndicatorId);
 
-					final TechnicalIndicator technicalIndicator = historicalAnalysisDao
-							.getTechnicalIndicatorByProperties(
-									trade.getSymbol(),
-									customTechnicalIndicator.getEvaluationPeriod(),
-									customTechnicalIndicator.getTechnicalIndicatorKey());
+					final TechnicalIndicator technicalIndicator = tradeDao.getTechnicalIndicatorByProperties(
+							trade.getSymbol(),
+							customTechnicalIndicator.getEvaluationPeriod(),
+							customTechnicalIndicator.getTechnicalIndicatorKey(),
+							customTechnicalIndicator.getTechnicalIndicatorType());
 
 					final boolean flashing = buyDetails.stream().anyMatch(detail -> {
 						final TechnicalIndicator parent = historicalAnalysisDao.getTechnicalIndicatorFromChild(detail);
@@ -342,7 +399,7 @@ public class HistoricalAnalysisSvcImpl implements ServiceProcessor, HistoricalAn
 					});
 
 					if (flashing) {
-						buyReasons.add(String.valueOf(technicalIndicator.getId()));
+						buyReasons.add(String.valueOf(customTechnicalIndicatorId));
 					}
 
 					return String.valueOf(flashing);
@@ -420,7 +477,7 @@ public class HistoricalAnalysisSvcImpl implements ServiceProcessor, HistoricalAn
 
 			final BigDecimal sharesToBeSold = orderAmount.divide(assetPrice, MathContext.DECIMAL32);
 
-			if (trade.getSharesHeld().compareTo(sharesToBeSold) > 0) {
+			if (trade.getSharesHeld().compareTo(sharesToBeSold) > 0 && sellDetails != null) {
 				final List<String> sellReasons = new ArrayList<String>();
 
 				final String[] sellStringArr = Stream.of(trade.getParsedSellCondition().split(" ")).map(s -> {
@@ -433,20 +490,20 @@ public class HistoricalAnalysisSvcImpl implements ServiceProcessor, HistoricalAn
 					final CustomTechnicalIndicator customTechnicalIndicator = historicalAnalysisDao
 							.getCustomTechnicalIndicatorById(customTechnicalIndicatorId);
 
-					final TechnicalIndicator technicalIndicator = historicalAnalysisDao
-							.getTechnicalIndicatorByProperties(
-									trade.getSymbol(),
-									customTechnicalIndicator.getEvaluationPeriod(),
-									customTechnicalIndicator.getTechnicalIndicatorKey());
+					final TechnicalIndicator technicalIndicator = tradeDao.getTechnicalIndicatorByProperties(
+							trade.getSymbol(),
+							customTechnicalIndicator.getEvaluationPeriod(),
+							customTechnicalIndicator.getTechnicalIndicatorKey(),
+							customTechnicalIndicator.getTechnicalIndicatorType());
 
-					final boolean flashing = buyDetails.stream().anyMatch(detail -> {
+					final boolean flashing = sellDetails.stream().anyMatch(detail -> {
 						final TechnicalIndicator parent = historicalAnalysisDao.getTechnicalIndicatorFromChild(detail);
 						final boolean match = parent.getId() == technicalIndicator.getId();
 						return match;
 					});
 
 					if (flashing) {
-						sellReasons.add(String.valueOf(technicalIndicator.getId()));
+						sellReasons.add(String.valueOf(customTechnicalIndicatorId));
 					}
 
 					return String.valueOf(flashing);

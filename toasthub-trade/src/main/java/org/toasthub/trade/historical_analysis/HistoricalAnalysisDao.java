@@ -37,8 +37,7 @@ public interface HistoricalAnalysisDao extends BaseDao {
 
         public CustomTechnicalIndicator getCustomTechnicalIndicatorById(long id);
 
-        public TechnicalIndicator getTechnicalIndicatorByProperties(String symbol, String evaluationPeriod,
-                        String technicalIndicatorKey);
-
         public TechnicalIndicator getTechnicalIndicatorFromChild(TechnicalIndicatorDetail child);
+
+        public List<Trade> getHistoricalAnalyses();
 }

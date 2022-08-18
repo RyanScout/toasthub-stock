@@ -760,6 +760,10 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 			throw new ExpectedException("Technical Indicator is already updating");
 		}
 
+		if (t.getEvaluationPeriod().toUpperCase().equals("MINUTE")) {
+			throw new Exception("Backloading minute data is not supported");
+		}
+
 		t.setUpdating(true);
 
 		algorithmCruncherDao.saveObject(t);
@@ -818,7 +822,7 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 
 						final long endingEpochSecondsDay = technicalIndicator.getLastCheck();
 
-						final long startingEpochSecondsDay = startTime;
+						final long startingEpochSecondsDay = startTime - (60 * 60 * 24 * sma.getEvaluationDuration());
 
 						final List<AssetDay> assetDays = algorithmCruncherDao.getAssetDays(symbol,
 								startingEpochSecondsDay, endingEpochSecondsDay);
@@ -913,7 +917,7 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 
 		final long endingEpochSecondsDay = technicalIndicator.getLastCheck();
 
-		final long startingEpochSecondsDay = startTime;
+		final long startingEpochSecondsDay = startTime - (60 * 60 * 24 * lbbEvaluationDuration);
 
 		final List<AssetDay> assetDays = algorithmCruncherDao.getAssetDays(symbol,
 				startingEpochSecondsDay, endingEpochSecondsDay);
@@ -1004,7 +1008,7 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 
 		final long endingEpochSecondsDay = technicalIndicator.getLastCheck();
 
-		final long startingEpochSecondsDay = startTime;
+		final long startingEpochSecondsDay = startTime - (60 * 60 * 24 * ubb.getEvaluationDuration());
 
 		final List<AssetDay> assetDays = algorithmCruncherDao.getAssetDays(symbol,
 				startingEpochSecondsDay, endingEpochSecondsDay);

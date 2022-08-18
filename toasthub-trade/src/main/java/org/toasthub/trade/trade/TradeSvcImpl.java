@@ -24,6 +24,7 @@ import org.toasthub.core.general.model.RestResponse;
 import org.toasthub.trade.algorithm.AlgorithmCruncherSvc;
 import org.toasthub.trade.cache.CacheManager;
 import org.toasthub.trade.custom_technical_indicator.CustomTechnicalIndicatorDao;
+import org.toasthub.trade.historical_analysis.HistoricalAnalysisDao;
 import org.toasthub.trade.historical_analysis.HistoricalAnalysisSvc;
 import org.toasthub.trade.model.CustomTechnicalIndicator;
 import org.toasthub.trade.model.RequestValidation;
@@ -37,6 +38,10 @@ public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 	@Autowired
 	@Qualifier("TAHistoricalAnalysisSvc")
 	private HistoricalAnalysisSvc historicalAnalysisSvc;
+
+	@Autowired
+	@Qualifier("TAHistoricalAnalysisDao")
+	private HistoricalAnalysisDao historicalAnalysisDao;
 
 	@Autowired
 	@Qualifier("TATradeDao")
@@ -77,14 +82,81 @@ public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 				case "LIST":
 					items(request, response);
 					break;
+				case "HISTORICAL_ANALYSIS_LIST":
+					final List<Trade> historicalAnalyses = historicalAnalysisSvc.getHistoricalAnalyses();
+					response.addParam(GlobalConstant.ITEMS, historicalAnalyses);
+					response.setStatus(RestResponse.SUCCESS);
+					break;
 				case "SAVE":
 					save(request, response);
 					break;
 				case "DELETE":
 					delete(request, response);
 					break;
-				case "HISTORICAL_ANALYSIS":
+				case "RESET_TRADE":
+					final long resetTradeId = validator.validateId(request.getParam(GlobalConstant.ITEMID));
+					tradeDao.resetTrade(resetTradeId);
+					response.setStatus(RestResponse.SUCCESS);
+				case "GET_TRADE_DETAILS":
+					final long itemId = validator.validateId(request.getParam(GlobalConstant.ITEMID));
+					final List<TradeDetail> tradeDetails = getTradeDetails(itemId);
+					tradeDetails.stream().forEach(detail -> {
+						final String[] parsedOrderConditions = detail.getOrderCondition().split(",");
+						final List<String> rawOrderConditions = new ArrayList<String>();
+						for (final String orderCondition : parsedOrderConditions) {
+							final String trimmedOrderCondition = orderCondition.trim();
+							final long technicalIndicatorId = Long.valueOf(trimmedOrderCondition);
+							final TechnicalIndicator technicalIndicator = historicalAnalysisDao
+									.findTechnicalIndicatorById(technicalIndicatorId);
+							final CustomTechnicalIndicator customTechnicalIndicator = tradeDao
+									.getCustomTechnicalIndicatorByProperties(
+											technicalIndicator.getEvaluationPeriod(),
+											technicalIndicator.getTechnicalIndicatorKey(),
+											technicalIndicator.getTechnicalIndicatorType());
+							rawOrderConditions.add(customTechnicalIndicator.getName());
+						}
+						final String rawOrderCondition = String.join(", ", rawOrderConditions);
+						detail.setRawOrderCondition(rawOrderCondition);
+					});
+					response.addParam("DETAILS", tradeDetails);
+					response.setStatus(RestResponse.SUCCESS);
+					break;
+				case "GET_GRAPH_DATA":
+					final long graphItemId = validator.validateId(request.getParam(GlobalConstant.ITEMID));
+					final Trade graphTrade = tradeDao.getTradeById(graphItemId);
+					final List<TradeDetail> graphTradeDetails = getTradeDetails(graphItemId);
+					if (graphTradeDetails.size() == 0) {
+						response.setStatus(RestResponse.SUCCESS);
+						break;
+					}
 
+					final List<TradeDetail> sortedGraphTradeDetails = graphTradeDetails.stream().sorted((a, b) -> {
+						return (int) (a.getFilledAt() - b.getFilledAt());
+					}).toList();
+
+					// add 3 day padding
+					final long graphStartTime = sortedGraphTradeDetails.get(0).getFilledAt() - (60 * 60 * 24 * 3);
+
+					final long graphEndTime = sortedGraphTradeDetails.get(graphTradeDetails.size() - 1).getFilledAt()
+							+ (60 * 60 * 24 * 3);
+
+					final List<Object[]> symbolData = tradeDao.getRelevantSymbolData(graphTrade.getSymbol(),
+							graphStartTime, graphEndTime);
+
+					sortedGraphTradeDetails.stream().forEach(detail -> {
+						final Object[] objectArr = {
+								detail.getFilledAt(),
+								detail.getAssetPrice()
+						};
+						symbolData.add(objectArr);
+					});
+
+					response.addParam("DETAILS", sortedGraphTradeDetails);
+					response.addParam("SYMBOL_DATA", symbolData);
+
+					response.setStatus(RestResponse.SUCCESS);
+					break;
+				case "HISTORICAL_ANALYSIS":
 					if ((!request.containsParam(GlobalConstant.ITEM))
 							|| (request.getParam(GlobalConstant.ITEM) == null)
 							|| !(request.getParam(GlobalConstant.ITEM) instanceof LinkedHashMap)) {
@@ -115,7 +187,7 @@ public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 						final CustomTechnicalIndicator c = tradeDao
 								.getCustomTechnicalIndicatorById(customTechnicalIndicatorId);
 						final TechnicalIndicator t = tradeDao.getTechnicalIndicatorByProperties(trade.getSymbol(),
-								c.getEvaluationPeriod(), c.getTechnicalIndicatorKey());
+								c.getEvaluationPeriod(), c.getTechnicalIndicatorKey(), c.getTechnicalIndicatorType());
 						technicalIndicatorIds.add(t.getId());
 					});
 
@@ -128,7 +200,7 @@ public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 						final CustomTechnicalIndicator c = tradeDao
 								.getCustomTechnicalIndicatorById(customTechnicalIndicatorId);
 						final TechnicalIndicator t = tradeDao.getTechnicalIndicatorByProperties(trade.getSymbol(),
-								c.getEvaluationPeriod(), c.getTechnicalIndicatorKey());
+								c.getEvaluationPeriod(), c.getTechnicalIndicatorKey(), c.getTechnicalIndicatorType());
 						technicalIndicatorIds.add(t.getId());
 					});
 
@@ -152,7 +224,7 @@ public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 
 					break;
 				default:
-					throw new Exception("Action : " + action + "is not recognized");
+					throw new Exception("Action : " + action + " is not recognized");
 			}
 		} catch (final Exception e) {
 			response.setStatus("Exception : " + e.getMessage());
@@ -342,17 +414,6 @@ public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 
 	}
 
-	public void reset(final RestRequest request, final RestResponse response) {
-		try {
-			tradeDao.resetTrade(request, response);
-			response.setStatus(RestResponse.SUCCESS);
-		} catch (final Exception e) {
-			response.setStatus(RestResponse.ACTIONFAILED);
-			e.printStackTrace();
-		}
-
-	}
-
 	@Override
 	public void item(final RestRequest request, final RestResponse response) {
 		try {
@@ -410,4 +471,9 @@ public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 
 	}
 
+	public List<TradeDetail> getTradeDetails(final long id) throws Exception {
+		final Trade trade = tradeDao.getTradeById(id);
+		final List<TradeDetail> tradeDetails = tradeDao.getTradeDetails(trade);
+		return tradeDetails;
+	}
 }

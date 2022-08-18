@@ -44,8 +44,8 @@ public class CacheDaoImpl implements CacheDao {
     }
 
     @Override
-    public void saveItem(final Object o) {
-        entityManagerDataSvc.getInstance().merge(o);
+    public Object saveItem(final Object o) {
+        return entityManagerDataSvc.getInstance().merge(o);
     }
 
     @Override
@@ -93,6 +93,25 @@ public class CacheDaoImpl implements CacheDao {
 
         return technicalIndicators;
 
+    }
+
+    @Override
+    public List<TechnicalIndicatorDetail> getTechnicalIndicatorDetails(
+            final TechnicalIndicator technicalIndicator) {
+        final String queryStr = "SELECT DISTINCT(x) FROM TechnicalIndicatorDetail x WHERE x.technicalIndicator =: technicalIndicator";
+
+        final List<TechnicalIndicatorDetail> technicalIndicatorDetails = new ArrayList<TechnicalIndicatorDetail>();
+
+        final Query query = entityManagerDataSvc.getInstance()
+                .createQuery(queryStr)
+                .setParameter("technicalIndicator", technicalIndicator)
+                .setMaxResults(1000);
+
+        for (final Object o : query.getResultList()) {
+            technicalIndicatorDetails.add(TechnicalIndicatorDetail.class.cast(o));
+        }
+
+        return technicalIndicatorDetails;
     }
 
     @Override
@@ -523,4 +542,7 @@ public class CacheDaoImpl implements CacheDao {
         return Long.class.cast(query.getSingleResult());
     }
 
+    public void flush() {
+        entityManagerDataSvc.getInstance().flush();
+    }
 }
