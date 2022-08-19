@@ -367,4 +367,13 @@ public class TradeDaoImpl implements TradeDao {
 		return count;
 	}
 
+	public List<TradeDetail> getPendingTradeDetails() {
+		final List<TradeDetail> items = new ArrayList<TradeDetail>();
+		final String queryStr = "SELECT DISTINCT x FROM TradeDetail AS x WHERE x.filledAt = 0 ";
+		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+		for (final Object o : query.getResultList()) {
+			items.add(TradeDetail.class.cast(o));
+		}
+		return items;
+	}
 }

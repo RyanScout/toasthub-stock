@@ -107,16 +107,10 @@ public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 
 							final String trimmedOrderCondition = orderCondition.trim();
 
-							final long technicalIndicatorId = Long.valueOf(trimmedOrderCondition);
+							final long customTechnicalIndicatorId = Long.valueOf(trimmedOrderCondition);
 
-							final TechnicalIndicator technicalIndicator = historicalAnalysisDao
-									.findTechnicalIndicatorById(technicalIndicatorId);
-
-							final CustomTechnicalIndicator customTechnicalIndicator = tradeDao
-									.getCustomTechnicalIndicatorByProperties(
-											technicalIndicator.getEvaluationPeriod(),
-											technicalIndicator.getTechnicalIndicatorKey(),
-											technicalIndicator.getTechnicalIndicatorType());
+							final CustomTechnicalIndicator customTechnicalIndicator = customTechnicalIndicatorDao
+									.findById(customTechnicalIndicatorId);
 
 							rawOrderConditions.add(customTechnicalIndicator.getName());
 						}

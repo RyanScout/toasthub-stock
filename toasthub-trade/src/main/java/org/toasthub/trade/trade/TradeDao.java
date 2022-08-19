@@ -54,4 +54,6 @@ public interface TradeDao extends BaseDao {
                         String technicalIndicatorKey, String technicalIndicatorType);
 
         public long getAssetMinuteCountWithinTimeFrame(String symbol, long startTime, long endTIme);
+
+        public List<TradeDetail> getPendingTradeDetails();
 }
