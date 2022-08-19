@@ -104,18 +104,25 @@ public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 						final String[] parsedOrderConditions = detail.getOrderCondition().split(",");
 						final List<String> rawOrderConditions = new ArrayList<String>();
 						for (final String orderCondition : parsedOrderConditions) {
+
 							final String trimmedOrderCondition = orderCondition.trim();
+
 							final long technicalIndicatorId = Long.valueOf(trimmedOrderCondition);
+
 							final TechnicalIndicator technicalIndicator = historicalAnalysisDao
 									.findTechnicalIndicatorById(technicalIndicatorId);
+
 							final CustomTechnicalIndicator customTechnicalIndicator = tradeDao
 									.getCustomTechnicalIndicatorByProperties(
 											technicalIndicator.getEvaluationPeriod(),
 											technicalIndicator.getTechnicalIndicatorKey(),
 											technicalIndicator.getTechnicalIndicatorType());
+
 							rawOrderConditions.add(customTechnicalIndicator.getName());
 						}
+
 						final String rawOrderCondition = String.join(", ", rawOrderConditions);
+
 						detail.setRawOrderCondition(rawOrderCondition);
 					});
 					response.addParam("DETAILS", tradeDetails);
@@ -125,25 +132,36 @@ public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 					final long graphItemId = validator.validateId(request.getParam(GlobalConstant.ITEMID));
 					final Trade graphTrade = tradeDao.getTradeById(graphItemId);
 					final List<TradeDetail> graphTradeDetails = getTradeDetails(graphItemId);
+
 					if (graphTradeDetails.size() == 0) {
 						response.setStatus(RestResponse.SUCCESS);
 						break;
 					}
 
-					final List<TradeDetail> sortedGraphTradeDetails = graphTradeDetails.stream().sorted((a, b) -> {
-						return (int) (a.getFilledAt() - b.getFilledAt());
-					}).toList();
+					if (graphTrade.getFirstCheck() == 0) {
+						response.setStatus(RestResponse.SUCCESS);
+						break;
+					}
 
-					// add 3 day padding
-					final long graphStartTime = sortedGraphTradeDetails.get(0).getFilledAt() - (60 * 60 * 24 * 3);
+					final long graphStartTime = graphTrade.getFirstCheck();
 
-					final long graphEndTime = sortedGraphTradeDetails.get(graphTradeDetails.size() - 1).getFilledAt()
-							+ (60 * 60 * 24 * 3);
+					final long graphEndTime = graphTrade.getLastCheck();
 
-					final List<Object[]> symbolData = tradeDao.getRelevantSymbolData(graphTrade.getSymbol(),
+					final long assetMinuteCount = tradeDao.getAssetMinuteCountWithinTimeFrame(graphTrade.getSymbol(),
 							graphStartTime, graphEndTime);
 
-					sortedGraphTradeDetails.stream().forEach(detail -> {
+					final int filterFactor;
+
+					if (assetMinuteCount <= 100) {
+						filterFactor = 1;
+					} else {
+						filterFactor = (int) (assetMinuteCount / 100);
+					}
+
+					final List<Object[]> symbolData = tradeDao.getFilteredSymbolData(graphTrade.getSymbol(),
+							graphStartTime, graphEndTime, filterFactor);
+
+					graphTradeDetails.stream().forEach(detail -> {
 						final Object[] objectArr = {
 								detail.getFilledAt(),
 								detail.getAssetPrice()
@@ -151,7 +169,7 @@ public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 						symbolData.add(objectArr);
 					});
 
-					response.addParam("DETAILS", sortedGraphTradeDetails);
+					response.addParam("DETAILS", graphTradeDetails);
 					response.addParam("SYMBOL_DATA", symbolData);
 
 					response.setStatus(RestResponse.SUCCESS);

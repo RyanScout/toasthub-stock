@@ -531,13 +531,12 @@ public class CacheDaoImpl implements CacheDao {
     }
 
     public long getAssetDayCountWithinTimeFrame(final String symbol, final long startTime, final long endTime) {
-        final String queryStr = "SELECT COUNT (DISTINCT x) FROM AssetDay as x WHERE x.symbol = :symbol AND x.epochSeconds > :startTime AND x.epochSeconds < :endTime";
+        final String queryStr = "SELECT COUNT (DISTINCT x) FROM AssetDay as x WHERE x.symbol = :symbol AND x.epochSeconds >= :startTime AND x.epochSeconds <= :endTime";
 
         final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr)
                 .setParameter("symbol", symbol)
                 .setParameter("startTime", startTime)
-                .setParameter("endTime", endTime)
-                .setMaxResults(1);
+                .setParameter("endTime", endTime);
 
         return Long.class.cast(query.getSingleResult());
     }

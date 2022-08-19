@@ -372,7 +372,12 @@ public class CacheManager {
 
         final AssetMinute latestAssetMinute = cacheDao.getLatestAssetMinute(symbol);
 
-        final long checks = cacheDao.getAssetDayCountWithinTimeFrame(symbol, startTime,
+        final long truncatedStartingEpochSeconds = Instant.ofEpochSecond(startingEpochSecondsDay)
+                .atZone(ZoneId.of("America/New_York"))
+                .truncatedTo(ChronoUnit.DAYS)
+                .toEpochSecond();
+
+        final long checks = cacheDao.getAssetDayCountWithinTimeFrame(symbol, truncatedStartingEpochSeconds,
                 latestAssetMinute.getEpochSeconds());
 
         backloadedTechnicalIndicator.setChecked(checks);

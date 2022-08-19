@@ -196,7 +196,7 @@ public class TradeDaoImpl implements TradeDao {
 		return trades;
 	}
 
-	public void resetTrade(long itemId) {
+	public void resetTrade(final long itemId) {
 		final Trade trade = (Trade) entityManagerDataSvc.getInstance().getReference(Trade.class, itemId);
 		trade.getTradeDetails().stream().forEach(t -> {
 			entityManagerDataSvc.getInstance().remove(t);
@@ -239,37 +239,6 @@ public class TradeDaoImpl implements TradeDao {
 	@Override
 	public void saveItem(final Object o) {
 		entityManagerDataSvc.getInstance().merge(o);
-	}
-
-	@Override
-	public void getSymbolData(final RestRequest request, final RestResponse response) {
-		final String symbol = (String) request.getParam("SYMBOL");
-
-		if (!Arrays.asList(Symbol.SYMBOLS).contains(symbol)) {
-			return;
-		}
-
-		final String evaluationPeriod = (String) request.getParam("EVALUATION_PERIOD");
-		String classStr = "";
-		final Integer firstPoint = (Integer) request.getParam("FIRST_POINT");
-		final Integer lastPoint = (Integer) request.getParam("LAST_POINT");
-
-		switch (evaluationPeriod) {
-			case "DAY":
-				classStr = "asset_day";
-				break;
-			case "MINUTE":
-				classStr = "asset_minute";
-				break;
-		}
-
-		final String queryStr = "SELECT epoch_seconds , value FROM tradeanalyzer_main.ta_" + classStr
-				+ " AS x WHERE epoch_seconds >= "
-				+ firstPoint
-				+ " AND epoch_seconds <= " + lastPoint + " AND symbol = \"" + symbol + "\"";
-		final Query query = entityManagerDataSvc.getInstance().createNativeQuery(queryStr);
-
-		response.addParam("SYMBOLS", query.getResultList());
 	}
 
 	public Trade findTradeById(final long id) {
@@ -355,23 +324,47 @@ public class TradeDaoImpl implements TradeDao {
 		return entityManagerDataSvc.getInstance().find(Trade.class, id);
 	}
 
-	public List<Object[]> getRelevantSymbolData(final String symbol, final long startTime, final long endTime) {
+	public List<Object[]> getFilteredSymbolData(final String symbol, final long startTime, final long endTime,
+			final int filterFactor) {
 		final List<Object[]> items = new ArrayList<Object[]>();
-		final String queryStr = "SELECT DISTINCT x.epochSeconds , x.open FROM AssetDay AS x"
-				+ " WHERE x.symbol = :symbol"
-				+ " AND x.epochSeconds >= :startTime"
-				+ " AND x.epochSeconds <= :endTime";
 
-		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr)
+		final String queryStr = "SELECT DISTINCT epochSeconds, value FROM"
+				+ " ( SELECT ROW_NUMBER() OVER (ORDER BY x.epoch_seconds ASC) AS rowNumber,"
+				+ " x.epoch_seconds as epochSeconds,"
+				+ " x.value as value"
+				+ " FROM tradeanalyzer_member.ta_asset_minute as x"
+				+ " WHERE x.symbol = :symbol"
+				+ " AND x.epoch_seconds >= :startTime"
+				+ " AND x.epoch_seconds <= :endTime"
+				+ " ) as organizedTable"
+				+ " WHERE MOD(rowNumber , :filterFactor) = 0";
+
+		final Query query = entityManagerDataSvc.getInstance().createNativeQuery(queryStr)
 				.setParameter("symbol", symbol)
 				.setParameter("startTime", startTime)
-				.setParameter("endTime", endTime);
+				.setParameter("endTime", endTime)
+				.setParameter("filterFactor", filterFactor);
 
 		for (final Object o : query.getResultList()) {
 			items.add(Object[].class.cast(o));
 		}
 
 		return items;
+	}
+
+	public long getAssetMinuteCountWithinTimeFrame(final String symbol, final long startTime, final long endTime) {
+		final String queryStr = "SELECT COUNT(DISTINCT x) FROM AssetMinute AS x"
+				+ " WHERE x.symbol = :symbol"
+				+ " AND x.epochSeconds >= : startTime"
+				+ " AND x.epochSeconds <= : endTime";
+
+		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr)
+				.setParameter("symbol", symbol)
+				.setParameter("startTime", startTime)
+				.setParameter("endTime", endTime);
+
+		final long count = Long.class.cast(query.getSingleResult());
+		return count;
 	}
 
 }

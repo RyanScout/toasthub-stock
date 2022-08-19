@@ -19,43 +19,39 @@ package org.toasthub.trade.trade;
 import java.util.List;
 
 import org.toasthub.core.common.BaseDao;
-import org.toasthub.core.general.model.RestRequest;
-import org.toasthub.core.general.model.RestResponse;
-import org.toasthub.trade.model.AssetDay;
 import org.toasthub.trade.model.CustomTechnicalIndicator;
 import org.toasthub.trade.model.TechnicalIndicator;
 import org.toasthub.trade.model.Trade;
 import org.toasthub.trade.model.TradeDetail;
 
 public interface TradeDao extends BaseDao {
-    public List<Trade> getRunningTrades();
+        public List<Trade> getRunningTrades();
 
-    public List<Trade> getAllRunningTrades();
+        public List<Trade> getAllRunningTrades();
 
-    public List<Trade> getRunningDayTrades();
+        public List<Trade> getRunningDayTrades();
 
-    public void resetTrade(long itemId);
+        public void resetTrade(long itemId);
 
-    public void getSymbolData(RestRequest request, RestResponse response);
+        public List<Object[]> getFilteredSymbolData(String symbol, long startTime, long endTime, int filterFactor);
 
-    public List<Object[]> getRelevantSymbolData(String symbol, long startTime, long endTime);
+        public Trade findTradeById(long id);
 
-    public Trade findTradeById(long id);
+        public List<Trade> getTrades();
 
-    public List<Trade> getTrades();
+        public Trade getTradeById(long id);
 
-    public Trade getTradeById(long id);
+        public List<TradeDetail> getTradeDetails(Trade trade);
 
-    public List<TradeDetail> getTradeDetails(Trade trade);
+        public void saveItem(Object o);
 
-    public void saveItem(Object o);
+        public CustomTechnicalIndicator getCustomTechnicalIndicatorById(long id);
 
-    public CustomTechnicalIndicator getCustomTechnicalIndicatorById(long id);
+        public TechnicalIndicator getTechnicalIndicatorByProperties(String symbol, String evaluationPeriod,
+                        String technicalIndicatorKey, String technicalIndicatorType);
 
-    public TechnicalIndicator getTechnicalIndicatorByProperties(String symbol, String evaluationPeriod,
-            String technicalIndicatorKey, String technicalIndicatorType);
+        public CustomTechnicalIndicator getCustomTechnicalIndicatorByProperties(String evaluationPeriod,
+                        String technicalIndicatorKey, String technicalIndicatorType);
 
-    public CustomTechnicalIndicator getCustomTechnicalIndicatorByProperties(String evaluationPeriod,
-            String technicalIndicatorKey, String technicalIndicatorType);
-
+        public long getAssetMinuteCountWithinTimeFrame(String symbol, long startTime, long endTIme);
 }

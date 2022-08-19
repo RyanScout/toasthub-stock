@@ -21,6 +21,7 @@ import org.toasthub.core.general.model.RestRequest;
 import org.toasthub.core.general.model.RestResponse;
 import org.toasthub.trade.custom_technical_indicator.CustomTechnicalIndicatorDao;
 import org.toasthub.trade.model.CustomTechnicalIndicator;
+import org.toasthub.trade.model.Symbol;
 import org.toasthub.trade.model.Trade;
 import org.toasthub.trade.model.TradeConstant;
 import org.toasthub.trade.model.TradeDetail;
@@ -326,7 +327,7 @@ public class TradeManager {
                 return String.valueOf(bool);
             }).toArray(String[]::new);
 
-            final String buyCondition = String.join(", ", stringArr);
+            final String buyCondition = String.join(" ", stringArr);
 
             if (!parser.parseExpression(buyCondition).getValue(Boolean.class)) {
                 System.out.println(trade.getName() + ":Buy Condition not met");
@@ -363,23 +364,43 @@ public class TradeManager {
                     switch (trade.getCurrencyType()) {
 
                         case "Dollars":
-                            buyOrder = alpacaAPI.orders().requestOrder(
-                                    trade.getSymbol(),
-                                    shareAmount.doubleValue(),
-                                    null,
-                                    OrderSide.BUY,
-                                    OrderType.MARKET,
-                                    OrderTimeInForce.GOOD_UNTIL_CANCELLED,
-                                    null,
-                                    null,
-                                    null,
-                                    null,
-                                    false,
-                                    null,
-                                    OrderClass.SIMPLE,
-                                    null,
-                                    null,
-                                    null);
+                            if (Symbol.CRYPTO_SYMBOLS.contains(trade.getSymbol())) {
+                                buyOrder = alpacaAPI.orders().requestOrder(
+                                        trade.getSymbol(),
+                                        shareAmount.doubleValue(),
+                                        null,
+                                        OrderSide.BUY,
+                                        OrderType.MARKET,
+                                        OrderTimeInForce.GOOD_UNTIL_CANCELLED,
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        false,
+                                        null,
+                                        OrderClass.SIMPLE,
+                                        null,
+                                        null,
+                                        null);
+                            } else {
+                                buyOrder = alpacaAPI.orders().requestOrder(
+                                        trade.getSymbol(),
+                                        shareAmount.doubleValue(),
+                                        null,
+                                        OrderSide.BUY,
+                                        OrderType.MARKET,
+                                        OrderTimeInForce.DAY,
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        false,
+                                        null,
+                                        OrderClass.SIMPLE,
+                                        null,
+                                        null,
+                                        null);
+                            }
                             break;
                         case "Shares":
                             buyOrder = alpacaAPI.orders().requestFractionalMarketOrder(trade.getSymbol(),
@@ -502,7 +523,7 @@ public class TradeManager {
                 tradeDetail.setOrderID(buyOrder.getClientOrderId());
                 tradeDetail.setStatus(buyOrder.getStatus().name());
                 tradeDetail.setOrderSide("BUY");
-                tradeDetail.setOrderCondition(String.join(",", buyReasons));
+                tradeDetail.setOrderCondition(String.join(", ", buyReasons));
                 tradeDetail.setTrade(trade);
                 trade.getTradeDetails().add(tradeDetail);
                 if (trade.getFirstOrder() == 0)
@@ -577,13 +598,13 @@ public class TradeManager {
                         .isFlashing();
 
                 if (bool) {
-                    sellReasons.add(String.valueOf(c.getName()));
+                    sellReasons.add(String.valueOf(c.getId()));
                 }
 
                 return String.valueOf(bool);
             }).toArray(String[]::new);
 
-            final String sellCondition = String.join(", ", stringArr);
+            final String sellCondition = String.join(" ", stringArr);
 
             if (!parser.parseExpression(sellCondition).getValue(Boolean.class)) {
                 System.out.println(trade.getName() + ":Sell Condition not met");
@@ -667,7 +688,7 @@ public class TradeManager {
                 tradeDetail.setOrderID(sellOrder.getClientOrderId());
                 tradeDetail.setStatus(sellOrder.getStatus().name());
                 tradeDetail.setOrderSide("SELL");
-                tradeDetail.setOrderCondition(String.join(",", sellReasons));
+                tradeDetail.setOrderCondition(String.join(", ", sellReasons));
                 tradeDetail.setTrade(trade);
                 trade.getTradeDetails().add(tradeDetail);
             }
@@ -704,11 +725,12 @@ public class TradeManager {
 
         if ((!(boolean) request.getParam("BOUGHT"))
                 && trade.getSharesHeld()
-                        .multiply(BigDecimal.valueOf(1.05))
-                        .compareTo(orderAmount
-                                .divide(tradeSignalCache.getRecentClosingPriceMap()
-                                        .get("MINUTE::" + trade.getSymbol()),
-                                        MathContext.DECIMAL32)) > 0) {
+                        .compareTo(
+                                (orderAmount
+                                        .divide(tradeSignalCache.getRecentClosingPriceMap()
+                                                .get("MINUTE::" + trade.getSymbol()),
+                                                MathContext.DECIMAL32))
+                                        .multiply(new BigDecimal("1.10"))) > 0) {
             currentSellTest(request, response);
         }
     }
