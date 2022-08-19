@@ -1,5 +1,6 @@
 package org.toasthub.trade.cache;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,8 @@ import org.toasthub.trade.algorithm.AlgorithmCruncherSvc;
 import org.toasthub.trade.custom_technical_indicator.CustomTechnicalIndicatorDao;
 import org.toasthub.trade.model.CustomTechnicalIndicator;
 import org.toasthub.trade.model.ExpectedException;
+import org.toasthub.trade.model.RequestValidation;
+import org.toasthub.trade.model.Symbol;
 import org.toasthub.trade.model.TechnicalIndicator;
 import org.toasthub.trade.model.TechnicalIndicatorDetail;
 import org.toasthub.trade.model.TradeSignalCache;
@@ -27,6 +30,10 @@ public class CacheSvcImpl implements ServiceProcessor, CacheSvc {
     @Autowired
     @Qualifier("TACustomTechnicalIndicatorDao")
     private CustomTechnicalIndicatorDao customTechnicalIndicatorDao;
+
+    @Autowired
+    @Qualifier("TARequestValidation")
+    private RequestValidation validator;
 
     @Autowired
     private TradeSignalCache tradeSignalCache;
@@ -47,16 +54,69 @@ public class CacheSvcImpl implements ServiceProcessor, CacheSvc {
                 case "ITEM":
                     item(request, response);
                     break;
-                case "LIST":
-                    items(request, response);
+                case "LIST": {
+                    final List<CustomTechnicalIndicator> customTechnicalIndicators = customTechnicalIndicatorDao
+                            .getCustomTechnicalIndicators();
+
+                    customTechnicalIndicators.stream().forEach(customTechnicalIndicator -> {
+
+                        final List<String> effectiveSymbols = customTechnicalIndicator.getSymbols().stream()
+                                .map(symbol -> symbol.getSymbol()).toList();
+
+                        customTechnicalIndicator.setEffectiveSymbols(effectiveSymbols);
+
+                    });
+
+                    response.addParam(GlobalConstant.ITEMS, customTechnicalIndicators);
+                    response.setStatus(RestResponse.SUCCESS);
                     break;
+                }
+                case "INITIALIZE_TECHNICAL_INDICATORS": {
+                    final Object id = request.getParam(GlobalConstant.ITEMID);
+                    final long validatedId = validator.validateId(id);
+
+                    final CustomTechnicalIndicator customTechnicalIndicator = customTechnicalIndicatorDao
+                            .findById(validatedId);
+
+                    final List<Symbol> symbols = customTechnicalIndicatorDao
+                            .getCustomTechnicalIndicatorSymbols(customTechnicalIndicator);
+
+                    final List<TechnicalIndicator> technicalIndicators = new ArrayList<TechnicalIndicator>();
+
+                    symbols.stream()
+                            .map(symbol -> symbol.getSymbol())
+                            .forEach(symbol -> {
+
+                                final TechnicalIndicator technicalIndicator = tradeSignalCache
+                                        .getTechnicalIndicatorMap()
+                                        .get(customTechnicalIndicator.getTechnicalIndicatorType() + "::"
+                                                + customTechnicalIndicator.getTechnicalIndicatorKey()
+                                                + "::"
+                                                + customTechnicalIndicator.getEvaluationPeriod() + "::" + symbol);
+
+                                if (technicalIndicator == null) {
+                                    return;
+                                }
+
+                                final List<TechnicalIndicatorDetail> technicalIndicatorDetails = cacheDao
+                                        .getTechnicalIndicatorDetails(technicalIndicator);
+
+                                technicalIndicator.setEffectiveDetails(technicalIndicatorDetails);
+
+                                technicalIndicators.add(technicalIndicator);
+                            });
+
+                    response.addParam(GlobalConstant.ITEMS, technicalIndicators);
+                    response.setStatus(RestResponse.SUCCESS);
+                    break;
+                }
                 case "SAVE":
                     save(request, response);
                     break;
                 case "DELETE":
                     delete(request, response);
                     break;
-                case "BACKLOAD":
+                case "BACKLOAD": {
                     if (request.getParam(GlobalConstant.ITEMID) == null) {
                         throw new ExpectedException("Item Id is null");
                     }
@@ -78,6 +138,7 @@ public class CacheSvcImpl implements ServiceProcessor, CacheSvc {
 
                     response.setStatus(RestResponse.SUCCESS);
                     break;
+                }
                 default:
                     throw new Exception("Action : " + action + "is not recognized");
             }

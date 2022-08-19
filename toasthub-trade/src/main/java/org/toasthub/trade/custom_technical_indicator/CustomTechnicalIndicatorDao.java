@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.toasthub.core.common.BaseDao;
 import org.toasthub.trade.model.CustomTechnicalIndicator;
+import org.toasthub.trade.model.Symbol;
 
 public interface CustomTechnicalIndicatorDao extends BaseDao {
     public void saveItem(Object o);
@@ -17,4 +18,6 @@ public interface CustomTechnicalIndicatorDao extends BaseDao {
     public long countByName(String name);
 
     public CustomTechnicalIndicator findByName(String name);
+
+    public List<Symbol> getCustomTechnicalIndicatorSymbols(CustomTechnicalIndicator customTechnicalIndicator);
 }

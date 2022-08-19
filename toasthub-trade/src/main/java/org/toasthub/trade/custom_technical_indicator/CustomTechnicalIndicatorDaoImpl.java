@@ -15,6 +15,7 @@ import org.toasthub.core.general.model.GlobalConstant;
 import org.toasthub.core.general.model.RestRequest;
 import org.toasthub.core.general.model.RestResponse;
 import org.toasthub.trade.model.CustomTechnicalIndicator;
+import org.toasthub.trade.model.Symbol;
 
 @Repository("TACustomTechnicalIndicatorDao")
 @Transactional("TransactionManagerData")
@@ -141,6 +142,18 @@ public class CustomTechnicalIndicatorDaoImpl implements CustomTechnicalIndicator
 
         response.addParam(GlobalConstant.ITEM, query.getSingleResult());
         return;
+    }
+
+    public List<Symbol> getCustomTechnicalIndicatorSymbols(final CustomTechnicalIndicator customTechnicalIndicator) {
+        final List<Symbol> items = new ArrayList<Symbol>();
+        final String queryStr = "SELECT DISTINCT x FROM Symbol AS x WHERE x.customTechnicalIndicator = :customTechnicalIndicator";
+        final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr)
+                .setParameter("customTechnicalIndicator", customTechnicalIndicator);
+        for (final Object o : query.getResultList()) {
+            items.add(Symbol.class.cast(o));
+        }
+        return items;
+
     }
 
 }
