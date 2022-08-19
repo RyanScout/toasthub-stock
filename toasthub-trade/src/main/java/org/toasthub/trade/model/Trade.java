@@ -66,8 +66,8 @@ public class Trade extends TradeBaseEntity {
 	private String parsedSellCondition = "";
 	private String trailingStopType = "";
 	private String profitLimitType = "";
-	private String iterations = "";
 
+	private int iterations = 0;
 	private int iterationsExecuted = 0;
 
 	private BigDecimal trailingStopAmount = BigDecimal.ZERO;
@@ -216,11 +216,11 @@ public class Trade extends TradeBaseEntity {
 
 	@JsonView({ View.Member.class })
 	@Column(name = "iterations")
-	public String getIterations() {
+	public int getIterations() {
 		return iterations;
 	}
 
-	public void setIterations(final String iterations) {
+	public void setIterations(final int iterations) {
 		this.iterations = iterations;
 	}
 

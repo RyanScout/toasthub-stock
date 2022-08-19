@@ -74,16 +74,17 @@ public class TradeManager {
                         if (t.getOrderSide().equals("BUY")) {
                             switch (trade.getOrderSide()) {
                                 case "Buy":
-                                    if (!trade.getIterations().equals("unlimited")) {
-                                        trade.setIterationsExecuted(trade.getIterationsExecuted() + 1);
-                                        if (trade.getIterationsExecuted() >= Integer
-                                                .parseInt(trade.getIterations()))
-                                            trade.setStatus("Not Running");
-                                    }
+                                    trade.setIterationsExecuted(trade.getIterationsExecuted() + 1);
+
                                     t.setFilledAt(order.getFilledAt().toEpochSecond());
                                     t.setAssetPrice(new BigDecimal(order.getAverageFillPrice()));
                                     t.setStatus("FILLED");
                                     t.setTrade(trade);
+                                    final boolean tradeHasUnlimitedIterations = trade.getIterations() == -1;
+                                    if (!tradeHasUnlimitedIterations
+                                            && trade.getIterationsExecuted() >= trade.getIterations()) {
+                                        trade.setStatus("Not Running");
+                                    }
                                     break;
                                 case "Sell":
                                     System.out.println("Unknown case");
@@ -143,16 +144,17 @@ public class TradeManager {
                                     t.setTrade(trade);
                                     break;
                                 case "Sell":
-                                    if (!trade.getIterations().equals("unlimited")) {
-                                        trade.setIterationsExecuted(trade.getIterationsExecuted() + 1);
-                                        if (trade.getIterationsExecuted() >= Integer
-                                                .parseInt(trade.getIterations()))
-                                            trade.setStatus("Not Running");
-                                    }
+                                    trade.setIterationsExecuted(trade.getIterationsExecuted() + 1);
+
                                     t.setFilledAt(order.getFilledAt().toEpochSecond());
                                     t.setAssetPrice(new BigDecimal(order.getAverageFillPrice()));
                                     t.setStatus("FILLED");
                                     t.setTrade(trade);
+                                    final boolean tradeHasUnlimitedIterations = trade.getIterations() == -1;
+                                    if (!tradeHasUnlimitedIterations
+                                            && trade.getIterationsExecuted() >= trade.getIterations()) {
+                                        trade.setStatus("Not Running");
+                                    }
                                     break;
                                 case "Bot":
                                     final BigDecimal orderQuantity = new BigDecimal(order.getFilledQuantity());
@@ -279,13 +281,6 @@ public class TradeManager {
         try {
 
             final Trade trade = (Trade) request.getParam(TradeConstant.TRADE);
-
-            if (!trade.getOrderSide().toUpperCase().equals(Trade.BOT)
-                    && trade.getIterationsExecuted() >= Integer.parseInt(trade.getIterations())) {
-                System.out.println("Trade frequency met - changing status to not running");
-                trade.setStatus("Not Running");
-                return;
-            }
 
             if (trade.getParsedBuyCondition() == null) {
                 response.setStatus("Buy Condition is null in buy test for" + trade.getName());
@@ -557,13 +552,6 @@ public class TradeManager {
 
             final Trade trade = (Trade) request.getParam(TradeConstant.TRADE);
 
-            if (!trade.getOrderSide().toUpperCase().equals(Trade.BOT)
-                    && trade.getIterationsExecuted() >= Integer.parseInt(trade.getIterations())) {
-                System.out.println("Trade frequency met - changing status to not running");
-                trade.setStatus("Not Running");
-                return;
-            }
-
             if (trade.getParsedSellCondition() == null) {
                 System.out.println("Sell Condition is null in buy test for" + trade.getName());
                 response.setStatus("Sell Condition is null in buy test for" + trade.getName());
@@ -675,11 +663,6 @@ public class TradeManager {
             }
             if (trade.getOrderSide().equals("Sell")) {
                 trade.setIterationsExecuted(trade.getIterationsExecuted() + 1);
-
-                if (!trade.getIterations().equals("unlimited")) {
-                    if (trade.getIterationsExecuted() >= Integer.parseInt(trade.getIterations()))
-                        trade.setStatus("Not Running");
-                }
             }
 
             if (sellOrder != null) {
