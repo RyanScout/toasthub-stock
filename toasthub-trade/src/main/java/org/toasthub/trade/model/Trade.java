@@ -59,13 +59,14 @@ public class Trade extends TradeBaseEntity {
 	private String symbol = "";
 	private String orderType = "";
 	private String orderSide = "";
-	private String status = "";
 	private String evaluationPeriod = "";
 	private String currencyType = "";
 	private String parsedBuyCondition = "";
 	private String parsedSellCondition = "";
 	private String trailingStopType = "";
 	private String profitLimitType = "";
+	private String status = "";
+	private String statusMessage = "";
 
 	private int iterations = 0;
 	private int iterationsExecuted = 0;
@@ -432,5 +433,15 @@ public class Trade extends TradeBaseEntity {
 
 	public void setLastCheck(long lastCheck) {
 		this.lastCheck = lastCheck;
+	}
+
+	@JsonView({ View.Member.class })
+	@Column(name = "status_message")
+	public String getStatusMessage() {
+		return statusMessage;
+	}
+
+	public void setStatusMessage(String statusMessage) {
+		this.statusMessage = statusMessage;
 	}
 }
