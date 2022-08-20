@@ -260,6 +260,7 @@ public class TradeManager {
                                 final boolean buyConditionIsFlashing = !flashingBuyCondition.equals("");
 
                                 if (buyConditionIsFlashing) {
+
                                     placeBuyOrder(trade, flashingBuyCondition);
 
                                     if (trade.getFirstOrder() == 0) {
@@ -279,6 +280,7 @@ public class TradeManager {
                                 final boolean sellConditionIsFlashing = !flashingSellCondition.equals("");
 
                                 if (sellConditionIsFlashing) {
+
                                     placeSellOrder(trade, flashingSellCondition);
 
                                     if (trade.getFirstOrder() == 0) {
@@ -286,6 +288,7 @@ public class TradeManager {
                                     }
 
                                     trade.setLastOrder(Instant.now().getEpochSecond());
+
                                     System.out.println("Sell order placed: " + trade.getName());
                                 }
 
@@ -295,6 +298,12 @@ public class TradeManager {
 
                                 final BigDecimal availableBudget = trade.getAvailableBudget();
                                 final String currencyType = trade.getCurrencyType().toUpperCase();
+                                final String flashingBuyCondition = getFlashingBuyCondition(trade);
+                                final boolean buyConditionIsFlashing = !flashingBuyCondition.equals("");
+                                final String flashingSellCondition = getFlashingSellCondition(trade);
+                                final boolean sellConditionIsFlashing = !flashingSellCondition.equals("");
+                                final BigDecimal sharesHeld = trade.getSharesHeld();
+
                                 final BigDecimal orderAmount;
 
                                 if (currencyType.equals("DOLLARS")) {
@@ -305,59 +314,43 @@ public class TradeManager {
                                     throw new Exception("Currency type unrecognized");
                                 }
 
-                                if (availableBudget.compareTo(orderAmount.multiply(new BigDecimal("1.10"))) > 0) {
+                                final BigDecimal sharesToBeBought = orderAmount.divide(currentPrice,
+                                        MathContext.DECIMAL32);
+                                final boolean tradeHasEnoughBudgetToBuy = availableBudget
+                                        .compareTo(orderAmount.multiply(new BigDecimal("1.10"))) > 0;
+                                final boolean tradeHasEnoughSharesToSell = sharesHeld
+                                        .compareTo(sharesToBeBought.multiply(new BigDecimal("1.10"))) > 0;
 
-                                    final String flashingBuyCondition = getFlashingBuyCondition(trade);
+                                if (buyConditionIsFlashing && tradeHasEnoughBudgetToBuy) {
 
-                                    final boolean buyConditionIsFlashing = !flashingBuyCondition.equals("");
+                                    placeBuyOrder(trade, flashingBuyCondition);
 
-                                    if (buyConditionIsFlashing) {
-                                        placeBuyOrder(trade, flashingBuyCondition);
-                                        System.out.println("Buy order placed: " + trade.getName());
-                                    } else {
-                                        final String flashingSellCondition = getFlashingSellCondition(trade);
-
-                                        final boolean sellConditionIsFlashing = !flashingSellCondition.equals("");
-
-                                        if (sellConditionIsFlashing) {
-
-                                            placeSellOrder(trade, flashingSellCondition);
-
-                                            if (trade.getFirstOrder() == 0) {
-                                                trade.setFirstOrder(Instant.now().getEpochSecond());
-                                            }
-
-                                            trade.setLastOrder(Instant.now().getEpochSecond());
-                                            System.out.println("Sell order placed: " + trade.getName());
-                                        }
+                                    if (trade.getFirstOrder() == 0) {
+                                        trade.setFirstOrder(Instant.now().getEpochSecond());
                                     }
 
-                                } else {
-                                    final BigDecimal sharesHeld = trade.getSharesHeld();
-                                    final BigDecimal sharesToBeBought = orderAmount.divide(currentPrice,
-                                            MathContext.DECIMAL32);
-                                    if (sharesHeld.compareTo(sharesToBeBought.multiply(new BigDecimal("1.10"))) > 0) {
-                                        final String flashingSellCondition = getFlashingSellCondition(trade);
+                                    trade.setLastOrder(Instant.now().getEpochSecond());
 
-                                        final boolean sellConditionIsFlashing = !flashingSellCondition.equals("");
+                                    System.out.println("Buy order placed: " + trade.getName());
+                                }
 
-                                        if (sellConditionIsFlashing) {
+                                if (sellConditionIsFlashing && tradeHasEnoughSharesToSell) {
 
-                                            placeSellOrder(trade, flashingSellCondition);
+                                    placeSellOrder(trade, flashingSellCondition);
 
-                                            if (trade.getFirstOrder() == 0) {
-                                                trade.setFirstOrder(Instant.now().getEpochSecond());
-                                            }
-
-                                            trade.setLastOrder(Instant.now().getEpochSecond());
-                                        }
+                                    if (trade.getFirstOrder() == 0) {
+                                        trade.setFirstOrder(Instant.now().getEpochSecond());
                                     }
+
+                                    trade.setLastOrder(Instant.now().getEpochSecond());
+
+                                    System.out.println("Buy order placed: " + trade.getName());
                                 }
 
                                 break;
                             }
                             default:
-                                throw new Exception("INVALID ORDERSIDE");
+                                throw new Exception("Invalid OrderSide");
                         }
 
                     } catch (final Exception e) {
@@ -370,11 +363,10 @@ public class TradeManager {
                 });
     }
 
-    public String getFlashingBuyCondition(Trade trade) throws Exception {
+    public String getFlashingBuyCondition(final Trade trade) throws Exception {
 
         if (trade.getParsedBuyCondition() == "") {
-            final String statusMessage = "Trade is expected to have buy condition but none is present";
-            throw new Exception(statusMessage);
+            return "";
         }
 
         final List<String> flashingBuyConditions = new ArrayList<String>();
@@ -417,11 +409,10 @@ public class TradeManager {
         return listedFlashingBuyConditions;
     }
 
-    public String getFlashingSellCondition(Trade trade) throws Exception {
+    public String getFlashingSellCondition(final Trade trade) throws Exception {
 
         if (trade.getParsedSellCondition() == "") {
-            final String statusMessage = "Trade is expected to have sell condition but none is present";
-            throw new Exception(statusMessage);
+            return "";
         }
 
         final List<String> flashingSellConditions = new ArrayList<String>();
@@ -464,11 +455,11 @@ public class TradeManager {
         return listedFlashingSellConditions;
     }
 
-    public void placeBuyOrder(Trade trade, String flashingBuyCondition) throws Exception {
+    public void placeBuyOrder(final Trade trade, final String flashingBuyCondition) throws Exception {
         String sellOrderCondition = "";
         Order sellOrder = null;
         Order buyOrder = null;
-        int truncatedSharesAmount = 0;
+        final int truncatedSharesAmount = 0;
         double profitLimitPrice = 0;
 
         final String symbol = trade.getSymbol();
@@ -653,15 +644,15 @@ public class TradeManager {
 
     }
 
-    public void placeSellOrder(Trade trade, String flashingSellCondition) throws Exception {
+    public void placeSellOrder(final Trade trade, final String flashingSellCondition) throws Exception {
         Order sellOrder = null;
 
-        int truncatedSharesAmount = 0;
-        BigDecimal shareAmount = BigDecimal.ZERO;
+        final int truncatedSharesAmount = 0;
+        final BigDecimal shareAmount = BigDecimal.ZERO;
 
-        String sellOrderCondition = "";
-        Order buyOrder = null;
-        double profitLimitPrice = 0;
+        final String sellOrderCondition = "";
+        final Order buyOrder = null;
+        final double profitLimitPrice = 0;
 
         final String symbol = trade.getSymbol();
         final BigDecimal currentPrice = tradeSignalCache.getRecentClosingPriceMap().get("MINUTE::" + symbol);
