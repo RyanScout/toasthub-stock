@@ -69,6 +69,7 @@ public class TradeManager {
                             order = alpacaAPI.orders().getByClientID(t.getOrderID());
                         } catch (final Exception e) {
                             e.printStackTrace();
+                            return;
                         }
                         if (!order.getStatus().name().equals("FILLED")) {
                             return;

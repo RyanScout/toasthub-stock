@@ -93,11 +93,13 @@ public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 				case "DELETE":
 					delete(request, response);
 					break;
-				case "RESET_TRADE":
-					final long resetTradeId = validator.validateId(request.getParam(GlobalConstant.ITEMID));
-					tradeDao.resetTrade(resetTradeId);
+				case "RESET_TRADE": {
+					final long itemId = validator.validateId(request.getParam(GlobalConstant.ITEMID));
+					tradeDao.resetTrade(itemId);
 					response.setStatus(RestResponse.SUCCESS);
-				case "GET_TRADE_DETAILS":
+					break;
+				}
+				case "GET_TRADE_DETAILS": {
 					final long itemId = validator.validateId(request.getParam(GlobalConstant.ITEMID));
 					final List<TradeDetail> tradeDetails = getTradeDetails(itemId);
 					tradeDetails.stream().forEach(detail -> {
@@ -122,27 +124,28 @@ public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 					response.addParam("DETAILS", tradeDetails);
 					response.setStatus(RestResponse.SUCCESS);
 					break;
-				case "GET_GRAPH_DATA":
-					final long graphItemId = validator.validateId(request.getParam(GlobalConstant.ITEMID));
-					final Trade graphTrade = tradeDao.getTradeById(graphItemId);
-					final List<TradeDetail> graphTradeDetails = getTradeDetails(graphItemId);
+				}
+				case "GET_GRAPH_DATA": {
+					final long itemId = validator.validateId(request.getParam(GlobalConstant.ITEMID));
+					final Trade trade = tradeDao.getTradeById(itemId);
+					final List<TradeDetail> tradeDetails = getTradeDetails(itemId);
 
-					if (graphTradeDetails.size() == 0) {
+					if (tradeDetails.size() == 0) {
 						response.setStatus(RestResponse.SUCCESS);
 						break;
 					}
 
-					if (graphTrade.getFirstCheck() == 0) {
+					if (trade.getFirstCheck() == 0) {
 						response.setStatus(RestResponse.SUCCESS);
 						break;
 					}
 
-					final long graphStartTime = graphTrade.getFirstCheck();
+					final long startTime = trade.getFirstCheck();
 
-					final long graphEndTime = graphTrade.getLastCheck();
+					final long endTime = trade.getLastCheck();
 
-					final long assetMinuteCount = tradeDao.getAssetMinuteCountWithinTimeFrame(graphTrade.getSymbol(),
-							graphStartTime, graphEndTime);
+					final long assetMinuteCount = tradeDao.getAssetMinuteCountWithinTimeFrame(trade.getSymbol(),
+							startTime, endTime);
 
 					final int filterFactor;
 
@@ -152,10 +155,10 @@ public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 						filterFactor = (int) (assetMinuteCount / 100);
 					}
 
-					final List<Object[]> symbolData = tradeDao.getFilteredSymbolData(graphTrade.getSymbol(),
-							graphStartTime, graphEndTime, filterFactor);
+					final List<Object[]> symbolData = tradeDao.getFilteredSymbolData(trade.getSymbol(),
+							startTime, endTime, filterFactor);
 
-					graphTradeDetails.stream().forEach(detail -> {
+					tradeDetails.stream().forEach(detail -> {
 						final Object[] objectArr = {
 								detail.getFilledAt(),
 								detail.getAssetPrice()
@@ -163,12 +166,13 @@ public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 						symbolData.add(objectArr);
 					});
 
-					response.addParam("DETAILS", graphTradeDetails);
+					response.addParam("DETAILS", tradeDetails);
 					response.addParam("SYMBOL_DATA", symbolData);
 
 					response.setStatus(RestResponse.SUCCESS);
 					break;
-				case "HISTORICAL_ANALYSIS":
+				}
+				case "HISTORICAL_ANALYSIS": {
 					if ((!request.containsParam(GlobalConstant.ITEM))
 							|| (request.getParam(GlobalConstant.ITEM) == null)
 							|| !(request.getParam(GlobalConstant.ITEM) instanceof LinkedHashMap)) {
@@ -235,6 +239,7 @@ public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 					response.setStatus(RestResponse.SUCCESS);
 
 					break;
+				}
 				default:
 					throw new Exception("Action : " + action + " is not recognized");
 			}

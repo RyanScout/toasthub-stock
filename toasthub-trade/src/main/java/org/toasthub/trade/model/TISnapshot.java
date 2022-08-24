@@ -53,10 +53,10 @@ public class TISnapshot extends TradeBaseEntity {
 
     private BigDecimal standardDeviations = BigDecimal.ZERO;
 
-    private Set<TechnicalIndicatorDetail> details = new LinkedHashSet<TechnicalIndicatorDetail>();
+    private Set<TISnapshotDetail> details = new LinkedHashSet<TISnapshotDetail>();
 
     @Transient
-    private List<TechnicalIndicatorDetail> effectiveDetails = new ArrayList<TechnicalIndicatorDetail>();
+    private List<TISnapshotDetail> effectiveDetails = new ArrayList<TISnapshotDetail>();
 
     // Constructors
     public TISnapshot() {
@@ -67,15 +67,25 @@ public class TISnapshot extends TradeBaseEntity {
         this.setCreated(Instant.now());
     }
 
+    public void copyProperties(TechnicalIndicator technicalIndicator) {
+        this.setSymbol(technicalIndicator.getSymbol());
+        this.setEvaluationPeriod(technicalIndicator.getEvaluationPeriod());
+        this.setShortSMAEvaluationDuration(technicalIndicator.getShortSMAEvaluationDuration());
+        this.setLongSMAEvaluationDuration(technicalIndicator.getLongSMAEvaluationDuration());
+        this.setStandardDeviations(technicalIndicator.getStandardDeviations());
+        this.setLbbEvaluationDuration(technicalIndicator.getLbbEvaluationDuration());
+        this.setUbbEvaluationDuration(technicalIndicator.getUbbEvaluationDuration());
+    }
+
     // Setter/Getter
 
     @JsonView({ View.Member.class })
     @Transient
-    public List<TechnicalIndicatorDetail> getEffectiveDetails() {
+    public List<TISnapshotDetail> getEffectiveDetails() {
         return effectiveDetails;
     }
 
-    public void setEffectiveDetails(final List<TechnicalIndicatorDetail> effectiveDetails) {
+    public void setEffectiveDetails(final List<TISnapshotDetail> effectiveDetails) {
         this.effectiveDetails = effectiveDetails;
     }
 
@@ -129,12 +139,12 @@ public class TISnapshot extends TradeBaseEntity {
         this.standardDeviations = standardDeviations;
     }
 
-    @OneToMany(mappedBy = "technicalIndicator", cascade = CascadeType.ALL, orphanRemoval = true)
-    public Set<TechnicalIndicatorDetail> getDetails() {
+    @OneToMany(mappedBy = "snapshot", cascade = CascadeType.ALL, orphanRemoval = true)
+    public Set<TISnapshotDetail> getDetails() {
         return details;
     }
 
-    public void setDetails(final Set<TechnicalIndicatorDetail> details) {
+    public void setDetails(final Set<TISnapshotDetail> details) {
         this.details = details;
     }
 

@@ -16,9 +16,13 @@ import org.toasthub.trade.model.CustomTechnicalIndicator;
 import org.toasthub.trade.model.ExpectedException;
 import org.toasthub.trade.model.RequestValidation;
 import org.toasthub.trade.model.Symbol;
+import org.toasthub.trade.model.TISnapshot;
 import org.toasthub.trade.model.TechnicalIndicator;
 import org.toasthub.trade.model.TechnicalIndicatorDetail;
 import org.toasthub.trade.model.TradeSignalCache;
+import org.toasthub.trade.technical_indicator.TechnicalIndicatorDao;
+import org.toasthub.trade.ti_snapshot.TISnapshotDao;
+import org.toasthub.trade.ti_snapshot.TISnapshotSvc;
 
 @Service("TACacheSvc")
 public class CacheSvcImpl implements ServiceProcessor, CacheSvc {
@@ -45,6 +49,18 @@ public class CacheSvcImpl implements ServiceProcessor, CacheSvc {
     @Autowired
     @Qualifier("TAAlgorithmCruncherSvc")
     private AlgorithmCruncherSvc algorithmCruncherSvc;
+
+    @Autowired
+    @Qualifier("TATechnicalIndicatorDao")
+    private TechnicalIndicatorDao technicalIndicatorDao;
+
+    @Autowired
+    @Qualifier("TATISnapshotSvc")
+    private TISnapshotSvc tiSnapshotSvc;
+
+    @Autowired
+    @Qualifier("TATISnapshotDao")
+    private TISnapshotDao tiSnapshotDao;
 
     @Override
     public void process(final RestRequest request, final RestResponse response) {
@@ -139,10 +155,55 @@ public class CacheSvcImpl implements ServiceProcessor, CacheSvc {
                     response.setStatus(RestResponse.SUCCESS);
                     break;
                 }
+                case "CREATE_SNAPSHOT": {
+                    if (request.getParam(GlobalConstant.ITEMID) == null) {
+                        throw new ExpectedException("Item Id is null");
+                    }
+
+                    if (request.getParam("startTime") == null) {
+                        throw new ExpectedException("Start time is null");
+                    }
+
+                    if (request.getParam("endTime") == null) {
+                        throw new ExpectedException("End time is null");
+                    }
+
+                    final long itemId = Long.valueOf(String.valueOf(request.getParam(GlobalConstant.ITEMID)));
+
+                    final long startTime = Long.valueOf(String.valueOf(request.getParam("startTime")));
+
+                    final long endTime = Long.valueOf(String.valueOf(request.getParam("startTime")));
+
+                    // ensures ample data exists to initialize snapshot
+                    algorithmCruncherSvc.backloadAlgorithm(itemId, startTime);
+
+                    System.out.println("Algorithms Backloaded !");
+
+                    final TechnicalIndicator technicalIndicator = technicalIndicatorDao.findById(itemId);
+
+                    final TISnapshot initSnapshot = new TISnapshot();
+
+                    initSnapshot.setUpdating(true);
+
+                    initSnapshot.copyProperties(technicalIndicator);
+
+                    final TISnapshot managedSnapshot = tiSnapshotDao.save(initSnapshot);
+
+                    final TISnapshot initializedSnapshot = tiSnapshotSvc.initializeSnapshot(managedSnapshot, startTime,
+                            endTime);
+
+                    tiSnapshotDao.save(initializedSnapshot);
+
+                    System.out.println("Initialized Snapshot saved !");
+
+                    response.setStatus(RestResponse.SUCCESS);
+
+                    break;
+                }
                 default:
                     throw new Exception("Action : " + action + "is not recognized");
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             response.setStatus("Exception : " + e.getMessage());
             e.printStackTrace();
         }

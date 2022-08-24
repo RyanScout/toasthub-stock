@@ -28,7 +28,7 @@ public class TISnapshotDetail extends TradeBaseEntity {
     private BigDecimal vwap;
     private boolean success = false;
     private BigDecimal successPercent = BigDecimal.ZERO;
-    private TechnicalIndicator technicalIndicator;
+    private TISnapshot snapshot;
 
     // Constructors
     public TISnapshotDetail() {
@@ -41,14 +41,14 @@ public class TISnapshotDetail extends TradeBaseEntity {
 
     // Setter/Getter
     @JsonIgnore
-    @ManyToOne(targetEntity = TechnicalIndicator.class, fetch = FetchType.LAZY)
-    @JoinColumn(name = "technical_indicator_id")
-    public TechnicalIndicator getTechnicalIndicator() {
-        return technicalIndicator;
+    @ManyToOne(targetEntity = TISnapshot.class, fetch = FetchType.LAZY)
+    @JoinColumn(name = "ti_snapshot_id")
+    public TISnapshot getTISnapshot() {
+        return snapshot;
     }
 
-    public void setTechnicalIndicator(final TechnicalIndicator technicalIndicator) {
-        this.technicalIndicator = technicalIndicator;
+    public void setTISnapshot(final TISnapshot snapshot) {
+        this.snapshot = snapshot;
     }
 
     @JsonView({ View.Member.class })
