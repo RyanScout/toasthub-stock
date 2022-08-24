@@ -126,6 +126,28 @@ public class CacheSvcImpl implements ServiceProcessor, CacheSvc {
                     response.setStatus(RestResponse.SUCCESS);
                     break;
                 }
+                case "INITIALIZE_SNAPSHOTS": {
+                    final Object id = request.getParam(GlobalConstant.ITEMID);
+                    final long validatedId = validator.validateId(id);
+
+                    final CustomTechnicalIndicator customTechnicalIndicator = customTechnicalIndicatorDao
+                            .findById(validatedId);
+
+                    final String evaluationPeriod = customTechnicalIndicator.getEvaluationPeriod();
+
+                    final String technicalIndicatorType = customTechnicalIndicator.getTechnicalIndicatorType();
+
+                    final String technicalIndicatorKey = customTechnicalIndicator.getTechnicalIndicatorKey();
+
+                    final List<TISnapshot> snapshots = tiSnapshotDao.getSnapshotsWithProperties(evaluationPeriod,
+                            technicalIndicatorKey, technicalIndicatorType);
+
+                    response.addParam(GlobalConstant.ITEMS, snapshots);
+
+                    response.setStatus(RestResponse.SUCCESS);
+                    break;
+
+                }
                 case "SAVE":
                     save(request, response);
                     break;
@@ -172,7 +194,7 @@ public class CacheSvcImpl implements ServiceProcessor, CacheSvc {
 
                     final long startTime = Long.valueOf(String.valueOf(request.getParam("startTime")));
 
-                    final long endTime = Long.valueOf(String.valueOf(request.getParam("startTime")));
+                    final long endTime = Long.valueOf(String.valueOf(request.getParam("endTime")));
 
                     // ensures ample data exists to initialize snapshot
                     algorithmCruncherSvc.backloadAlgorithm(itemId, startTime);
@@ -201,7 +223,7 @@ public class CacheSvcImpl implements ServiceProcessor, CacheSvc {
                     break;
                 }
                 default:
-                    throw new Exception("Action : " + action + "is not recognized");
+                    throw new Exception("Action : " + action + " is not recognized");
             }
         } catch (final Exception e) {
             response.setStatus("Exception : " + e.getMessage());

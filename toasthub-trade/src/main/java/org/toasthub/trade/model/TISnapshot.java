@@ -24,14 +24,7 @@ import com.fasterxml.jackson.annotation.JsonView;
 public class TISnapshot extends TradeBaseEntity {
 
     private static final long serialVersionUID = 1L;
-    public static final String GOLDENCROSS = "GoldenCross";
-    public static final String LOWERBOLLINGERBAND = "LowerBollingerBand";
-    public static final String UPPERBOLLINGERBAND = "UpperBollingerBand";
-    public static final String[] TECHNICAL_INDICATOR_TYPES = {
-            GOLDENCROSS, LOWERBOLLINGERBAND, UPPERBOLLINGERBAND
-    };
 
-    private boolean flashing = false;
     private boolean updating = false;
 
     private String evaluationPeriod = "";
@@ -69,6 +62,8 @@ public class TISnapshot extends TradeBaseEntity {
 
     public void copyProperties(TechnicalIndicator technicalIndicator) {
         this.setSymbol(technicalIndicator.getSymbol());
+        this.setTechnicalIndicatorType(technicalIndicator.getTechnicalIndicatorType());
+        this.setTechnicalIndicatorKey(technicalIndicator.getTechnicalIndicatorKey());
         this.setEvaluationPeriod(technicalIndicator.getEvaluationPeriod());
         this.setShortSMAEvaluationDuration(technicalIndicator.getShortSMAEvaluationDuration());
         this.setLongSMAEvaluationDuration(technicalIndicator.getLongSMAEvaluationDuration());
@@ -139,7 +134,7 @@ public class TISnapshot extends TradeBaseEntity {
         this.standardDeviations = standardDeviations;
     }
 
-    @OneToMany(mappedBy = "snapshot", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "TISnapshot", cascade = CascadeType.ALL, orphanRemoval = true)
     public Set<TISnapshotDetail> getDetails() {
         return details;
     }
@@ -196,16 +191,6 @@ public class TISnapshot extends TradeBaseEntity {
 
     public void setLastFlash(final long lastFlash) {
         this.lastFlash = lastFlash;
-    }
-
-    @JsonView({ View.Member.class })
-    @Column(name = "flashing")
-    public boolean isFlashing() {
-        return flashing;
-    }
-
-    public void setFlashing(final boolean flashing) {
-        this.flashing = flashing;
     }
 
     @JsonView({ View.Member.class })

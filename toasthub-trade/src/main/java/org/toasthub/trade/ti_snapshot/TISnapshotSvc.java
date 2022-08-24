@@ -22,12 +22,14 @@ import org.toasthub.trade.cache.CacheDao;
 import org.toasthub.trade.cache.CacheManager;
 import org.toasthub.trade.custom_technical_indicator.CustomTechnicalIndicatorDao;
 import org.toasthub.trade.model.AssetMinute;
+import org.toasthub.trade.model.CustomTechnicalIndicator;
 import org.toasthub.trade.model.ExpectedException;
 import org.toasthub.trade.model.RequestValidation;
+import org.toasthub.trade.model.Symbol;
 import org.toasthub.trade.model.TISnapshot;
 import org.toasthub.trade.model.TISnapshotDetail;
 import org.toasthub.trade.model.TechnicalIndicator;
-import org.toasthub.trade.model.TradeSignalCache;
+import org.toasthub.trade.model.TechnicalIndicatorDetail;
 import org.toasthub.trade.technical_indicator.TechnicalIndicatorDao;
 
 @Service("TATISnapshotSvc")
@@ -83,7 +85,7 @@ public class TISnapshotSvc implements ServiceProcessor {
 
                     final long startTime = Long.valueOf(String.valueOf(request.getParam("startTime")));
 
-                    final long endTime = Long.valueOf(String.valueOf(request.getParam("startTime")));
+                    final long endTime = Long.valueOf(String.valueOf(request.getParam("endTime")));
 
                     // ensures ample data exists to initialize snapshot
                     algorithmCruncherSvc.backloadAlgorithm(itemId, startTime);
@@ -110,8 +112,31 @@ public class TISnapshotSvc implements ServiceProcessor {
 
                     break;
                 }
+
+                case "INITIALIZE_SNAPSHOTS": {
+                    final Object id = request.getParam(GlobalConstant.ITEMID);
+                    final long validatedId = validator.validateId(id);
+
+                    final CustomTechnicalIndicator customTechnicalIndicator = customTechnicalIndicatorDao
+                            .findById(validatedId);
+
+                    final String evaluationPeriod = customTechnicalIndicator.getEvaluationPeriod();
+
+                    final String technicalIndicatorType = customTechnicalIndicator.getTechnicalIndicatorType();
+
+                    final String technicalIndicatorKey = customTechnicalIndicator.getTechnicalIndicatorKey();
+
+                    final List<TISnapshot> snapshots = tiSnapshotDao.getSnapshotsWithProperties(evaluationPeriod,
+                            technicalIndicatorKey, technicalIndicatorType);
+
+                    response.addParam(GlobalConstant.ITEMS, snapshots);
+
+                    response.setStatus(RestResponse.SUCCESS);
+                    break;
+
+                }
                 default: {
-                    throw new Exception("Action : " + action + "is not recognized");
+                    throw new Exception("Action : " + action + " is not recognized");
                 }
             }
         } catch (final Exception e) {
@@ -199,10 +224,16 @@ public class TISnapshotSvc implements ServiceProcessor {
                 endTime);
 
         snapshot.setChecked(checks);
-        snapshot.setFlashed(trimmedFlashes.size());
-        snapshot.setLastFlash(trimmedFlashes.get(trimmedFlashes.size() - 1).getEpochSeconds());
         snapshot.setFirstCheck(startTime);
         snapshot.setLastCheck(endTime);
+
+        System.out.println(trimmedFlashes.size());
+        if (trimmedFlashes.size() == 0) {
+            return snapshot;
+        }
+
+        snapshot.setFlashed(trimmedFlashes.size());
+        snapshot.setLastFlash(trimmedFlashes.get(trimmedFlashes.size() - 1).getEpochSeconds());
 
         trimmedFlashes.stream().forEachOrdered(assetMinute -> {
 
