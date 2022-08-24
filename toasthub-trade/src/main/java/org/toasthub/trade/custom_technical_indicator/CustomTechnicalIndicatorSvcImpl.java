@@ -21,6 +21,7 @@ import org.toasthub.trade.model.CustomTechnicalIndicator;
 import org.toasthub.trade.model.RequestValidation;
 import org.toasthub.trade.model.Symbol;
 import org.toasthub.trade.model.TechnicalIndicator;
+import org.toasthub.trade.ti_snapshot.TISnapshotSvc;
 
 @Service("TACustomTechnicalIndicatorSvc")
 public class CustomTechnicalIndicatorSvcImpl implements ServiceProcessor, CustomTechnicalIndicatorSvc {
@@ -28,6 +29,10 @@ public class CustomTechnicalIndicatorSvcImpl implements ServiceProcessor, Custom
     @Autowired
     @Qualifier("TACustomTechnicalIndicatorDao")
     private CustomTechnicalIndicatorDao customTechnicalIndicatorDao;
+
+    @Autowired
+    @Qualifier("TATISnapshotSvc")
+    private TISnapshotSvc tiSnapshotSvc;
 
     @Autowired
     @Qualifier("TACacheSvc")
@@ -157,6 +162,8 @@ public class CustomTechnicalIndicatorSvcImpl implements ServiceProcessor, Custom
             customTechnicalIndicatorDao.saveItem(item);
 
             cacheSvc.save(item);
+
+            tiSnapshotSvc.createRelevantSnapshots(item);
 
         } catch (final Exception e) {
             e.printStackTrace();

@@ -56,4 +56,22 @@ public class TISnapshotDao {
 
         return snapshots;
     }
+
+    public long snapshotCountWithProperties(final String symbol, final String evaluationPeriod,
+            final String technicalIndicatorKey, final String technicalIndicatorType) {
+
+        final String queryStr = "SELECT COUNT(snapshot) FROM TISnapshot as snapshot"
+                + " WHERE snapshot.symbol = :symbol"
+                + " AND snapshot.technicalIndicatorKey = :technicalIndicatorKey"
+                + " AND snapshot.technicalIndicatorType = :technicalIndicatorType"
+                + " AND snapshot.evaluationPeriod = :evaluationPeriod";
+
+        final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr)
+                .setParameter("symbol", symbol)
+                .setParameter("evaluationPeriod", evaluationPeriod)
+                .setParameter("technicalIndicatorType", technicalIndicatorType)
+                .setParameter("technicalIndicatorKey", technicalIndicatorKey);
+
+        return Long.class.cast(query.getSingleResult());
+    }
 }

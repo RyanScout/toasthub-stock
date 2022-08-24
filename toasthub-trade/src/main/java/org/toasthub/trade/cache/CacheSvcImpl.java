@@ -214,6 +214,8 @@ public class CacheSvcImpl implements ServiceProcessor, CacheSvc {
                     final TISnapshot initializedSnapshot = tiSnapshotSvc.initializeSnapshot(managedSnapshot, startTime,
                             endTime);
 
+                    initializedSnapshot.setUpdating(false);
+
                     tiSnapshotDao.save(initializedSnapshot);
 
                     System.out.println("Initialized Snapshot saved !");

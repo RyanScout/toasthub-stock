@@ -25,11 +25,9 @@ import org.toasthub.trade.model.AssetMinute;
 import org.toasthub.trade.model.CustomTechnicalIndicator;
 import org.toasthub.trade.model.ExpectedException;
 import org.toasthub.trade.model.RequestValidation;
-import org.toasthub.trade.model.Symbol;
 import org.toasthub.trade.model.TISnapshot;
 import org.toasthub.trade.model.TISnapshotDetail;
 import org.toasthub.trade.model.TechnicalIndicator;
-import org.toasthub.trade.model.TechnicalIndicatorDetail;
 import org.toasthub.trade.technical_indicator.TechnicalIndicatorDao;
 
 @Service("TATISnapshotSvc")
@@ -66,7 +64,9 @@ public class TISnapshotSvc implements ServiceProcessor {
     @Override
     public void process(final RestRequest request, final RestResponse response) {
         try {
+
             final String action = (String) request.getParams().get("action");
+
             switch (action) {
                 case "CREATE_SNAPSHOT": {
                     if (request.getParam(GlobalConstant.ITEMID) == null) {
@@ -103,6 +103,8 @@ public class TISnapshotSvc implements ServiceProcessor {
                     final TISnapshot managedSnapshot = tiSnapshotDao.save(initSnapshot);
 
                     final TISnapshot initializedSnapshot = initializeSnapshot(managedSnapshot, startTime, endTime);
+
+                    initializedSnapshot.setUpdating(false);
 
                     tiSnapshotDao.save(initializedSnapshot);
 
@@ -315,4 +317,35 @@ public class TISnapshotSvc implements ServiceProcessor {
         return snapshot;
     }
 
+    public void createRelevantSnapshots(final CustomTechnicalIndicator c) {
+        c.getSymbols().stream()
+                .map(symbol -> symbol.getSymbol())
+                .forEach(symbol -> {
+
+                    final long itemCount = tiSnapshotDao.snapshotCountWithProperties(
+                            symbol,
+                            c.getEvaluationPeriod(),
+                            c.getTechnicalIndicatorKey(),
+                            c.getTechnicalIndicatorType());
+
+                    if (itemCount != 0) {
+                        return;
+                    }
+
+                    final TISnapshot t = new TISnapshot();
+                    t.setSymbol(symbol);
+                    t.setEvaluationPeriod(c.getEvaluationPeriod());
+                    t.setTechnicalIndicatorKey(c.getTechnicalIndicatorKey());
+                    t.setTechnicalIndicatorType(c.getTechnicalIndicatorType());
+                    t.setShortSMAEvaluationDuration(c.getShortSMAEvaluationDuration());
+                    t.setLongSMAEvaluationDuration(c.getLongSMAEvaluationDuration());
+                    t.setLbbEvaluationDuration(c.getLbbEvaluationDuration());
+                    t.setUbbEvaluationDuration(c.getUbbEvaluationDuration());
+                    t.setStandardDeviations(c.getStandardDeviations());
+
+                    tiSnapshotDao.save(t);
+
+                });
+
+    }
 }
