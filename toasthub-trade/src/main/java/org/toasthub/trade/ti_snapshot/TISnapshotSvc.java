@@ -87,18 +87,20 @@ public class TISnapshotSvc implements ServiceProcessor {
 
                     final long endTime = Long.valueOf(String.valueOf(request.getParam("endTime")));
 
+                    final TISnapshot initSnapshot = tiSnapshotDao.findSnapshot(itemId);
+
+                    final TechnicalIndicator technicalIndicator = technicalIndicatorDao.getTechnicalIndicator(
+                            initSnapshot.getSymbol(),
+                            initSnapshot.getEvaluationPeriod(),
+                            initSnapshot.getTechnicalIndicatorKey(),
+                            initSnapshot.getTechnicalIndicatorType());
+
                     // ensures ample data exists to initialize snapshot
-                    algorithmCruncherSvc.backloadAlgorithm(itemId, startTime);
+                    algorithmCruncherSvc.backloadAlgorithm(technicalIndicator.getId(), startTime);
 
                     System.out.println("Algorithms Backloaded !");
 
-                    final TechnicalIndicator technicalIndicator = technicalIndicatorDao.findById(itemId);
-
-                    final TISnapshot initSnapshot = new TISnapshot();
-
                     initSnapshot.setUpdating(true);
-
-                    initSnapshot.copyProperties(technicalIndicator);
 
                     final TISnapshot managedSnapshot = tiSnapshotDao.save(initSnapshot);
 
@@ -115,21 +117,14 @@ public class TISnapshotSvc implements ServiceProcessor {
                     break;
                 }
 
-                case "INITIALIZE_SNAPSHOTS": {
+                case "GET_SNAPSHOTS": {
                     final Object id = request.getParam(GlobalConstant.ITEMID);
                     final long validatedId = validator.validateId(id);
 
                     final CustomTechnicalIndicator customTechnicalIndicator = customTechnicalIndicatorDao
                             .findById(validatedId);
 
-                    final String evaluationPeriod = customTechnicalIndicator.getEvaluationPeriod();
-
-                    final String technicalIndicatorType = customTechnicalIndicator.getTechnicalIndicatorType();
-
-                    final String technicalIndicatorKey = customTechnicalIndicator.getTechnicalIndicatorKey();
-
-                    final List<TISnapshot> snapshots = tiSnapshotDao.getSnapshotsWithProperties(evaluationPeriod,
-                            technicalIndicatorKey, technicalIndicatorType);
+                    final List<TISnapshot> snapshots = tiSnapshotDao.getSnapshots(customTechnicalIndicator);
 
                     response.addParam(GlobalConstant.ITEMS, snapshots);
 
@@ -326,7 +321,8 @@ public class TISnapshotSvc implements ServiceProcessor {
                             symbol,
                             c.getEvaluationPeriod(),
                             c.getTechnicalIndicatorKey(),
-                            c.getTechnicalIndicatorType());
+                            c.getTechnicalIndicatorType(),
+                            c);
 
                     if (itemCount != 0) {
                         return;

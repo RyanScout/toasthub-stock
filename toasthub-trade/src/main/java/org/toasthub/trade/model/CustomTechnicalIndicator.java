@@ -36,6 +36,7 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
     private BigDecimal standardDeviations;
 
     private Set<Symbol> symbols = new LinkedHashSet<Symbol>();
+    private Set<TISnapshot> snapshots = new LinkedHashSet<TISnapshot>();
 
     @Transient
     private List<String> effectiveSymbols = new ArrayList<String>();
@@ -43,13 +44,23 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
     private List<TechnicalIndicator> technicalIndicators = new ArrayList<TechnicalIndicator>();
 
     // Setter/Getter
+
+    @OneToMany(mappedBy = "customTechnicalIndicator", cascade = CascadeType.ALL, orphanRemoval = true)
+    public Set<TISnapshot> getSnapshots() {
+        return snapshots;
+    }
+
+    public void setSnapshots(final Set<TISnapshot> snapshots) {
+        this.snapshots = snapshots;
+    }
+
     @JsonView({ View.Member.class })
     @Column(name = "technical_indicator_type")
     public String getTechnicalIndicatorType() {
         return technicalIndicatorType;
     }
 
-    public void setTechnicalIndicatorType(String technicalIndicatorType) {
+    public void setTechnicalIndicatorType(final String technicalIndicatorType) {
         this.technicalIndicatorType = technicalIndicatorType;
     }
 
@@ -59,7 +70,7 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
         return standardDeviations;
     }
 
-    public void setStandardDeviations(BigDecimal standardDeviations) {
+    public void setStandardDeviations(final BigDecimal standardDeviations) {
         this.standardDeviations = standardDeviations;
     }
 
@@ -69,7 +80,7 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
         return shortSMAEvaluationDuration;
     }
 
-    public void setShortSMAEvaluationDuration(int shortSMAEvaluationDuration) {
+    public void setShortSMAEvaluationDuration(final int shortSMAEvaluationDuration) {
         this.shortSMAEvaluationDuration = shortSMAEvaluationDuration;
     }
 
@@ -79,7 +90,7 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
         return longSMAEvaluationDuration;
     }
 
-    public void setLongSMAEvaluationDuration(int longSMAEvaluationDuration) {
+    public void setLongSMAEvaluationDuration(final int longSMAEvaluationDuration) {
         this.longSMAEvaluationDuration = longSMAEvaluationDuration;
     }
 
@@ -89,7 +100,7 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
         return lbbEvaluationDuration;
     }
 
-    public void setLbbEvaluationDuration(int lbbEvaluationDuration) {
+    public void setLbbEvaluationDuration(final int lbbEvaluationDuration) {
         this.lbbEvaluationDuration = lbbEvaluationDuration;
     }
 
@@ -99,7 +110,7 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
         return ubbEvaluationDuration;
     }
 
-    public void setUbbEvaluationDuration(int ubbEvaluationDuration) {
+    public void setUbbEvaluationDuration(final int ubbEvaluationDuration) {
         this.ubbEvaluationDuration = ubbEvaluationDuration;
     }
 
@@ -109,7 +120,7 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
         return symbols;
     }
 
-    public void setSymbols(Set<Symbol> symbols) {
+    public void setSymbols(final Set<Symbol> symbols) {
         this.symbols = symbols;
     }
 
@@ -119,7 +130,7 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
         return technicalIndicatorKey;
     }
 
-    public void setTechnicalIndicatorKey(String technicalIndicatorKey) {
+    public void setTechnicalIndicatorKey(final String technicalIndicatorKey) {
         this.technicalIndicatorKey = technicalIndicatorKey;
     }
 
@@ -129,7 +140,7 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
         return technicalIndicators;
     }
 
-    public void setTechnicalIndicators(List<TechnicalIndicator> technicalIndicators) {
+    public void setTechnicalIndicators(final List<TechnicalIndicator> technicalIndicators) {
         this.technicalIndicators = technicalIndicators;
     }
 
@@ -139,7 +150,7 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
         return effectiveSymbols;
     }
 
-    public void setEffectiveSymbols(List<String> effectiveSymbols) {
+    public void setEffectiveSymbols(final List<String> effectiveSymbols) {
         this.effectiveSymbols = effectiveSymbols;
     }
 
@@ -149,7 +160,7 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
         return evaluationPeriod;
     }
 
-    public void setEvaluationPeriod(String evaluationPeriod) {
+    public void setEvaluationPeriod(final String evaluationPeriod) {
         this.evaluationPeriod = evaluationPeriod;
     }
 
@@ -159,7 +170,7 @@ public class CustomTechnicalIndicator extends TradeBaseEntity {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 }

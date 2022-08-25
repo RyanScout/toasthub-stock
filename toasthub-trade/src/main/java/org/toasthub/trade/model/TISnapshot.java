@@ -10,12 +10,16 @@ import java.util.Set;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 
 import org.toasthub.core.general.api.View;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonView;
 
 //Technical Indicator Snapshot
@@ -46,6 +50,8 @@ public class TISnapshot extends TradeBaseEntity {
 
     private BigDecimal standardDeviations = BigDecimal.ZERO;
 
+    private CustomTechnicalIndicator customTechnicalIndicator;
+
     private Set<TISnapshotDetail> details = new LinkedHashSet<TISnapshotDetail>();
 
     @Transient
@@ -60,7 +66,7 @@ public class TISnapshot extends TradeBaseEntity {
         this.setCreated(Instant.now());
     }
 
-    public void copyProperties(TechnicalIndicator technicalIndicator) {
+    public void copyProperties(final TechnicalIndicator technicalIndicator) {
         this.setSymbol(technicalIndicator.getSymbol());
         this.setTechnicalIndicatorType(technicalIndicator.getTechnicalIndicatorType());
         this.setTechnicalIndicatorKey(technicalIndicator.getTechnicalIndicatorKey());
@@ -73,6 +79,17 @@ public class TISnapshot extends TradeBaseEntity {
     }
 
     // Setter/Getter
+
+    @JsonIgnore
+    @ManyToOne(targetEntity = CustomTechnicalIndicator.class, fetch = FetchType.LAZY)
+    @JoinColumn(name = "custom_technical_indicator_id")
+    public CustomTechnicalIndicator getCustomTechnicalIndicator() {
+        return customTechnicalIndicator;
+    }
+
+    public void setCustomTechnicalIndicator(final CustomTechnicalIndicator customTechnicalIndicator) {
+        this.customTechnicalIndicator = customTechnicalIndicator;
+    }
 
     @JsonView({ View.Member.class })
     @Transient
