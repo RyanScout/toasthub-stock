@@ -140,11 +140,18 @@ public class CacheSvcImpl implements ServiceProcessor, CacheSvc {
                     if (request.getParam("startTime") == null) {
                         throw new ExpectedException("Start time is null");
                     }
+
+                    if (request.getParam("endTime") == null) {
+                        throw new ExpectedException("Start time is null");
+                    }
+
                     final long itemId = Long.valueOf(String.valueOf(request.getParam(GlobalConstant.ITEMID)));
 
                     final long startTime = Long.valueOf(String.valueOf(request.getParam("startTime")));
 
-                    algorithmCruncherSvc.backloadAlgorithm(itemId, startTime);
+                    final long endTime = Long.valueOf(String.valueOf(request.getParam("endTime")));
+
+                    algorithmCruncherSvc.backloadAlgorithm(itemId, startTime, endTime);
 
                     System.out.println("Algorithms Backloaded !");
 
@@ -155,7 +162,7 @@ public class CacheSvcImpl implements ServiceProcessor, CacheSvc {
                     response.setStatus(RestResponse.SUCCESS);
                     break;
                 }
-                case "CREATE_SNAPSHOT": {
+                case "MODIFY_SNAPSHOT": {
                     if (request.getParam(GlobalConstant.ITEMID) == null) {
                         throw new ExpectedException("Item Id is null");
                     }
@@ -183,11 +190,12 @@ public class CacheSvcImpl implements ServiceProcessor, CacheSvc {
                             initSnapshot.getTechnicalIndicatorType());
 
                     // ensures ample data exists to initialize snapshot
-                    algorithmCruncherSvc.backloadAlgorithm(technicalIndicator.getId(), startTime);
+                    algorithmCruncherSvc.backloadAlgorithm(technicalIndicator.getId(), startTime, endTime);
 
                     System.out.println("Algorithms Backloaded !");
 
                     initSnapshot.setUpdating(true);
+                    initSnapshot.resetSnapshot();
 
                     final TISnapshot managedSnapshot = tiSnapshotDao.save(initSnapshot);
 

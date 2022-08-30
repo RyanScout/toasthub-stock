@@ -7,7 +7,7 @@ import org.toasthub.trade.model.CustomTechnicalIndicator;
 import org.toasthub.trade.model.Symbol;
 
 public interface CustomTechnicalIndicatorDao extends BaseDao {
-    public void saveItem(Object o);
+    public CustomTechnicalIndicator saveItem(Object o);
 
     public CustomTechnicalIndicator getReference(long id);
 

@@ -11,7 +11,7 @@ public interface AlgorithmCruncherSvc extends BaseSvc {
 
     public void loadAlgorithmData(final RestRequest request, final RestResponse response);
 
-    public void backloadAlgorithm(final long itemId, final long startTime) throws Exception;
+    public void backloadAlgorithm(final long itemId, final long startTime, final long endTime) throws Exception;
 
     public void initializeDatabase();
 }

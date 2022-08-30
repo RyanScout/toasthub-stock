@@ -42,8 +42,8 @@ public class CustomTechnicalIndicatorDaoImpl implements CustomTechnicalIndicator
     }
 
     @Override
-    public void saveItem(final Object o) {
-        entityManagerDataSvc.getInstance().merge(o);
+    public CustomTechnicalIndicator saveItem(final Object o) {
+        return CustomTechnicalIndicator.class.cast(entityManagerDataSvc.getInstance().merge(o));
     }
 
     @Override

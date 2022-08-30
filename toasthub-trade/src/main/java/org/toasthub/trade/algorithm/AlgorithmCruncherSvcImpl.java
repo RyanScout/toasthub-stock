@@ -97,7 +97,9 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 
 					final long startTime = Long.valueOf(String.valueOf(request.getParam("startTime")));
 
-					backloadAlgorithm(itemId, startTime);
+					final long endTime = Long.valueOf(String.valueOf(request.getParam("startTime")));
+
+					backloadAlgorithm(itemId, startTime, endTime);
 
 					System.out.println("Algorithms Backloaded !");
 
@@ -752,19 +754,13 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 	}
 
 	@Override
-	public void backloadAlgorithm(final long itemId, final long startTime) throws Exception {
+	public void backloadAlgorithm(final long itemId, final long startTime, final long endTime) throws Exception {
 
 		final TechnicalIndicator t = algorithmCruncherDao.findTechnicalIndicatorById(itemId);
-
-		if (t.isUpdating()) {
-			throw new ExpectedException("Technical Indicator is already updating");
-		}
 
 		if (t.getEvaluationPeriod().toUpperCase().equals("MINUTE")) {
 			throw new Exception("Backloading minute data is not supported");
 		}
-
-		t.setUpdating(true);
 
 		algorithmCruncherDao.saveObject(t);
 
@@ -772,20 +768,20 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 
 		switch (t.getTechnicalIndicatorType()) {
 			case TechnicalIndicator.GOLDENCROSS:
-				backloadSMAValues(t, startTime);
+				backloadSMAValues(t, startTime, endTime);
 				break;
 			case TechnicalIndicator.LOWERBOLLINGERBAND:
-				backloadLBBValues(t, startTime);
+				backloadLBBValues(t, startTime, endTime);
 				break;
 			case TechnicalIndicator.UPPERBOLLINGERBAND:
-				backloadUBBValues(t, startTime);
+				backloadUBBValues(t, startTime, endTime);
 				break;
 			default:
 				throw new ExpectedException("Invalid Technical Indicator");
 		}
 	}
 
-	public void backloadSMAValues(final TechnicalIndicator technicalIndicator, final long startTime)
+	public void backloadSMAValues(final TechnicalIndicator technicalIndicator, final long startTime, final long endTime)
 			throws ExpectedException {
 
 		if (!technicalIndicator.getTechnicalIndicatorType().equals(TechnicalIndicator.GOLDENCROSS)) {
@@ -820,7 +816,7 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 					.parallel()
 					.forEachOrdered(sma -> {
 
-						final long endingEpochSecondsDay = technicalIndicator.getLastCheck();
+						final long endingEpochSecondsDay = endTime;
 
 						final long startingEpochSecondsDay = startTime - (60 * 60 * 24 * sma.getEvaluationDuration());
 
@@ -894,7 +890,7 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 		}
 	}
 
-	public void backloadLBBValues(final TechnicalIndicator technicalIndicator, final long startTime)
+	public void backloadLBBValues(final TechnicalIndicator technicalIndicator, final long startTime, final long endTime)
 			throws ExpectedException {
 
 		if (!technicalIndicator.getTechnicalIndicatorType().equals(TechnicalIndicator.LOWERBOLLINGERBAND)) {
@@ -915,7 +911,7 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 		lbb.setStandardDeviations(standardDeviations);
 		lbb.setSymbol(symbol);
 
-		final long endingEpochSecondsDay = technicalIndicator.getLastCheck();
+		final long endingEpochSecondsDay = endTime;
 
 		final long startingEpochSecondsDay = startTime - (60 * 60 * 24 * lbbEvaluationDuration);
 
@@ -986,7 +982,7 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 		}
 	}
 
-	public void backloadUBBValues(final TechnicalIndicator technicalIndicator, final long startTime)
+	public void backloadUBBValues(final TechnicalIndicator technicalIndicator, final long startTime, final long endTime)
 			throws ExpectedException {
 		if (!technicalIndicator.getTechnicalIndicatorType().equals(TechnicalIndicator.UPPERBOLLINGERBAND)) {
 			throw new ExpectedException("Technical Indicator Type must be Upper Bollinger Band");
@@ -1006,7 +1002,7 @@ public class AlgorithmCruncherSvcImpl implements ServiceProcessor, AlgorithmCrun
 		ubb.setStandardDeviations(standardDeviations);
 		ubb.setSymbol(symbol);
 
-		final long endingEpochSecondsDay = technicalIndicator.getLastCheck();
+		final long endingEpochSecondsDay = endTime;
 
 		final long startingEpochSecondsDay = startTime - (60 * 60 * 24 * ubb.getEvaluationDuration());
 

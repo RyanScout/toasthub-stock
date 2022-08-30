@@ -2,6 +2,7 @@ package org.toasthub.trade.ti_snapshot;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -68,7 +69,7 @@ public class TISnapshotSvc implements ServiceProcessor {
             final String action = (String) request.getParams().get("action");
 
             switch (action) {
-                case "CREATE_SNAPSHOT": {
+                case "MODIFY_SNAPSHOT": {
                     if (request.getParam(GlobalConstant.ITEMID) == null) {
                         throw new ExpectedException("Item Id is null");
                     }
@@ -96,11 +97,12 @@ public class TISnapshotSvc implements ServiceProcessor {
                             initSnapshot.getTechnicalIndicatorType());
 
                     // ensures ample data exists to initialize snapshot
-                    algorithmCruncherSvc.backloadAlgorithm(technicalIndicator.getId(), startTime);
+                    algorithmCruncherSvc.backloadAlgorithm(technicalIndicator.getId(), startTime, endTime);
 
                     System.out.println("Algorithms Backloaded !");
 
                     initSnapshot.setUpdating(true);
+                    initSnapshot.resetSnapshot();
 
                     final TISnapshot managedSnapshot = tiSnapshotDao.save(initSnapshot);
 
@@ -224,7 +226,6 @@ public class TISnapshotSvc implements ServiceProcessor {
         snapshot.setFirstCheck(startTime);
         snapshot.setLastCheck(endTime);
 
-        System.out.println(trimmedFlashes.size());
         if (trimmedFlashes.size() == 0) {
             return snapshot;
         }
@@ -309,6 +310,16 @@ public class TISnapshotSvc implements ServiceProcessor {
 
         });
 
+        // calculates average success percent
+        BigDecimal[] totalWithCount = snapshot.getDetails().stream()
+                .map(detail -> detail.getSuccessPercent())
+                .map(bd -> new BigDecimal[] { bd, BigDecimal.ONE })
+                .reduce((a, b) -> new BigDecimal[] { a[0].add(b[0]), a[1].add(BigDecimal.ONE) })
+                .get();
+
+        BigDecimal average = totalWithCount[0].divide(totalWithCount[1], RoundingMode.HALF_UP);
+        snapshot.setAverageSuccessPercent(average.setScale(2, RoundingMode.HALF_UP));
+
         return snapshot;
     }
 
@@ -329,6 +340,7 @@ public class TISnapshotSvc implements ServiceProcessor {
                     }
 
                     final TISnapshot t = new TISnapshot();
+                    t.setCustomTechnicalIndicator(c);
                     t.setSymbol(symbol);
                     t.setEvaluationPeriod(c.getEvaluationPeriod());
                     t.setTechnicalIndicatorKey(c.getTechnicalIndicatorKey());
@@ -338,6 +350,8 @@ public class TISnapshotSvc implements ServiceProcessor {
                     t.setLbbEvaluationDuration(c.getLbbEvaluationDuration());
                     t.setUbbEvaluationDuration(c.getUbbEvaluationDuration());
                     t.setStandardDeviations(c.getStandardDeviations());
+                    t.setFirstCheck(Instant.now().getEpochSecond());
+                    t.setLastCheck(Instant.now().getEpochSecond());
 
                     tiSnapshotDao.save(t);
 

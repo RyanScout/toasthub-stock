@@ -159,11 +159,11 @@ public class CustomTechnicalIndicatorSvcImpl implements ServiceProcessor, Custom
 
             item.setSymbols(symbolEntities);
 
-            customTechnicalIndicatorDao.saveItem(item);
+            final CustomTechnicalIndicator managedCustomTechnicalIndicator = customTechnicalIndicatorDao.saveItem(item);
 
-            cacheSvc.save(item);
+            cacheSvc.save(managedCustomTechnicalIndicator);
 
-            tiSnapshotSvc.createRelevantSnapshots(item);
+            tiSnapshotSvc.createRelevantSnapshots(managedCustomTechnicalIndicator);
 
         } catch (final Exception e) {
             e.printStackTrace();

@@ -49,6 +49,7 @@ public class TISnapshot extends TradeBaseEntity {
     private int ubbEvaluationDuration = 0;
 
     private BigDecimal standardDeviations = BigDecimal.ZERO;
+    private BigDecimal averageSuccessPercent = BigDecimal.ZERO;
 
     private CustomTechnicalIndicator customTechnicalIndicator;
 
@@ -64,6 +65,16 @@ public class TISnapshot extends TradeBaseEntity {
         this.setArchive(false);
         this.setLocked(false);
         this.setCreated(Instant.now());
+    }
+
+    public void resetSnapshot() {
+        this.setChecked(0);
+        this.setFlashed(0);
+        this.setSuccesses(0);
+        this.setFirstCheck(0);
+        this.setLastCheck(0);
+        this.setLastFlash(0);
+        this.setDetails(new LinkedHashSet<TISnapshotDetail>());
     }
 
     public void copyProperties(final TechnicalIndicator technicalIndicator) {
@@ -89,6 +100,16 @@ public class TISnapshot extends TradeBaseEntity {
 
     public void setCustomTechnicalIndicator(final CustomTechnicalIndicator customTechnicalIndicator) {
         this.customTechnicalIndicator = customTechnicalIndicator;
+    }
+
+    @JsonView({ View.Member.class })
+    @Column(name = "average_success_percent")
+    public BigDecimal getAverageSuccessPercent() {
+        return averageSuccessPercent;
+    }
+
+    public void setAverageSuccessPercent(BigDecimal averageSuccessPercent) {
+        this.averageSuccessPercent = averageSuccessPercent;
     }
 
     @JsonView({ View.Member.class })

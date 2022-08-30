@@ -226,7 +226,7 @@ public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 
 					// ensure technical indicators have sufficient data to historically analyze
 					for (final long id : technicalIndicatorIds) {
-						algorithmCruncherSvc.backloadAlgorithm(id, startTime);
+						algorithmCruncherSvc.backloadAlgorithm(id, startTime, endTime);
 						System.out.println("Backloaded algorithms for technical indicator " + id);
 						cacheManager.backloadTechnicalIndicator(id, startTime);
 						System.out.println("Backloaded technical indicator " + id);

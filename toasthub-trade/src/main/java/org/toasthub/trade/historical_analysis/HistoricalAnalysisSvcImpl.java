@@ -132,7 +132,7 @@ public class HistoricalAnalysisSvcImpl implements ServiceProcessor, HistoricalAn
 
 					// ensure technical indicators have sufficient data to historically analyze
 					for (final long id : technicalIndicatorIds) {
-						algorithmCruncherSvc.backloadAlgorithm(id, startTime);
+						algorithmCruncherSvc.backloadAlgorithm(id, startTime, endTime);
 						cacheManager.backloadTechnicalIndicator(id, startTime);
 					}
 
