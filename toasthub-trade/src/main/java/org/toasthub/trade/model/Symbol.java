@@ -21,16 +21,19 @@ import com.fasterxml.jackson.annotation.JsonView;
 public class Symbol extends TradeBaseEntity {
 
     private static final long serialVersionUID = 1L;
+
     public static final String SPY = "SPY";
     public static final String AAPL = "AAPL";
     public static final String TSLA = "TSLA";
+    public static final String WBA = "WBA";
+
     public static final String BTCUSD = "BTCUSD";
     public static final String LTCUSD = "LTCUSD";
     public static final String ETHUSD = "ETHUSD";
 
     public static final List<String> CRYPTO_SYMBOLS = Arrays.asList(BTCUSD, LTCUSD, ETHUSD);
 
-    public static final List<String> STOCK_SYMBOLS = Arrays.asList(SPY, AAPL, TSLA);
+    public static final List<String> STOCK_SYMBOLS = Arrays.asList(SPY, AAPL, TSLA, WBA);
 
     public static final List<String> SYMBOLS = Stream.concat(CRYPTO_SYMBOLS.stream(), STOCK_SYMBOLS.stream()).toList();
 
