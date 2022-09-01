@@ -17,6 +17,7 @@ import org.toasthub.trade.model.ExpectedException;
 import org.toasthub.trade.model.RequestValidation;
 import org.toasthub.trade.model.Symbol;
 import org.toasthub.trade.model.TISnapshot;
+import org.toasthub.trade.model.TISnapshotDetail;
 import org.toasthub.trade.model.TechnicalIndicator;
 import org.toasthub.trade.model.TechnicalIndicatorDetail;
 import org.toasthub.trade.model.TradeSignalCache;
@@ -161,6 +162,23 @@ public class CacheSvcImpl implements ServiceProcessor, CacheSvc {
 
                     response.setStatus(RestResponse.SUCCESS);
                     break;
+                }
+                case "GET_SNAPSHOT_DETAILS": {
+                    if (request.getParam(GlobalConstant.ITEMID) == null) {
+                        throw new ExpectedException("Item Id is null");
+                    }
+                    final long itemId = Long.valueOf(String.valueOf(request.getParam(GlobalConstant.ITEMID)));
+
+                    final TISnapshot snapshot = tiSnapshotDao.findSnapshot(itemId);
+
+                    final List<TISnapshotDetail> details = tiSnapshotDao.getDetails(snapshot);
+
+                    response.addParam(GlobalConstant.ITEMS, details);
+
+                    response.setStatus(RestResponse.SUCCESS);
+
+                    break;
+
                 }
                 case "MODIFY_SNAPSHOT": {
                     if (request.getParam(GlobalConstant.ITEMID) == null) {

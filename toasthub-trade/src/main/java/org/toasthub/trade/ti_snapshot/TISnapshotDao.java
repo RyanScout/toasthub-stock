@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.toasthub.core.common.EntityManagerDataSvc;
 import org.toasthub.trade.model.CustomTechnicalIndicator;
 import org.toasthub.trade.model.TISnapshot;
+import org.toasthub.trade.model.TISnapshotDetail;
 
 @Repository("TATISnapshotDao")
 @Transactional("TransactionManagerData")
@@ -110,4 +111,18 @@ public class TISnapshotDao {
         return snapshots;
     }
 
+    public List<TISnapshotDetail> getDetails(final TISnapshot snapshot) {
+        final List<TISnapshotDetail> details = new ArrayList<TISnapshotDetail>();
+        final String queryStr = "SELECT DISTINCT detail FROM TISnapshotDetail AS detail"
+                + " WHERE detail.snapshot = :snapshot";
+
+        final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr)
+                .setParameter("snapshot", snapshot);
+
+        for (final Object o : query.getResultList()) {
+            details.add(TISnapshotDetail.class.cast(o));
+        }
+
+        return details;
+    }
 }

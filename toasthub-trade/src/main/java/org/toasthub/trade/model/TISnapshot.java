@@ -172,7 +172,7 @@ public class TISnapshot extends TradeBaseEntity {
         this.standardDeviations = standardDeviations;
     }
 
-    @OneToMany(mappedBy = "TISnapshot", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "snapshot", cascade = CascadeType.ALL, orphanRemoval = true)
     public Set<TISnapshotDetail> getDetails() {
         return details;
     }

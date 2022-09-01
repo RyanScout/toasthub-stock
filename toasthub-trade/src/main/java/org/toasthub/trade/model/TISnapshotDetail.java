@@ -40,14 +40,15 @@ public class TISnapshotDetail extends TradeBaseEntity {
     }
 
     // Setter/Getter
+
     @JsonIgnore
     @ManyToOne(targetEntity = TISnapshot.class, fetch = FetchType.LAZY)
     @JoinColumn(name = "ti_snapshot_id")
-    public TISnapshot getTISnapshot() {
+    public TISnapshot getSnapshot() {
         return snapshot;
     }
 
-    public void setTISnapshot(final TISnapshot snapshot) {
+    public void setSnapshot(final TISnapshot snapshot) {
         this.snapshot = snapshot;
     }
 

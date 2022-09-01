@@ -69,6 +69,23 @@ public class TISnapshotSvc implements ServiceProcessor {
             final String action = (String) request.getParams().get("action");
 
             switch (action) {
+                case "GET_SNAPSHOT_DETAILS": {
+                    if (request.getParam(GlobalConstant.ITEMID) == null) {
+                        throw new ExpectedException("Item Id is null");
+                    }
+                    final long itemId = Long.valueOf(String.valueOf(request.getParam(GlobalConstant.ITEMID)));
+
+                    final TISnapshot snapshot = tiSnapshotDao.findSnapshot(itemId);
+
+                    final List<TISnapshotDetail> details = tiSnapshotDao.getDetails(snapshot);
+
+                    response.addParam(GlobalConstant.ITEMS, details);
+
+                    response.setStatus(RestResponse.SUCCESS);
+
+                    break;
+
+                }
                 case "MODIFY_SNAPSHOT": {
                     if (request.getParam(GlobalConstant.ITEMID) == null) {
                         throw new ExpectedException("Item Id is null");
@@ -237,7 +254,7 @@ public class TISnapshotSvc implements ServiceProcessor {
 
             final TISnapshotDetail snapshotDetail = new TISnapshotDetail();
 
-            snapshotDetail.setTISnapshot(snapshot);
+            snapshotDetail.setSnapshot(snapshot);
 
             snapshotDetail.setFlashTime(assetMinute.getEpochSeconds());
 
@@ -358,4 +375,5 @@ public class TISnapshotSvc implements ServiceProcessor {
                 });
 
     }
+
 }
