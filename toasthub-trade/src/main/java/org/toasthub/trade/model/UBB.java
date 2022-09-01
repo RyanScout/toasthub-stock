@@ -22,7 +22,9 @@ package org.toasthub.trade.model;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -50,6 +52,7 @@ public class UBB extends BaseAlg {
 		this.setCreated(Instant.now());
 		this.setIdentifier("UBB");
 	}
+
 	public UBB(final String symbol) {
 		super();
 		this.setSymbol(symbol);
@@ -67,18 +70,18 @@ public class UBB extends BaseAlg {
 		this.setCreated(Instant.now());
 		this.setIdentifier("UBB");
 	}
-	
+
 	// Setter/Getter
-	@JsonView({View.Member.class})
+	@JsonView({ View.Member.class })
 	@Column(name = "standard_deviations")
 	public BigDecimal getStandardDeviations() {
 		return standardDeviations;
 	}
+
 	public void setStandardDeviations(final BigDecimal standardDeviations) {
 		this.standardDeviations = standardDeviations;
 	}
 
-	
 	// Methods
 	@Override
 	public int hashCode() {
@@ -115,5 +118,132 @@ public class UBB extends BaseAlg {
 	public static BigDecimal calculateUBB(final List<BigDecimal> list, final BigDecimal sma,
 			final BigDecimal standardDeviations) {
 		return sma.add(SMA.calculateSD(list).multiply(standardDeviations));
+	}
+
+	public UBB configureUBB(final List<AssetMinute> assetMinutes) throws InsufficientDataException {
+		final UBB configuredUBB = new UBB();
+
+		configuredUBB.setSymbol(this.symbol);
+		configuredUBB.setEvaluationPeriod(this.evaluationPeriod);
+		configuredUBB.setEvaluationDuration(this.evaluationDuration);
+		configuredUBB.setStandardDeviations(this.standardDeviations);
+
+		// ensures there is enough data to configure SMA value
+		if (assetMinutes.size() < configuredUBB.evaluationDuration) {
+			throw new InsufficientDataException();
+		}
+
+		configuredUBB.setEpochSeconds(assetMinutes.get(assetMinutes.size() - 1).getEpochSeconds());
+
+		final List<BigDecimal> values = assetMinutes
+				.subList(assetMinutes.size() - evaluationDuration, assetMinutes.size())
+				.stream()
+				.map(assetMinute -> assetMinute.getValue())
+				.toList();
+
+		configuredUBB.setValue(
+				calculateUBB(
+						values,
+						configuredUBB.standardDeviations));
+
+		return configuredUBB;
+	}
+
+	public UBB configureUBB(final List<AssetMinute> assetMinutes, final BigDecimal smaValue)
+			throws InsufficientDataException {
+		final UBB configuredUBB = new UBB();
+
+		configuredUBB.setSymbol(this.symbol);
+		configuredUBB.setEvaluationPeriod(this.evaluationPeriod);
+		configuredUBB.setEvaluationDuration(this.evaluationDuration);
+		configuredUBB.setStandardDeviations(this.standardDeviations);
+
+		// ensures there is enough data to configure SMA value
+		if (assetMinutes.size() < configuredUBB.evaluationDuration) {
+			throw new InsufficientDataException();
+		}
+
+		configuredUBB.setEpochSeconds(assetMinutes.get(assetMinutes.size() - 1).getEpochSeconds());
+
+		final List<BigDecimal> values = assetMinutes
+				.subList(assetMinutes.size() - evaluationDuration, assetMinutes.size())
+				.stream()
+				.map(assetMinute -> assetMinute.getValue())
+				.toList();
+
+		configuredUBB.setValue(
+				calculateUBB(
+						values,
+						smaValue,
+						configuredUBB.standardDeviations));
+
+		return configuredUBB;
+	}
+
+	public UBB configureUBB(final List<AssetDay> assetDays, final AssetMinute assetMinute)
+			throws InsufficientDataException {
+		final UBB configuredUBB = new UBB();
+
+		configuredUBB.setSymbol(this.symbol);
+		configuredUBB.setEvaluationPeriod(this.evaluationPeriod);
+		configuredUBB.setEvaluationDuration(this.evaluationDuration);
+		configuredUBB.setStandardDeviations(this.standardDeviations);
+
+		// ensures there is enough data to configure SMA value
+		if (assetDays.size() < configuredUBB.getEvaluationDuration()) {
+			throw new InsufficientDataException();
+		}
+
+		configuredUBB.setEpochSeconds(assetMinute.getEpochSeconds());
+
+		final List<BigDecimal> values = assetDays
+				.subList(assetDays.size() - this.evaluationDuration, assetDays.size())
+				.stream()
+				.map(assetDay -> assetDay.getClose())
+				.collect(Collectors.toCollection(ArrayList::new));
+
+		// configures calculation of assetDay with minute based accuracy
+		values.set(values.size() - 1, assetMinute.getValue());
+
+		configuredUBB.setValue(
+				calculateUBB(
+						values,
+						configuredUBB.standardDeviations));
+
+		return configuredUBB;
+	}
+
+	public UBB configureUBB(final List<AssetDay> assetDays, final AssetMinute assetMinute, final BigDecimal smaValue)
+			throws InsufficientDataException {
+		final UBB configuredUBB = new UBB();
+
+		configuredUBB.setSymbol(this.symbol);
+		configuredUBB.setEvaluationPeriod(this.evaluationPeriod);
+		configuredUBB.setEvaluationDuration(this.evaluationDuration);
+		configuredUBB.setStandardDeviations(this.standardDeviations);
+
+		// ensures there is enough data to configure SMA value
+		if (assetDays.size() < configuredUBB.evaluationDuration) {
+			throw new InsufficientDataException();
+		}
+
+		configuredUBB.setEpochSeconds(assetMinute.getEpochSeconds());
+
+		final List<BigDecimal> values = assetDays
+				.subList(assetDays.size() - this.evaluationDuration, assetDays.size())
+				.stream()
+				.map(assetDay -> assetDay.getClose())
+				.collect(Collectors.toCollection(ArrayList::new));
+
+		// configures calculation of assetDay with minute based accuracy
+		values.set(values.size() - 1, assetMinute.getValue());
+
+		configuredUBB.setValue(
+				calculateUBB(
+						values,
+						smaValue,
+						configuredUBB.standardDeviations));
+
+		return configuredUBB;
 	}
 }

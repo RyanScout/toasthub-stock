@@ -140,7 +140,7 @@ public class HistoricalAnalyzingSvcImpl implements ServiceProcessor, HistoricalA
                 stockPrice = stockDays.get(i).getClose();
                 currentTime = stockDays.get(i).getEpochSeconds();
                 request.addParam("STOCKPRICE", stockPrice);
-                request.addParam(TradeConstant.EPOCHSECONDS, currentTime);
+                request.addParam(TradeConstant.EPOCH_SECONDS, currentTime);
 
                 if (evaluate(
                         buySignals.process(alg1, request, response),

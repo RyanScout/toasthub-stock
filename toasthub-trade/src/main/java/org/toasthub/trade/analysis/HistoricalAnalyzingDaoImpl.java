@@ -77,138 +77,139 @@ public class HistoricalAnalyzingDaoImpl implements HistoricalAnalyzingDao {
 
 	@Override
 	public void itemCount(RestRequest request, RestResponse response) throws Exception {
-		String queryStr = "SELECT COUNT(DISTINCT x) FROM "
-		+request.getParam(TradeConstant.IDENTIFIER)
-		+" as x ";
+		// String queryStr = "SELECT COUNT(DISTINCT x) FROM "
+		// +request.getParam(TradeConstant.IDENTIFIER)
+		// +" as x ";
 
-		boolean and = false;
-		if (request.containsParam(TradeConstant.EPOCHSECONDS)) {
-			if (!and)
-				queryStr += " WHERE ";
-			else
-				queryStr += " AND ";
+		// boolean and = false;
+		// if (request.containsParam(TradeConstant.EPOCH_SECONDS)) {
+		// 	if (!and)
+		// 		queryStr += " WHERE ";
+		// 	else
+		// 		queryStr += " AND ";
 
-			queryStr += "x.epochSeconds =:epochSeconds ";
-			and = true;
-		}
-		if (request.containsParam(TradeConstant.SYMBOL)) {
-			if (!and)
-				queryStr += " WHERE ";
-			else
-				queryStr += " AND ";
+		// 	queryStr += "x.epochSeconds =:epochSeconds ";
+		// 	and = true;
+		// }
+		// if (request.containsParam(TradeConstant.SYMBOL)) {
+		// 	if (!and)
+		// 		queryStr += " WHERE ";
+		// 	else
+		// 		queryStr += " AND ";
 
-			queryStr += "x.stock =:stock ";
-			and = true;
-		}
-		if (request.containsParam(TradeConstant.TYPE)) {
-			if (!and)
-				queryStr += " WHERE ";
-			else
-				queryStr += " AND ";
+		// 	queryStr += "x.stock =:stock ";
+		// 	and = true;
+		// }
+		// if (request.containsParam(TradeConstant.TYPE)) {
+		// 	if (!and)
+		// 		queryStr += " WHERE ";
+		// 	else
+		// 		queryStr += " AND ";
 
-			queryStr += "x.type =:type ";
-			and = true;
-		}
+		// 	queryStr += "x.type =:type ";
+		// 	and = true;
+		// }
 
-		Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+		// Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
 
-		if (request.containsParam(TradeConstant.EPOCHSECONDS)) {
-			query.setParameter("epochSeconds", (long)request.getParam(TradeConstant.EPOCHSECONDS));
-		}
-		if (request.containsParam(TradeConstant.TYPE)) {
-			query.setParameter("type", (String) request.getParam(TradeConstant.TYPE));
-		}
-		if (request.containsParam(TradeConstant.SYMBOL)) {
-			query.setParameter("stock", (String) request.getParam(TradeConstant.SYMBOL));
-		}
+		// if (request.containsParam(TradeConstant.EPOCH_SECONDS)) {
+		// 	query.setParameter("epochSeconds", (long)request.getParam(TradeConstant.EPOCH_SECONDS));
+		// }
+		// if (request.containsParam(TradeConstant.TYPE)) {
+		// 	query.setParameter("type", (String) request.getParam(TradeConstant.TYPE));
+		// }
+		// if (request.containsParam(TradeConstant.SYMBOL)) {
+		// 	query.setParameter("stock", (String) request.getParam(TradeConstant.SYMBOL));
+		// }
 
-		Long count = (Long) query.getSingleResult();
-		if (count == null) {
-			count = 0l;
-		}
-		response.addParam(GlobalConstant.ITEMCOUNT, count);
+		// Long count = (Long) query.getSingleResult();
+		// if (count == null) {
+		// 	count = 0l;
+		// }
+		// response.addParam(GlobalConstant.ITEMCOUNT, count);
 	}
 
 	@Override
 	public void item(RestRequest request, RestResponse response) throws Exception {
-		String x = "";
-		switch ((String) request.getParam(TradeConstant.IDENTIFIER)) {
-			case "SMA":
-				x = "SMA";
-				break;
-			case "EMA":
-				x= "EMA";
-				break;
-			case "LBB":
-				x = "LBB";
-				break;
-			case "MACD":
-				x = "MACD";
-				break;
-			case "SL":
-				x = "SL";
-				break;
-			default:
-				break;
-		}
+		// String x = "";
+		// switch ((String) request.getParam(TradeConstant.IDENTIFIER)) {
+		// 	case "SMA":
+		// 		x = "SMA";
+		// 		break;
+		// 	case "EMA":
+		// 		x= "EMA";
+		// 		break;
+		// 	case "LBB":
+		// 		x = "LBB";
+		// 		break;
+		// 	case "MACD":
+		// 		x = "MACD";
+		// 		break;
+		// 	case "SL":
+		// 		x = "SL";
+		// 		break;
+		// 	default:
+		// 		break;
+		// }
 
-		String queryStr = "SELECT DISTINCT x FROM "
-		+ x
-		+" AS x"
-		+ " WHERE x.epochSeconds =:epochSeconds"
-		+ " AND x.type =: type AND x.stock =:stock";
+		// String queryStr = "SELECT DISTINCT x FROM "
+		// + x
+		// +" AS x"
+		// + " WHERE x.epochSeconds =:epochSeconds"
+		// + " AND x.type =: type AND x.stock =:stock";
 
-		Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
-		query.setParameter("epochSeconds", request.getParam(TradeConstant.EPOCHSECONDS));
-		query.setParameter("type", request.getParam(TradeConstant.TYPE));
-		query.setParameter("stock", request.getParam(TradeConstant.SYMBOL));
-		Object result = query.getSingleResult();
+		// Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+		// query.setParameter("epochSeconds", request.getParam(TradeConstant.EPOCH_SECONDS));
+		// query.setParameter("type", request.getParam(TradeConstant.TYPE));
+		// query.setParameter("stock", request.getParam(TradeConstant.SYMBOL));
+		// Object result = query.getSingleResult();
 
-		response.addParam(GlobalConstant.ITEM , result);
+		// response.addParam(GlobalConstant.ITEM , result);
 	}
 
 	@Override
 	public BigDecimal queryAlgValue(String alg, String stock, String type, long epochSeconds) {
-		String queryStr = "SELECT DISTINCT x FROM " + alg + " AS x"
-				+ " WHERE x.epochSeconds =:epochSeconds"
-				+ " AND x.type =: type AND x.stock =:stock";
-		Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
-		query.setParameter("epochSeconds", epochSeconds);
-		query.setParameter("type", type);
-		query.setParameter("stock", stock);
-		try {
-			switch (alg) {
-				case "SMA":
-					SMA sma = (SMA) query.getSingleResult();
-					return sma.getValue();
+		return BigDecimal.ZERO;
+		// String queryStr = "SELECT DISTINCT x FROM " + alg + " AS x"
+		// 		+ " WHERE x.epochSeconds =:epochSeconds"
+		// 		+ " AND x.type =: type AND x.stock =:stock";
+		// Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+		// query.setParameter("epochSeconds", epochSeconds);
+		// query.setParameter("type", type);
+		// query.setParameter("stock", stock);
+		// try {
+		// 	switch (alg) {
+		// 		case "SMA":
+		// 			SMA sma = (SMA) query.getSingleResult();
+		// 			return sma.getValue();
 
-				case "MACD":
-					MACD macd = (MACD) query.getSingleResult();
-					return macd.getValue();
+		// 		case "MACD":
+		// 			MACD macd = (MACD) query.getSingleResult();
+		// 			return macd.getValue();
 
-				case "SL":
-					SL sl = (SL) query.getSingleResult();
-					return sl.getValue();
+		// 		case "SL":
+		// 			SL sl = (SL) query.getSingleResult();
+		// 			return sl.getValue();
 
-				case "EMA":
-					EMA ema = (EMA) query.getSingleResult();
-					return ema.getValue();
+		// 		case "EMA":
+		// 			EMA ema = (EMA) query.getSingleResult();
+		// 			return ema.getValue();
 
-				case "LBB":
-					LBB lbb = (LBB) query.getSingleResult();
-					return lbb.getValue();
+		// 		case "LBB":
+		// 			LBB lbb = (LBB) query.getSingleResult();
+		// 			return lbb.getValue();
 
-				default:
-					return null;
-			}
-		} catch (Exception e) {
-			if (e.getMessage().equals("No entity found for query"))
-				return null;
-			else {
-				e.printStackTrace();
-				return null;
-			}
-		}
+		// 		default:
+		// 			return null;
+		// 	}
+		// } catch (Exception e) {
+		// 	if (e.getMessage().equals("No entity found for query"))
+		// 		return null;
+		// 	else {
+		// 		e.printStackTrace();
+		// 		return null;
+		// 	}
+		// }
 	}
 
 }

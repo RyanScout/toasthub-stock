@@ -10,27 +10,25 @@ import java.util.Set;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 
 import org.toasthub.core.general.api.View;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonView;
 
+//Technical Indicator Snapshot
 @Entity
-@Table(name = "ta_technical_indicator")
-public class TechnicalIndicator extends TradeBaseEntity {
+@Table(name = "ta_ti_snapshot")
+public class TISnapshot extends TradeBaseEntity {
 
     private static final long serialVersionUID = 1L;
-    public static final String GOLDENCROSS = "GoldenCross";
-    public static final String LOWERBOLLINGERBAND = "LowerBollingerBand";
-    public static final String UPPERBOLLINGERBAND = "UpperBollingerBand";
-    public static final String[] TECHNICAL_INDICATOR_TYPES = {
-            GOLDENCROSS, LOWERBOLLINGERBAND, UPPERBOLLINGERBAND
-    };
 
-    private boolean flashing = false;
     private boolean updating = false;
 
     private String evaluationPeriod = "";
@@ -51,13 +49,17 @@ public class TechnicalIndicator extends TradeBaseEntity {
     private int ubbEvaluationDuration = 0;
 
     private BigDecimal standardDeviations = BigDecimal.ZERO;
+    private BigDecimal averageSuccessPercent = BigDecimal.ZERO;
 
-    private Set<TechnicalIndicatorDetail> details = new LinkedHashSet<TechnicalIndicatorDetail>();
+    private CustomTechnicalIndicator customTechnicalIndicator;
 
-    @Transient private List<TechnicalIndicatorDetail> effectiveDetails = new ArrayList<TechnicalIndicatorDetail>();
+    private Set<TISnapshotDetail> details = new LinkedHashSet<TISnapshotDetail>();
+
+    @Transient
+    private List<TISnapshotDetail> effectiveDetails = new ArrayList<TISnapshotDetail>();
 
     // Constructors
-    public TechnicalIndicator() {
+    public TISnapshot() {
         super();
         this.setActive(true);
         this.setArchive(false);
@@ -65,15 +67,58 @@ public class TechnicalIndicator extends TradeBaseEntity {
         this.setCreated(Instant.now());
     }
 
+    public void resetSnapshot() {
+        this.setChecked(0);
+        this.setFlashed(0);
+        this.setSuccesses(0);
+        this.setFirstCheck(0);
+        this.setLastCheck(0);
+        this.setLastFlash(0);
+        this.setDetails(new LinkedHashSet<TISnapshotDetail>());
+    }
+
+    public void copyProperties(final TechnicalIndicator technicalIndicator) {
+        this.setSymbol(technicalIndicator.getSymbol());
+        this.setTechnicalIndicatorType(technicalIndicator.getTechnicalIndicatorType());
+        this.setTechnicalIndicatorKey(technicalIndicator.getTechnicalIndicatorKey());
+        this.setEvaluationPeriod(technicalIndicator.getEvaluationPeriod());
+        this.setShortSMAEvaluationDuration(technicalIndicator.getShortSMAEvaluationDuration());
+        this.setLongSMAEvaluationDuration(technicalIndicator.getLongSMAEvaluationDuration());
+        this.setStandardDeviations(technicalIndicator.getStandardDeviations());
+        this.setLbbEvaluationDuration(technicalIndicator.getLbbEvaluationDuration());
+        this.setUbbEvaluationDuration(technicalIndicator.getUbbEvaluationDuration());
+    }
+
     // Setter/Getter
+
+    @JsonIgnore
+    @ManyToOne(targetEntity = CustomTechnicalIndicator.class, fetch = FetchType.LAZY)
+    @JoinColumn(name = "custom_technical_indicator_id")
+    public CustomTechnicalIndicator getCustomTechnicalIndicator() {
+        return customTechnicalIndicator;
+    }
+
+    public void setCustomTechnicalIndicator(final CustomTechnicalIndicator customTechnicalIndicator) {
+        this.customTechnicalIndicator = customTechnicalIndicator;
+    }
+
+    @JsonView({ View.Member.class })
+    @Column(name = "average_success_percent")
+    public BigDecimal getAverageSuccessPercent() {
+        return averageSuccessPercent;
+    }
+
+    public void setAverageSuccessPercent(BigDecimal averageSuccessPercent) {
+        this.averageSuccessPercent = averageSuccessPercent;
+    }
 
     @JsonView({ View.Member.class })
     @Transient
-    public List<TechnicalIndicatorDetail> getEffectiveDetails() {
+    public List<TISnapshotDetail> getEffectiveDetails() {
         return effectiveDetails;
     }
 
-    public void setEffectiveDetails(final List<TechnicalIndicatorDetail> effectiveDetails) {
+    public void setEffectiveDetails(final List<TISnapshotDetail> effectiveDetails) {
         this.effectiveDetails = effectiveDetails;
     }
 
@@ -127,12 +172,12 @@ public class TechnicalIndicator extends TradeBaseEntity {
         this.standardDeviations = standardDeviations;
     }
 
-    @OneToMany(mappedBy = "technicalIndicator", cascade = CascadeType.ALL, orphanRemoval = true)
-    public Set<TechnicalIndicatorDetail> getDetails() {
+    @OneToMany(mappedBy = "snapshot", cascade = CascadeType.ALL, orphanRemoval = true)
+    public Set<TISnapshotDetail> getDetails() {
         return details;
     }
 
-    public void setDetails(final Set<TechnicalIndicatorDetail> details) {
+    public void setDetails(final Set<TISnapshotDetail> details) {
         this.details = details;
     }
 
@@ -184,16 +229,6 @@ public class TechnicalIndicator extends TradeBaseEntity {
 
     public void setLastFlash(final long lastFlash) {
         this.lastFlash = lastFlash;
-    }
-
-    @JsonView({ View.Member.class })
-    @Column(name = "flashing")
-    public boolean isFlashing() {
-        return flashing;
-    }
-
-    public void setFlashing(final boolean flashing) {
-        this.flashing = flashing;
     }
 
     @JsonView({ View.Member.class })

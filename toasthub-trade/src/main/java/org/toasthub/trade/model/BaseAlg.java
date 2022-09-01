@@ -9,76 +9,89 @@ import org.toasthub.core.general.api.View;
 
 import com.fasterxml.jackson.annotation.JsonView;
 
-
 @MappedSuperclass()
 public abstract class BaseAlg extends TradeBaseEntity {
 
     private static final long serialVersionUID = 1L;
+
     protected String symbol = "";
-    protected BigDecimal value = BigDecimal.ZERO;
-    protected String type = "";
+    protected String evaluationPeriod = "";
+
+    protected int evaluationDuration = 0;
+
     protected long epochSeconds = 0;
     protected long correspondingDay = 0;
+
+    protected BigDecimal value = BigDecimal.ZERO;
 
     // Constructor
     public BaseAlg() {
         super();
     }
-    public BaseAlg(final String symbol) {
-        super();
-    }
-
-    public BaseAlg(final String code, final Boolean defaultLang, final String dir) {
-        super();
-    }
 
     // Setter/Getter
-    @JsonView({View.Member.class})
+
+    @JsonView({ View.Member.class })
+    @Column(name = "evaluation_period")
+    public String getEvaluationPeriod() {
+        return evaluationPeriod;
+    }
+
+    public void setEvaluationPeriod(final String evaluationPeriod) {
+        this.evaluationPeriod = evaluationPeriod;
+    }
+
+    @JsonView({ View.Member.class })
+    @Column(name = "evaluation_duration")
+    public int getEvaluationDuration() {
+        return evaluationDuration;
+    }
+
+    public void setEvaluationDuration(final int evaluationDuration) {
+        this.evaluationDuration = evaluationDuration;
+    }
+
+    @JsonView({ View.Member.class })
     @Column(name = "corresponding_day")
     public long getCorrespondingDay() {
         return correspondingDay;
     }
+
     public void setCorrespondingDay(final long correspondingDay) {
         this.correspondingDay = correspondingDay;
     }
 
-    @JsonView({View.Member.class})
-    @Column(name = "type")
-    public String getType() {
-        return type;
-    }
-    public void setType(final String type) {
-        this.type = type;
-    }
-
-    @JsonView({View.Member.class})
+    @JsonView({ View.Member.class })
     @Column(name = "value")
     public BigDecimal getValue() {
         return value;
     }
+
     public void setValue(final BigDecimal value) {
         this.value = value;
     }
 
-    @JsonView({View.Member.class})
+    @JsonView({ View.Member.class })
     @Column(name = "symbol")
     public String getSymbol() {
         return symbol;
     }
+
     public void setSymbol(final String symbol) {
         this.symbol = symbol;
     }
 
-    @JsonView({View.Member.class})
+    @JsonView({ View.Member.class })
     @Column(name = "epoch_seconds")
     public long getEpochSeconds() {
         return epochSeconds;
     }
+
     public void setEpochSeconds(final long epochSeconds) {
 
         this.epochSeconds = epochSeconds;
     }
-    
+
     @Override
     protected Object clone() throws CloneNotSupportedException {
         return super.clone();
@@ -90,8 +103,9 @@ public abstract class BaseAlg extends TradeBaseEntity {
         int result = 1;
         result = prime * result + (int) (correspondingDay ^ (correspondingDay >>> 32));
         result = prime * result + (int) (epochSeconds ^ (epochSeconds >>> 32));
+        result = prime * result + evaluationDuration;
+        result = prime * result + ((evaluationPeriod == null) ? 0 : evaluationPeriod.hashCode());
         result = prime * result + ((symbol == null) ? 0 : symbol.hashCode());
-        result = prime * result + ((type == null) ? 0 : type.hashCode());
         result = prime * result + ((value == null) ? 0 : value.hashCode());
         return result;
     }
@@ -109,15 +123,17 @@ public abstract class BaseAlg extends TradeBaseEntity {
             return false;
         if (epochSeconds != other.epochSeconds)
             return false;
+        if (evaluationDuration != other.evaluationDuration)
+            return false;
+        if (evaluationPeriod == null) {
+            if (other.evaluationPeriod != null)
+                return false;
+        } else if (!evaluationPeriod.equals(other.evaluationPeriod))
+            return false;
         if (symbol == null) {
             if (other.symbol != null)
                 return false;
         } else if (!symbol.equals(other.symbol))
-            return false;
-        if (type == null) {
-            if (other.type != null)
-                return false;
-        } else if (!type.equals(other.type))
             return false;
         if (value == null) {
             if (other.value != null)
