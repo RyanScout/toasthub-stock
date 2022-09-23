@@ -12,7 +12,7 @@ import com.fasterxml.jackson.annotation.JsonView;
 public class TradeBaseEntity extends BaseEntity {
 
 	private static final long serialVersionUID = 1L;
-	protected String identifier;
+	protected String identifier = "";
 
 	// Constructor
 	public TradeBaseEntity() {

@@ -4,31 +4,44 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
-
-import javax.persistence.NoResultException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.expression.ExpressionParser;
-import org.springframework.expression.ParseException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.stereotype.Service;
 import org.toasthub.core.general.handler.ServiceProcessor;
 import org.toasthub.core.general.model.GlobalConstant;
 import org.toasthub.core.general.model.RestRequest;
 import org.toasthub.core.general.model.RestResponse;
+import org.toasthub.trade.algorithm.AlgorithmCruncherSvc;
+import org.toasthub.trade.cache.CacheManager;
 import org.toasthub.trade.custom_technical_indicator.CustomTechnicalIndicatorDao;
+import org.toasthub.trade.historical_analysis.HistoricalAnalysisDao;
+import org.toasthub.trade.historical_analysis.HistoricalAnalysisSvc;
 import org.toasthub.trade.model.CustomTechnicalIndicator;
 import org.toasthub.trade.model.RequestValidation;
+import org.toasthub.trade.model.TechnicalIndicator;
 import org.toasthub.trade.model.Trade;
-import org.toasthub.trade.model.TradeConstant;
+import org.toasthub.trade.model.TradeDetail;
 
 @Service("TATradeSvc")
 public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
+
+	@Autowired
+	@Qualifier("TAHistoricalAnalysisSvc")
+	private HistoricalAnalysisSvc historicalAnalysisSvc;
+
+	@Autowired
+	@Qualifier("TAHistoricalAnalysisDao")
+	private HistoricalAnalysisDao historicalAnalysisDao;
 
 	@Autowired
 	@Qualifier("TATradeDao")
@@ -37,6 +50,18 @@ public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 	@Autowired
 	@Qualifier("TACustomTechnicalIndicatorDao")
 	private CustomTechnicalIndicatorDao customTechnicalIndicatorDao;
+
+	@Autowired
+	@Qualifier("TARequestValidation")
+	private RequestValidation validator;
+
+	@Autowired
+	@Qualifier("TACacheManager")
+	private CacheManager cacheManager;
+
+	@Autowired
+	@Qualifier("TAAlgorithmCruncherSvc")
+	private AlgorithmCruncherSvc algorithmCruncherSvc;
 
 	final ExpressionParser parser = new SpelExpressionParser();
 
@@ -48,290 +73,356 @@ public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 
 	@Override
 	public void process(final RestRequest request, final RestResponse response) {
-		final String action = (String) request.getParams().get("action");
+		try {
+			final String action = (String) request.getParams().get("action");
+			switch (action) {
+				case "ITEM":
+					item(request, response);
+					break;
+				case "LIST":
+					items(request, response);
+					break;
+				case "HISTORICAL_ANALYSIS_LIST":
+					final List<Trade> historicalAnalyses = historicalAnalysisSvc.getHistoricalAnalyses();
+					response.addParam(GlobalConstant.ITEMS, historicalAnalyses);
+					response.setStatus(RestResponse.SUCCESS);
+					break;
+				case "SAVE":
+					save(request, response);
+					break;
+				case "DELETE":
+					delete(request, response);
+					break;
+				case "RESET_TRADE": {
+					final long itemId = validator.validateId(request.getParam(GlobalConstant.ITEMID));
+					tradeDao.resetTrade(itemId);
+					response.setStatus(RestResponse.SUCCESS);
+					break;
+				}
+				case "GET_TRADE_DETAILS": {
+					final long itemId = validator.validateId(request.getParam(GlobalConstant.ITEMID));
+					final List<TradeDetail> tradeDetails = getTradeDetails(itemId);
+					tradeDetails.stream().forEach(detail -> {
+						final String[] parsedOrderConditions = detail.getOrderCondition().split(",");
+						final List<String> rawOrderConditions = new ArrayList<String>();
+						for (final String orderCondition : parsedOrderConditions) {
 
-		switch (action) {
-			case "ITEM":
-				item(request, response);
-				break;
-			case "LIST":
-				items(request, response);
-				break;
-			case "SAVE":
-				save(request, response);
-				break;
-			case "DELETE":
-				delete(request, response);
-				break;
-			case "RESET":
-				reset(request, response);
-				break;
-			case "SYMBOL_DATA":
-				getSymbolData(request, response);
-				break;
+							final String trimmedOrderCondition = orderCondition.trim();
 
-			default:
-				break;
+							final long customTechnicalIndicatorId = Long.valueOf(trimmedOrderCondition);
+
+							final CustomTechnicalIndicator customTechnicalIndicator = customTechnicalIndicatorDao
+									.findById(customTechnicalIndicatorId);
+
+							rawOrderConditions.add(customTechnicalIndicator.getName());
+						}
+
+						final String rawOrderCondition = String.join(", ", rawOrderConditions);
+
+						detail.setRawOrderCondition(rawOrderCondition);
+					});
+					response.addParam("DETAILS", tradeDetails);
+					response.setStatus(RestResponse.SUCCESS);
+					break;
+				}
+				case "GET_GRAPH_DATA": {
+					final long itemId = validator.validateId(request.getParam(GlobalConstant.ITEMID));
+					final Trade trade = tradeDao.getTradeById(itemId);
+					final List<TradeDetail> tradeDetails = getTradeDetails(itemId);
+
+					if (tradeDetails.size() == 0) {
+						response.setStatus(RestResponse.SUCCESS);
+						break;
+					}
+
+					if (trade.getFirstCheck() == 0) {
+						response.setStatus(RestResponse.SUCCESS);
+						break;
+					}
+
+					final long startTime = trade.getFirstCheck();
+
+					final long endTime = trade.getLastCheck();
+
+					final long assetMinuteCount = tradeDao.getAssetMinuteCountWithinTimeFrame(trade.getSymbol(),
+							startTime, endTime);
+
+					final int filterFactor;
+
+					if (assetMinuteCount <= 100) {
+						filterFactor = 1;
+					} else {
+						filterFactor = (int) (assetMinuteCount / 100);
+					}
+
+					final List<Object[]> symbolData = tradeDao.getFilteredSymbolData(trade.getSymbol(),
+							startTime, endTime, filterFactor);
+
+					tradeDetails.stream().forEach(detail -> {
+						final Object[] objectArr = {
+								detail.getFilledAt(),
+								detail.getAssetPrice()
+						};
+						symbolData.add(objectArr);
+					});
+
+					response.addParam("DETAILS", tradeDetails);
+					response.addParam("SYMBOL_DATA", symbolData);
+
+					response.setStatus(RestResponse.SUCCESS);
+					break;
+				}
+				case "HISTORICAL_ANALYSIS": {
+					if ((!request.containsParam(GlobalConstant.ITEM))
+							|| (request.getParam(GlobalConstant.ITEM) == null)
+							|| !(request.getParam(GlobalConstant.ITEM) instanceof LinkedHashMap)) {
+						throw new Exception("Item is null or not an instance of a linked hash map");
+					}
+
+					final Map<?, ?> m = Map.class.cast(request.getParam(GlobalConstant.ITEM));
+
+					final Map<String, Object> itemProperties = new HashMap<String, Object>();
+
+					for (final Object o : m.keySet()) {
+						itemProperties.put(String.class.cast(o), m.get(String.class.cast(o)));
+					}
+
+					final long tradeId = validator.validateId(itemProperties.get("id"));
+
+					final Trade trade = tradeDao.findTradeById(tradeId);
+
+					final Set<Long> technicalIndicatorIds = new HashSet<Long>();
+
+					Stream.of(trade.getParsedBuyCondition().split(" ")).forEach(s -> {
+
+						if (Arrays.asList("(", ")", "||", "&&", "").contains(s)) {
+							return;
+						}
+						final long customTechnicalIndicatorId = Long.valueOf(s);
+
+						final CustomTechnicalIndicator c = tradeDao
+								.getCustomTechnicalIndicatorById(customTechnicalIndicatorId);
+						final TechnicalIndicator t = tradeDao.getTechnicalIndicatorByProperties(trade.getSymbol(),
+								c.getEvaluationPeriod(), c.getTechnicalIndicatorKey(), c.getTechnicalIndicatorType());
+						technicalIndicatorIds.add(t.getId());
+					});
+
+					Stream.of(trade.getParsedSellCondition().split(" ")).forEach(s -> {
+						if (Arrays.asList("(", ")", "||", "&&", "").contains(s)) {
+							return;
+						}
+						final long customTechnicalIndicatorId = Long.valueOf(s);
+
+						final CustomTechnicalIndicator c = tradeDao
+								.getCustomTechnicalIndicatorById(customTechnicalIndicatorId);
+						final TechnicalIndicator t = tradeDao.getTechnicalIndicatorByProperties(trade.getSymbol(),
+								c.getEvaluationPeriod(), c.getTechnicalIndicatorKey(), c.getTechnicalIndicatorType());
+						technicalIndicatorIds.add(t.getId());
+					});
+
+					final long startTime = validator.validateDate(itemProperties.get("startTime"));
+
+					final long endTime = validator.validateDate(itemProperties.get("endTime"));
+
+					// ensure technical indicators have sufficient data to historically analyze
+					for (final long id : technicalIndicatorIds) {
+						algorithmCruncherSvc.backloadAlgorithm(id, startTime, endTime);
+						System.out.println("Backloaded algorithms for technical indicator " + id);
+						cacheManager.backloadTechnicalIndicator(id, startTime);
+						System.out.println("Backloaded technical indicator " + id);
+					}
+
+					historicalAnalysisSvc.historicalAnalysis(trade, startTime, endTime);
+
+					System.out.println("Historical Analysis Complete");
+
+					response.setStatus(RestResponse.SUCCESS);
+
+					break;
+				}
+				default:
+					throw new Exception("Action : " + action + " is not recognized");
+			}
+		} catch (final Exception e) {
+			response.setStatus("Exception : " + e.getMessage());
+			e.printStackTrace();
 		}
-
 	}
 
 	@Override
 	public void save(final RestRequest request, final RestResponse response) {
-		if ((!request.containsParam(GlobalConstant.ITEM)) || (request.getParam(GlobalConstant.ITEM) == null)) {
-			response.setStatus(RestResponse.ERROR);
-			return;
-		}
-
-		response.setStatus("Starting !");
-
-		final Map<?, ?> m = Map.class.cast(request.getParam(GlobalConstant.ITEM));
-
-		final Map<String, Object> tempMap = new HashMap<String, Object>();
-
-		for (final Object o : m.keySet()) {
-			tempMap.put(String.class.cast(o), m.get(String.class.cast(o)));
-		}
-
-		request.setParams(tempMap);
-
-		if (request.getParam("name") == null || ((String) request.getParam("name")).trim().isEmpty()) {
-			response.setStatus("Name cannot be empty");
-			return;
-		}
-
-		if (request.getParam("orderSide") == null
-				|| !Arrays.asList(Trade.SUPPORTED_ORDER_SIDES).contains((String) request.getParam("orderSide"))) {
-			response.setStatus("Orderside cannot be empty");
-			return;
-		}
-
-		if (request.getParam("orderType") == null
-				|| !Arrays.asList(Trade.SUPPORTED_ORDER_TYPES).contains((String) request.getParam("orderType"))) {
-			response.setStatus("Ordertype is not supported");
-			return;
-		}
-
-		if (request.getParam("evaluationPeriod") == null) {
-			response.setStatus("Evaluation period cannot be empty");
-			return;
-		}
-
-		if (request.getParam("symbol") == null) {
-			response.setStatus("Symbol cannot be empty");
-			return;
-		}
-
-		if (request.getParam("status") == null) {
-			response.setStatus("Status cannot be empty");
-			return;
-		}
-
-		if (request.getParam("currencyType") == null) {
-			response.setStatus("Currency type must be specified");
-			return;
-		}
-
-		if (request.getParam("currencyAmount") == null) {
-			response.setStatus("Currency amount must be specified");
-			return;
-		}
-
-		switch ((String) request.getParam("currencyType")) {
-			case "Dollars":
-				RequestValidation.validateDollars(request, response);
-				break;
-			case "Shares":
-				RequestValidation.validateShares(request, response);
-				break;
-			default:
-				response.setStatus(RestResponse.ERROR);
-				return;
-		}
-
-		switch ((String) request.getParam("orderType")) {
-			case Trade.MARKET:
-				break;
-			case Trade.PROFIT_LIMIT:
-				request.addParam("PROFIT_LIMIT_TYPE", request.getParam("profitLimitType"));
-				RequestValidation.validateProfitLimitAmount(request, response);
-				break;
-			case Trade.TRAILING_STOP:
-				request.addParam("TRAILING_STOP_TYPE", request.getParam("trailingStopType"));
-				RequestValidation.validateTrailingStopAmount(request, response);
-				break;
-			case Trade.TRAILING_STOP_PROFIT_LIMIT:
-				request.addParam("TRAILING_STOP_TYPE", request.getParam("trailingStopType"));
-				request.addParam("PROFIT_LIMIT_TYPE", request.getParam("profitLimitType"));
-				RequestValidation.validateProfitLimitAmount(request, response);
-				RequestValidation.validateTrailingStopAmount(request, response);
-				break;
-			default:
-				response.setStatus(RestResponse.ERROR);
-				return;
-		}
-
-		Long itemId = null;
-
-		if (request.getParam("id") instanceof Integer) {
-			itemId = Long.valueOf((Integer) request.getParams().remove("id"));
-		}
-
-		switch ((String) request.getParam("orderSide")) {
-			case Trade.BOT:
-				validateBuyCondition(request, response);
-				validateSellCondition(request, response);
-
-				if (request.getParam("budget") == null) {
-					response.setStatus("Budget cannot be empty");
-					return;
-				}
-				RequestValidation.validateBudget(request, response);
-
-				request.addParam("ITERATIONS", "unlimited");
-				break;
-			case Trade.BUY:
-				validateBuyCondition(request, response);
-				request.addParam("ITERATIONS", request.getParam("iterations"));
-				break;
-			case Trade.SELL:
-				validateSellCondition(request, response);
-				request.addParam("ITERATIONS", request.getParam("iterations"));
-				break;
-			default:
-				response.setStatus("Invalid orderside");
-				return;
-		}
-
-		request.addParam("NAME", request.getParam("name"));
-		request.addParam("ORDER_SIDE", request.getParam("orderSide"));
-		request.addParam("ORDER_TYPE", request.getParam("orderType"));
-		request.addParam("EVALUATION_PERIOD", request.getParam("evaluationPeriod"));
-		request.addParam("SYMBOL", request.getParam("symbol"));
-		request.addParam("STATUS", request.getParam("status"));
-		request.addParam("CURRENCY_TYPE", request.getParam("currencyType"));
-
-		request.getParams().remove(GlobalConstant.ACTIVE);
-		request.getParams().remove("RUNSTATUS");
-
-		Trade trade = new Trade();
-
-		if (itemId != null) {
-			request.addParam(GlobalConstant.ITEMID, itemId);
-			try {
-				tradeDao.item(request, response);
-			} catch (final Exception e) {
-				e.printStackTrace();
-				return;
-			}
-			trade = (Trade) response.getParam(GlobalConstant.ITEM);
-		}
-
-		if (itemId == null) {
-			try {
-				tradeDao.itemCount(request, response);
-			} catch (final Exception e) {
-				e.printStackTrace();
-				return;
-			}
-
-			if ((long) response.getParam(GlobalConstant.ITEMCOUNT) > 0) {
-				response.setStatus("Trade of the same name exists");
-				return;
-			}
-		}
-
-		if (!response.getStatus().equals("Starting !")) {
-			return;
-		}
-
-		trade.setName((String) request.getParam("NAME"));
-		trade.setOrderSide((String) request.getParam("ORDER_SIDE"));
-		trade.setOrderType((String) request.getParam("ORDER_TYPE"));
-		trade.setIterations((String) request.getParam("ITERATIONS"));
-		trade.setEvaluationPeriod((String) request.getParam("EVALUATION_PERIOD"));
-		trade.setSymbol((String) request.getParam("SYMBOL"));
-		trade.setStatus((String) request.getParam("STATUS"));
-		trade.setCurrencyType((String) request.getParam("CURRENCY_TYPE"));
-		trade.setCurrencyAmount((BigDecimal) request.getParam("CURRENCY_AMOUNT"));
-
-		if (request.getParam("ORDER_TYPE").equals(Trade.TRAILING_STOP)) {
-			trade.setTrailingStopType((String) request.getParam("TRAILING_STOP_TYPE"));
-			trade.setTrailingStopAmount((BigDecimal) request.getParam("TRAILING_STOP_AMOUNT"));
-		}
-
-		if (request.getParam("ORDER_TYPE").equals(Trade.PROFIT_LIMIT)) {
-			trade.setProfitLimitType((String) request.getParam("PROFIT_LIMIT_TYPE"));
-			trade.setProfitLimitAmount((BigDecimal) request.getParam("PROFIT_LIMIT_AMOUNT"));
-		}
-
-		if (request.getParam("ORDER_TYPE").equals(Trade.TRAILING_STOP_PROFIT_LIMIT)) {
-			trade.setTrailingStopType((String) request.getParam("TRAILING_STOP_TYPE"));
-			trade.setTrailingStopAmount((BigDecimal) request.getParam("TRAILING_STOP_AMOUNT"));
-			trade.setProfitLimitType((String) request.getParam("PROFIT_LIMIT_TYPE"));
-			trade.setProfitLimitAmount((BigDecimal) request.getParam("PROFIT_LIMIT_AMOUNT"));
-		}
-
-		if (request.getParam("BUY_CONDITION") != null) {
-			trade.setParseableBuyCondition((String) request.getParam("BUY_CONDITION"));
-		}
-
-		if (request.getParam("SELL_CONDITION") != null) {
-			trade.setParseableSellCondition((String) request.getParam("SELL_CONDITION"));
-		}
-
-		if (request.getParam("BUDGET") != null && itemId != null) {
-
-			if (trade.getBudget().compareTo((BigDecimal) request.getParam("BUDGET")) != 0) {
-
-				if (!trade.getStatus().equals("Not Running")) {
-					response.setStatus("Cannot change budget while trade is running");
-					return;
-				}
-				if (trade.getTradeDetails().size() > 0) {
-					response.setStatus("Must reset trade before changing budget");
-					return;
-				}
-
-				trade.setAvailableBudget((BigDecimal) request.getParam("BUDGET"));
-				trade.setTotalValue((BigDecimal) request.getParam("BUDGET"));
-			}
-
-			trade.setBudget((BigDecimal) request.getParam("BUDGET"));
-		}
-
-		if (request.getParam("BUDGET") != null && itemId == null) {
-			trade.setBudget((BigDecimal) request.getParam("BUDGET"));
-			trade.setAvailableBudget((BigDecimal) request.getParam("BUDGET"));
-			trade.setTotalValue((BigDecimal) request.getParam("BUDGET"));
-		}
-
-		request.addParam(GlobalConstant.ITEM, trade);
-
 		try {
-			tradeDao.save(request, response);
+
+			if ((!request.containsParam(GlobalConstant.ITEM))
+					|| (request.getParam(GlobalConstant.ITEM) == null)
+					|| !(request.getParam(GlobalConstant.ITEM) instanceof LinkedHashMap)) {
+				throw new Exception("Item is null or not an instance of a linked hash map");
+			}
+			final Map<?, ?> m = Map.class.cast(request.getParam(GlobalConstant.ITEM));
+
+			final Map<String, Object> itemProperties = new HashMap<String, Object>();
+
+			for (final Object o : m.keySet()) {
+				itemProperties.put(String.class.cast(o), m.get(String.class.cast(o)));
+			}
+
+			final Trade trade = validator.validateTradeID(itemProperties.get("id"));
+
+			final boolean preExisting = !trade.getSymbol().equals("");
+
+			final String status = validator.validateStatus(itemProperties.get("status"));
+
+			if (trade.getStatus() == "Running" && status == "Running") {
+				throw new Exception("Cannot change properties of trade while trade is running");
+			}
+
+			trade.setStatus(status);
+
+			final String name = validator.validateTradeName(itemProperties.get("name"));
+			trade.setName(name);
+
+			final String symbol = validator.validateSymbol(itemProperties.get("symbol"));
+			trade.setSymbol(symbol);
+
+			final String orderSide = validator.validateOrderSide(itemProperties.get("orderSide"));
+			trade.setOrderSide(orderSide);
+
+			final String orderType = validator.validateOrderType(itemProperties.get("orderType"));
+			trade.setOrderType(orderType);
+
+			final String evaluationPeriod = validator.validateEvaluationPeriod(itemProperties.get("evaluationPeriod"));
+			trade.setEvaluationPeriod(evaluationPeriod);
+
+			final String currencyType = validator.validateCurrencyType(itemProperties.get("currencyType"));
+			trade.setCurrencyType(currencyType);
+
+			switch (currencyType.toUpperCase()) {
+				case "DOLLARS":
+					final BigDecimal dollarAmount = validator
+							.validateDollarAmount(itemProperties.get("currencyAmount"));
+					trade.setCurrencyAmount(dollarAmount);
+					break;
+				case "SHARES":
+					final BigDecimal shareAmount = validator
+							.validateShareAmount(itemProperties.get("currencyAmount"));
+					trade.setCurrencyAmount(shareAmount);
+					break;
+				default:
+					throw new Exception("Unrecognized currency type");
+			}
+
+			switch (orderType.toUpperCase()) {
+				case Trade.MARKET:
+					break;
+				case Trade.PROFIT_LIMIT:
+
+					final BigDecimal profitLimitAmount = validator
+							.validateProfitLimitAmount(itemProperties.get("profitLimitAmount"));
+
+					trade.setProfitLimitAmount(profitLimitAmount);
+					break;
+
+				case Trade.TRAILING_STOP:
+
+					final BigDecimal trailingStopAmount = validator
+							.validateTrailingStopAmount(itemProperties.get("trailingStopAmount"));
+
+					trade.setTrailingStopAmount(trailingStopAmount);
+
+					break;
+				case Trade.TRAILING_STOP_PROFIT_LIMIT:
+
+					final BigDecimal combinationProfitLimitAmount = validator
+							.validateProfitLimitAmount(itemProperties.get("profitLimitAmount"));
+
+					trade.setProfitLimitAmount(combinationProfitLimitAmount);
+
+					final BigDecimal combinationTrailingStopAmount = validator
+							.validateTrailingStopAmount(itemProperties.get("trailingStopAmount"));
+
+					trade.setTrailingStopAmount(combinationTrailingStopAmount);
+					break;
+				default:
+					throw new Exception("Unrecognized order type");
+			}
+
+			switch (orderSide.toUpperCase()) {
+				case Trade.BOT:
+
+					final String botBuyCondition = validator.validateBuyCondition(trade,
+							itemProperties.get("rawBuyCondition"));
+					trade.setParsedBuyCondition(botBuyCondition);
+
+					final String botSellCondition = validator.validateSellCondition(trade,
+							itemProperties.get("rawSellCondition"));
+					trade.setParsedSellCondition(botSellCondition);
+
+					final BigDecimal budget = validator.validateBudget(itemProperties.get("budget"));
+
+					if (!preExisting) {
+						trade.setBudget(budget);
+
+						trade.setAvailableBudget(budget);
+
+						trade.setTotalValue(budget);
+
+						trade.setSharesHeld(BigDecimal.ZERO);
+					} else {
+
+						final List<TradeDetail> tradeDetails = tradeDao.getTradeDetails(trade);
+
+						final boolean tradeHasBeenReset = tradeDetails.size() == 0;
+
+						final boolean budgetHasBeenUpdated = trade.getBudget().compareTo(budget) != 0;
+
+						if (!budgetHasBeenUpdated) {
+							break;
+						}
+
+						if (!tradeHasBeenReset) {
+							throw new Exception("Trade must be reset to update budget");
+						}
+
+						trade.setBudget(budget);
+
+						trade.setAvailableBudget(budget);
+
+						trade.setTotalValue(budget);
+
+						trade.setSharesHeld(BigDecimal.ZERO);
+					}
+
+					break;
+				case Trade.BUY:
+					final String buyCondition = validator.validateBuyCondition(trade,
+							itemProperties.get("rawBuyCondition"));
+					trade.setParsedBuyCondition(buyCondition);
+
+					break;
+				case Trade.SELL:
+					final String sellCondition = validator.validateSellCondition(trade,
+							itemProperties.get("rawSellCondition"));
+					trade.setParsedSellCondition(sellCondition);
+
+					break;
+				default:
+					throw new Exception("Orderside not supported");
+			}
+
+			tradeDao.saveItem(trade);
+
+			response.setStatus(RestResponse.SUCCESS);
+
 		} catch (final Exception e) {
 			e.printStackTrace();
+			response.setStatus("Exception: " + e.getMessage());
 		}
-
-		response.setStatus(RestResponse.SUCCESS);
 	}
 
 	@Override
 	public void delete(final RestRequest request, final RestResponse response) {
 		try {
 			tradeDao.delete(request, response);
-			response.setStatus(RestResponse.SUCCESS);
-		} catch (final Exception e) {
-			response.setStatus(RestResponse.ACTIONFAILED);
-			e.printStackTrace();
-		}
-
-	}
-
-	public void reset(final RestRequest request, final RestResponse response) {
-		try {
-			tradeDao.resetTrade(request, response);
 			response.setStatus(RestResponse.SUCCESS);
 		} catch (final Exception e) {
 			response.setStatus(RestResponse.ACTIONFAILED);
@@ -355,197 +446,51 @@ public class TradeSvcImpl implements ServiceProcessor, TradeSvc {
 	@Override
 	public void items(final RestRequest request, final RestResponse response) {
 		try {
-			tradeDao.itemCount(request, response);
-			if ((Long) response.getParam(GlobalConstant.ITEMCOUNT) > 0) {
-				tradeDao.items(request, response);
+			final List<Trade> items = tradeDao.getTrades();
 
-				for (final Object o : ArrayList.class.cast(response.getParam(TradeConstant.TRADES))) {
-					final Trade trade = Trade.class.cast(o);
+			items.stream().forEach(trade -> {
+				final List<String> unparsedBuyCondition = new ArrayList<String>();
 
-					String[] stringArr1 = trade.getParseableBuyCondition().split(" ");
-					stringArr1 = Stream.of(stringArr1).map(s -> {
-						if (s.equals("(") || s.equals(")") || s.equals("||") || s.equals("&&") || s.equals("")) {
-							return s;
-						}
-						request.addParam(GlobalConstant.ITEMID, s);
-						try {
-							customTechnicalIndicatorDao.item(request, response);
-						} catch (final Exception e) {
-							e.printStackTrace();
-						}
+				for (final String string : trade.getParsedBuyCondition().split(" ")) {
+					if (Arrays.asList("(", ")", "||", "&&", "").contains(string)) {
+						unparsedBuyCondition.add(string);
+						continue;
+					}
+					final CustomTechnicalIndicator customTechnicalIndicator = customTechnicalIndicatorDao
+							.findById(Long.valueOf(string));
 
-						final CustomTechnicalIndicator c = ((CustomTechnicalIndicator) response
-								.getParam(GlobalConstant.ITEM));
-
-						return String.valueOf(c.getName());
-
-					}).toArray(String[]::new);
-
-					trade.setBuyCondition(String.join(" ", stringArr1));
-
-					String[] stringArr2 = trade.getParseableSellCondition().split(" ");
-					stringArr2 = Stream.of(stringArr2).map(s -> {
-						if (s.equals("(") || s.equals(")") || s.equals("||") || s.equals("&&") || s.equals("")) {
-							return s;
-						}
-						request.addParam(GlobalConstant.ITEMID, s);
-						try {
-							customTechnicalIndicatorDao.item(request, response);
-						} catch (final Exception e) {
-							e.printStackTrace();
-						}
-
-						final CustomTechnicalIndicator c = ((CustomTechnicalIndicator) response
-								.getParam(GlobalConstant.ITEM));
-
-						return String.valueOf(c.getName());
-
-					}).toArray(String[]::new);
-
-					trade.setSellCondition(String.join(" ", stringArr2));
+					unparsedBuyCondition.add(customTechnicalIndicator.getName());
 				}
-			}
+				final String rawBuyCondition = String.join(" ", unparsedBuyCondition);
+				trade.setRawBuyCondition(rawBuyCondition);
+
+				final List<String> unparsedSellCondition = new ArrayList<String>();
+
+				for (final String string : trade.getParsedSellCondition().split(" ")) {
+					if (Arrays.asList("(", ")", "||", "&&", "").contains(string)) {
+						unparsedSellCondition.add(string);
+						continue;
+					}
+					final CustomTechnicalIndicator customTechnicalIndicator = customTechnicalIndicatorDao
+							.findById(Long.valueOf(string));
+
+					unparsedSellCondition.add(customTechnicalIndicator.getName());
+				}
+				final String rawSellCondition = String.join(" ", unparsedSellCondition);
+				trade.setRawSellCondition(rawSellCondition);
+			});
+
+			response.addParam(GlobalConstant.ITEMS, items);
 			response.setStatus(RestResponse.SUCCESS);
 		} catch (final Exception e) {
-			response.setStatus(RestResponse.ACTIONFAILED);
 			e.printStackTrace();
 		}
 
 	}
 
-	public void getSymbolData(final RestRequest request, final RestResponse response) {
-		if (request.getParam("FIRST_POINT") == null || request.getParam("LAST_POINT") == null
-				|| request.getParam("SYMBOL") == null || request.getParam("EVALUATION_PERIOD") == null ) {
-			return;
-		}
-		tradeDao.getSymbolData(request, response);
-	}
-
-	public void validateBuyCondition(final RestRequest request, final RestResponse response) {
-		String initialString = "";
-
-		if (request.getParam("buyCondition") instanceof String) {
-			initialString = (String) request.getParam("buyCondition");
-		}
-
-		final List<String> testStrings = new ArrayList<String>();
-
-		String str = initialString.replaceAll("\\s+", "");
-
-		str = str.replaceAll("[&]+", " && ").replaceAll("[|]+", " || ").replace("(", " ( ").replace(")", " ) ")
-				.replaceAll("\\s+", " ").trim();
-
-		str = String.join(" ", Stream.of(str.split(" ")).map(s -> {
-
-			if (Arrays.asList("(", ")", "&&", "||", "").contains(s)) {
-				testStrings.add(s);
-				return s;
-			}
-
-			request.addParam("NAME", s);
-			try {
-				customTechnicalIndicatorDao.item(request, response);
-			} catch (final NoResultException e) {
-				response.setStatus("Invalid technical indicator in buy condition");
-				testStrings.add("true");
-				return s;
-			} catch (final Exception e) {
-			}
-			
-			final CustomTechnicalIndicator c = CustomTechnicalIndicator.class.cast(response.getParam(GlobalConstant.ITEM));
-
-			if (!c.getEvaluationPeriod().equals((String) request.getParam("evaluationPeriod"))) {
-				response.setStatus("\"" + c.getName() + "\" does not support this trades evaluation period");
-			}
-
-			if (!c.getSymbols().stream()
-					.anyMatch(symbol -> symbol.getSymbol().equals((String) request.getParam("symbol")))) {
-				response.setStatus("\"" + c.getName() + "\" does not support " + (String) request.getParam("symbol"));
-			}
-
-			final long id = c.getId();
-
-			s = String.valueOf(id);
-
-			testStrings.add("true");
-			return s;
-
-		}).toArray(String[]::new));
-
-		final String testString = String.join(" ", testStrings);
-
-		if (!testString.equals("")) {
-			try {
-				parser.parseExpression(testString).getValue(Boolean.class);
-			} catch (final ParseException e) {
-				response.setStatus("Invalid logic in buy condition");
-				return;
-			}
-		}
-
-		request.addParam("BUY_CONDITION", str);
-	}
-
-	public void validateSellCondition(final RestRequest request, final RestResponse response) {
-		String initialString = "";
-
-		if (request.getParam("sellCondition") instanceof String) {
-			initialString = (String) request.getParam("sellCondition");
-		}
-
-		final List<String> testStrings = new ArrayList<String>();
-
-		String str = initialString.replaceAll("\\s+", "");
-		str = str.replaceAll("[&]+", " && ").replaceAll("[|]+", " || ").replace("(", " ( ").replace(")", " ) ")
-				.replaceAll("\\s+", " ").trim();
-		str = String.join(" ", Stream.of(str.split(" ")).map(s -> {
-
-			if (Arrays.asList("(", ")", "&&", "||", "").contains(s)) {
-				testStrings.add(s);
-				return s;
-			}
-
-			request.addParam("NAME", s);
-			try {
-				customTechnicalIndicatorDao.item(request, response);
-			} catch (final NoResultException e) {
-				response.setStatus("Invalid technical indicator in sell condition");
-				testStrings.add("true");
-				return s;
-			} catch (final Exception e) {
-			}
-
-			final CustomTechnicalIndicator c = CustomTechnicalIndicator.class.cast(response.getParam(GlobalConstant.ITEM));
-
-			if (!c.getEvaluationPeriod().equals((String) request.getParam("evaluationPeriod"))) {
-				response.setStatus("\"" + c.getName() + "\" does not support this trades evaluation period");
-			}
-
-			if (!c.getSymbols().stream()
-					.anyMatch(symbol -> symbol.getSymbol().equals((String) request.getParam("symbol")))) {
-				response.setStatus("\"" + c.getName() + "\" does not support " + (String) request.getParam("symbol"));
-			}
-
-			final long id = c.getId();
-
-			s = String.valueOf(id);
-
-			testStrings.add("true");
-			return s;
-
-		}).toArray(String[]::new));
-
-		final String testString = String.join(" ", testStrings);
-
-		if (!testString.equals("")) {
-			try {
-				parser.parseExpression(testString).getValue(Boolean.class);
-			} catch (final ParseException e) {
-				response.setStatus("Invalid logic in sell condition");
-				return;
-			}
-		}
-
-		request.addParam("SELL_CONDITION", str);
+	public List<TradeDetail> getTradeDetails(final long id) throws Exception {
+		final Trade trade = tradeDao.getTradeById(id);
+		final List<TradeDetail> tradeDetails = tradeDao.getTradeDetails(trade);
+		return tradeDetails;
 	}
 }

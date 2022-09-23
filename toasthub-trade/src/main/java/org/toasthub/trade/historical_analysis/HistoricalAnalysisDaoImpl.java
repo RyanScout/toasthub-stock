@@ -16,10 +16,12 @@
 
 package org.toasthub.trade.historical_analysis;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.persistence.Query;
 
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,7 +29,10 @@ import org.toasthub.core.common.EntityManagerDataSvc;
 import org.toasthub.core.general.model.GlobalConstant;
 import org.toasthub.core.general.model.RestRequest;
 import org.toasthub.core.general.model.RestResponse;
+import org.toasthub.trade.model.CustomTechnicalIndicator;
 import org.toasthub.trade.model.HistoricalAnalysis;
+import org.toasthub.trade.model.TechnicalIndicator;
+import org.toasthub.trade.model.TechnicalIndicatorDetail;
 import org.toasthub.trade.model.Trade;
 import org.toasthub.trade.model.TradeConstant;
 
@@ -39,11 +44,12 @@ public class HistoricalAnalysisDaoImpl implements HistoricalAnalysisDao {
 	protected EntityManagerDataSvc entityManagerDataSvc;
 
 	@Override
-	public void delete(RestRequest request, RestResponse response){
+	public void delete(final RestRequest request, final RestResponse response) {
 		if (request.containsParam(GlobalConstant.ITEMID) && !"".equals(request.getParam(GlobalConstant.ITEMID))) {
 
-			HistoricalAnalysis historicalAnalysis = (HistoricalAnalysis) entityManagerDataSvc.getInstance().getReference(HistoricalAnalysis.class,
-					Long.valueOf((Integer) request.getParam(GlobalConstant.ITEMID)));
+			final HistoricalAnalysis historicalAnalysis = (HistoricalAnalysis) entityManagerDataSvc.getInstance()
+					.getReference(HistoricalAnalysis.class,
+							Long.valueOf((Integer) request.getParam(GlobalConstant.ITEMID)));
 			entityManagerDataSvc.getInstance().remove(historicalAnalysis);
 
 		} else {
@@ -53,25 +59,25 @@ public class HistoricalAnalysisDaoImpl implements HistoricalAnalysisDao {
 	}
 
 	@Override
-	public void save(RestRequest request, RestResponse response) throws Exception {
-		HistoricalAnalysis historicalAnalysis = (HistoricalAnalysis) request.getParam(GlobalConstant.ITEM);
+	public void save(final RestRequest request, final RestResponse response) throws Exception {
+		final HistoricalAnalysis historicalAnalysis = (HistoricalAnalysis) request.getParam(GlobalConstant.ITEM);
 		entityManagerDataSvc.getInstance().merge(historicalAnalysis);
 	}
 
 	@Override
-	public void items(RestRequest request, RestResponse response){
-		String queryStr = "SELECT DISTINCT x FROM HistoricalAnalysis AS x ";
-		Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+	public void items(final RestRequest request, final RestResponse response) {
+		final String queryStr = "SELECT DISTINCT x FROM HistoricalAnalysis AS x ";
+		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
 		@SuppressWarnings("unchecked")
-		List<HistoricalAnalysis> historicalAnalyses = query.getResultList();
+		final List<HistoricalAnalysis> historicalAnalyses = query.getResultList();
 
 		response.addParam(TradeConstant.HISTORICAL_ANALYSES, historicalAnalyses);
 	}
 
 	@Override
-	public void itemCount(RestRequest request, RestResponse response){
-		String queryStr = "SELECT COUNT(DISTINCT x) FROM HistoricalAnalysis as x ";
-		Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+	public void itemCount(final RestRequest request, final RestResponse response) {
+		final String queryStr = "SELECT COUNT(DISTINCT x) FROM HistoricalAnalysis as x ";
+		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
 
 		Long count = (Long) query.getSingleResult();
 		if (count == null) {
@@ -81,15 +87,14 @@ public class HistoricalAnalysisDaoImpl implements HistoricalAnalysisDao {
 
 	}
 
-
 	@Override
-	public void item(RestRequest request, RestResponse response) throws Exception {
+	public void item(final RestRequest request, final RestResponse response) throws Exception {
 		if (request.containsParam(GlobalConstant.ITEMID) && !"".equals(request.getParam(GlobalConstant.ITEMID))) {
-			String queryStr = "SELECT x FROM Trade AS x WHERE x.id =:id";
-			Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
+			final String queryStr = "SELECT x FROM Trade AS x WHERE x.id =:id";
+			final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr);
 
 			query.setParameter("id", Long.valueOf((Integer) request.getParam(GlobalConstant.ITEMID)));
-			Trade trade = (Trade) query.getSingleResult();
+			final Trade trade = (Trade) query.getSingleResult();
 
 			response.addParam("item", trade);
 		} else {
@@ -97,5 +102,61 @@ public class HistoricalAnalysisDaoImpl implements HistoricalAnalysisDao {
 			// prefCacheUtil.getPrefText("GLOBAL_SERVICE",
 			// "GLOBAL_SERVICE_MISSING_ID",prefCacheUtil.getLang(request)), response);
 		}
+	}
+
+	@Override
+	public List<TechnicalIndicatorDetail> getTechnicalIndicatorDetails(final TechnicalIndicator technicalIndicator,
+			final long startTime, final long endTime) {
+		final List<TechnicalIndicatorDetail> details = new ArrayList<TechnicalIndicatorDetail>();
+
+		final String queryStr = "SELECT DISTINCT x FROM TechnicalIndicatorDetail AS x WHERE x.technicalIndicator = :technicalIndicator AND x.flashTime > :startTime AND x.flashTime < :endTime";
+
+		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr)
+				.setParameter("technicalIndicator", technicalIndicator)
+				.setParameter("startTime", startTime)
+				.setParameter("endTime", endTime);
+
+		for (final Object o : query.getResultList()) {
+			details.add(TechnicalIndicatorDetail.class.cast(o));
+		}
+
+		return details;
+	}
+
+	public TechnicalIndicator findTechnicalIndicatorById(final long id) {
+		return entityManagerDataSvc.getInstance().find(TechnicalIndicator.class, id);
+	}
+
+	public Trade findTradeById(final long id) {
+		return entityManagerDataSvc.getInstance().find(Trade.class, id);
+	}
+
+	public void saveItem(final Object o) {
+		entityManagerDataSvc.getInstance().merge(o);
+	}
+
+	@Override
+	public CustomTechnicalIndicator getCustomTechnicalIndicatorById(final long id) {
+		return entityManagerDataSvc.getInstance().find(CustomTechnicalIndicator.class, id);
+	}
+
+	public TechnicalIndicator getTechnicalIndicatorFromChild(TechnicalIndicatorDetail child) {
+		return child.getTechnicalIndicator();
+	}
+
+	@Override
+	public List<Trade> getHistoricalAnalyses() {
+		final String queryStr = "SELECT DISTINCT x FROM Trade AS x"
+				+ " WHERE x.status = :status";
+
+		final Query query = entityManagerDataSvc.getInstance().createQuery(queryStr)
+				.setParameter("status", "HISTORICAL_ANALYSIS");
+
+		final List<Trade> items = new ArrayList<Trade>();
+
+		for (final Object o : query.getResultList()) {
+			items.add(Trade.class.cast(o));
+		}
+		return items;
 	}
 }
