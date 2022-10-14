@@ -31,9 +31,9 @@ public class Symbol extends TradeBaseEntity {
     public static final String LTCUSD = "LTCUSD";
     public static final String ETHUSD = "ETHUSD";
 
-    public static final List<String> CRYPTO_SYMBOLS = Arrays.asList(BTCUSD, LTCUSD, ETHUSD);
+    public static final List<String> CRYPTO_SYMBOLS = Arrays.asList(BTCUSD);
 
-    public static final List<String> STOCK_SYMBOLS = Arrays.asList(SPY, AAPL, TSLA, WBA);
+    public static final List<String> STOCK_SYMBOLS = Arrays.asList(AAPL);
 
     public static final List<String> SYMBOLS = Stream.concat(CRYPTO_SYMBOLS.stream(), STOCK_SYMBOLS.stream()).toList();
 

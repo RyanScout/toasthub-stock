@@ -22,7 +22,7 @@ import java.util.Set;
 
 import javax.persistence.NoResultException;
 
-import org.toasthub.core.common.BaseDao;
+import org.toasthub.core.common.BaseMemberDao;
 import org.toasthub.core.general.model.RestRequest;
 import org.toasthub.core.general.model.RestResponse;
 import org.toasthub.trade.model.AssetDay;
@@ -32,7 +32,7 @@ import org.toasthub.trade.model.SMA;
 import org.toasthub.trade.model.TechnicalIndicator;
 import org.toasthub.trade.model.UBB;
 
-public interface AlgorithmCruncherDao extends BaseDao {
+public interface AlgorithmCruncherDao extends BaseMemberDao {
 	public void item(RestRequest request, RestResponse response) throws NoResultException;
 
 	public void saveObject(Object object);

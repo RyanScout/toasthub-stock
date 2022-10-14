@@ -18,13 +18,13 @@ package org.toasthub.trade.trade;
 
 import java.util.List;
 
-import org.toasthub.core.common.BaseDao;
+import org.toasthub.core.common.BaseMemberDao;
 import org.toasthub.trade.model.CustomTechnicalIndicator;
 import org.toasthub.trade.model.TechnicalIndicator;
 import org.toasthub.trade.model.Trade;
 import org.toasthub.trade.model.TradeDetail;
 
-public interface TradeDao extends BaseDao {
+public interface TradeDao extends BaseMemberDao {
         public List<Trade> getRunningTrades();
 
         public List<Trade> getAllRunningTrades();

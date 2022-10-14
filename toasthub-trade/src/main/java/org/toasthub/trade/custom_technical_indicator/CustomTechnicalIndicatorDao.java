@@ -2,11 +2,11 @@ package org.toasthub.trade.custom_technical_indicator;
 
 import java.util.List;
 
-import org.toasthub.core.common.BaseDao;
+import org.toasthub.core.common.BaseMemberDao;
 import org.toasthub.trade.model.CustomTechnicalIndicator;
 import org.toasthub.trade.model.Symbol;
 
-public interface CustomTechnicalIndicatorDao extends BaseDao {
+public interface CustomTechnicalIndicatorDao extends BaseMemberDao {
     public CustomTechnicalIndicator saveItem(Object o);
 
     public CustomTechnicalIndicator getReference(long id);
