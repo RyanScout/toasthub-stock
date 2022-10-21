@@ -15,9 +15,10 @@ import org.toasthub.core.general.api.View;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonView;
 
+//Technical Indicator Snapshot Detail
 @Entity
-@Table(name = "ta_technical_indicator_detail")
-public class TechnicalIndicatorDetail extends TradeBaseEntity {
+@Table(name = "ta_ti_snapshot_detail")
+public class TISnapshotDetail extends TradeBaseEntity {
 
     private static final long serialVersionUID = 1L;
     private long flashTime = 0;
@@ -27,10 +28,10 @@ public class TechnicalIndicatorDetail extends TradeBaseEntity {
     private BigDecimal vwap;
     private boolean success = false;
     private BigDecimal successPercent = BigDecimal.ZERO;
-    private TechnicalIndicator technicalIndicator;
+    private TISnapshot snapshot;
 
     // Constructors
-    public TechnicalIndicatorDetail() {
+    public TISnapshotDetail() {
         super();
         this.setActive(true);
         this.setArchive(false);
@@ -39,15 +40,16 @@ public class TechnicalIndicatorDetail extends TradeBaseEntity {
     }
 
     // Setter/Getter
+
     @JsonIgnore
-    @ManyToOne(targetEntity = TechnicalIndicator.class, fetch = FetchType.LAZY)
-    @JoinColumn(name = "technical_indicator_id")
-    public TechnicalIndicator getTechnicalIndicator() {
-        return technicalIndicator;
+    @ManyToOne(targetEntity = TISnapshot.class, fetch = FetchType.LAZY)
+    @JoinColumn(name = "ti_snapshot_id")
+    public TISnapshot getSnapshot() {
+        return snapshot;
     }
 
-    public void setTechnicalIndicator(TechnicalIndicator technicalIndicator) {
-        this.technicalIndicator = technicalIndicator;
+    public void setSnapshot(final TISnapshot snapshot) {
+        this.snapshot = snapshot;
     }
 
     @JsonView({ View.Member.class })
@@ -56,7 +58,7 @@ public class TechnicalIndicatorDetail extends TradeBaseEntity {
         return successPercent;
     }
 
-    public void setSuccessPercent(BigDecimal successPercent) {
+    public void setSuccessPercent(final BigDecimal successPercent) {
         this.successPercent = successPercent;
     }
 
@@ -66,7 +68,7 @@ public class TechnicalIndicatorDetail extends TradeBaseEntity {
         return success;
     }
 
-    public void setSuccess(boolean success) {
+    public void setSuccess(final boolean success) {
         this.success = success;
     }
 
@@ -76,7 +78,7 @@ public class TechnicalIndicatorDetail extends TradeBaseEntity {
         return vwap;
     }
 
-    public void setVwap(BigDecimal vwap) {
+    public void setVwap(final BigDecimal vwap) {
         this.vwap = vwap;
     }
 
@@ -86,7 +88,7 @@ public class TechnicalIndicatorDetail extends TradeBaseEntity {
         return volume;
     }
 
-    public void setVolume(long volume) {
+    public void setVolume(final long volume) {
         this.volume = volume;
     }
 
@@ -96,7 +98,7 @@ public class TechnicalIndicatorDetail extends TradeBaseEntity {
         return checked;
     }
 
-    public void setChecked(int checked) {
+    public void setChecked(final int checked) {
         this.checked = checked;
     }
 
@@ -106,7 +108,7 @@ public class TechnicalIndicatorDetail extends TradeBaseEntity {
         return flashPrice;
     }
 
-    public void setFlashPrice(BigDecimal flashPrice) {
+    public void setFlashPrice(final BigDecimal flashPrice) {
         this.flashPrice = flashPrice;
     }
 
@@ -116,7 +118,7 @@ public class TechnicalIndicatorDetail extends TradeBaseEntity {
         return flashTime;
     }
 
-    public void setFlashTime(long flashTime) {
+    public void setFlashTime(final long flashTime) {
         this.flashTime = flashTime;
     }
 }

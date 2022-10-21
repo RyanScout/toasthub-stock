@@ -9,16 +9,19 @@ import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
+import javax.persistence.Transient;
+
+import org.toasthub.core.general.api.View;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-
+import com.fasterxml.jackson.annotation.JsonView;
 
 @Entity
 @Table(name = "ta_trade_detail")
-public class TradeDetail extends TradeBaseEntity{
-    
-	private static final long serialVersionUID = 1L;
-	private Trade trade;
+public class TradeDetail extends TradeBaseEntity {
+
+    private static final long serialVersionUID = 1L;
+    private Trade trade;
     private String orderID;
     private String status;
     private String orderSide;
@@ -32,121 +35,159 @@ public class TradeDetail extends TradeBaseEntity{
     private long filledAt;
     private String orderCondition;
 
+    @Transient
+    private String rawOrderCondition = "";
+
     // Constructors
     public TradeDetail() {
-		super();
-		this.setActive(true);
-		this.setArchive(false);
-		this.setLocked(false);
-		this.setCreated(Instant.now());
-		this.setIdentifier("TradeDetail");
-	}
+        super();
+        this.setActive(true);
+        this.setArchive(false);
+        this.setLocked(false);
+        this.setCreated(Instant.now());
+        this.setIdentifier("TradeDetail");
+    }
 
     // Setter/Getter
-	@Column(name = "filled_at")
+    @JsonView({ View.Member.class })
+    @Column(name = "filled_at")
     public long getFilledAt() {
         return filledAt;
     }
-    public void setFilledAt(long filledAt) {
+
+    public void setFilledAt(final long filledAt) {
         this.filledAt = filledAt;
     }
 
-	@Column(name = "placed_at")
+    @JsonView({ View.Member.class })
+    @Column(name = "placed_at")
     public long getPlacedAt() {
         return placedAt;
     }
-    public void setPlacedAt(long placedAt) {
+
+    public void setPlacedAt(final long placedAt) {
         this.placedAt = placedAt;
     }
 
-	@Column(name = "dollar_amount")
+    @JsonView({ View.Member.class })
+    @Column(name = "dollar_amount")
     public BigDecimal getDollarAmount() {
         return dollarAmount;
     }
-    public void setDollarAmount(BigDecimal dollarAmount) {
+
+    public void setDollarAmount(final BigDecimal dollarAmount) {
         this.dollarAmount = dollarAmount;
     }
 
-	@Column(name = "share_amount")
+    @JsonView({ View.Member.class })
+    @Column(name = "share_amount")
     public BigDecimal getShareAmount() {
         return shareAmount;
     }
-    public void setShareAmount(BigDecimal shareAmount) {
+
+    public void setShareAmount(final BigDecimal shareAmount) {
         this.shareAmount = shareAmount;
     }
 
     @JsonIgnore
-    @ManyToOne(targetEntity = Trade.class , fetch = FetchType.LAZY)
+    @ManyToOne(targetEntity = Trade.class, fetch = FetchType.LAZY)
     @JoinColumn(name = "trade_id")
     public Trade getTrade() {
         return trade;
     }
-    public void setTrade(Trade trade){
+
+    public void setTrade(final Trade trade) {
         this.trade = trade;
     }
 
-	@Column(name = "asset_price")
+    @JsonView({ View.Member.class })
+    @Column(name = "asset_price")
     public BigDecimal getAssetPrice() {
         return assetPrice;
     }
-    public void setAssetPrice(BigDecimal assetPrice) {
+
+    public void setAssetPrice(final BigDecimal assetPrice) {
         this.assetPrice = assetPrice;
     }
-    
-	@Column(name = "order_side")
+
+    @JsonView({ View.Member.class })
+    @Column(name = "order_side")
     public String getOrderSide() {
         return orderSide;
     }
-    public void setOrderSide(String orderSide) {
+
+    public void setOrderSide(final String orderSide) {
         this.orderSide = orderSide;
     }
-    
-	@Column(name = "status")
+
+    @JsonView({ View.Member.class })
+    @Column(name = "status")
     public String getStatus() {
         return status;
     }
-    public void setStatus(String status) {
+
+    public void setStatus(final String status) {
         this.status = status;
     }
 
+    @JsonView({ View.Member.class })
     @Column(name = "order_id")
     public String getOrderID() {
         return orderID;
     }
-    public void setOrderID(String orderID) {
+
+    public void setOrderID(final String orderID) {
         this.orderID = orderID;
     }
-    
-	@Column(name = "total_value")
+
+    @JsonView({ View.Member.class })
+    @Column(name = "total_value")
     public BigDecimal getTotalValue() {
         return totalValue;
     }
-    public void setTotalValue(BigDecimal totalValue) {
+
+    public void setTotalValue(final BigDecimal totalValue) {
         this.totalValue = totalValue;
     }
-    
-	@Column(name = "available_budget")
+
+    @JsonView({ View.Member.class })
+    @Column(name = "available_budget")
     public BigDecimal getAvailableBudget() {
         return availableBudget;
     }
-    public void setAvailableBudget(BigDecimal availableBudget) {
+
+    public void setAvailableBudget(final BigDecimal availableBudget) {
         this.availableBudget = availableBudget;
     }
-    
-	@Column(name = "shares_held")
+
+    @JsonView({ View.Member.class })
+    @Column(name = "shares_held")
     public BigDecimal getSharesHeld() {
         return sharesHeld;
     }
-    public void setSharesHeld(BigDecimal sharesHeld) {
+
+    public void setSharesHeld(final BigDecimal sharesHeld) {
         this.sharesHeld = sharesHeld;
     }
-    
-	@Column(name = "order_condition")
+
+    @JsonView({ View.Member.class })
+    @Column(name = "order_condition")
     public String getOrderCondition() {
         return orderCondition;
     }
-    public void setOrderCondition(String orderCondition) {
+
+    public void setOrderCondition(final String orderCondition) {
         this.orderCondition = orderCondition;
     }
-    
+
+    @JsonView({ View.Member.class })
+    @Transient
+    public String getRawOrderCondition() {
+        return rawOrderCondition;
+    }
+
+    public void setRawOrderCondition(final String rawOrderCondition) {
+        this.rawOrderCondition = rawOrderCondition;
+    }
+
 }

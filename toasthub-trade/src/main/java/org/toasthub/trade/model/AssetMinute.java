@@ -9,7 +9,10 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
+import org.toasthub.core.general.api.View;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonView;
 
 @Entity
 @Table(name = "ta_asset_minute")
@@ -22,36 +25,34 @@ public class AssetMinute extends TradeBaseEntity {
     private long epochSeconds;
     private long volume;
     private BigDecimal vwap;
-    private String type;
 
     // Constructors
     public AssetMinute() {
         super();
         this.setIdentifier("AssetMinute");
-        this.setType("AssetMinute");
+    }
+
+    public AssetMinute(final String code, final Boolean defaultLang, final String dir) {
+        super();
     }
 
     // Setter/Getter
+    @JsonView({ View.Member.class })
     @Column(name = "symbol")
     public String getSymbol() {
         return symbol;
     }
+
     public void setSymbol(final String symbol) {
         this.symbol = symbol;
     }
 
-    @Column(name = "type")
-    public String getType() {
-        return type;
-    }
-    public void setType(final String type) {
-        this.type = type;
-    }
-
+    @JsonView({ View.Member.class })
     @Column(name = "value")
     public BigDecimal getValue() {
         return value;
     }
+
     public void setValue(final BigDecimal value) {
         this.value = value;
     }
@@ -62,8 +63,39 @@ public class AssetMinute extends TradeBaseEntity {
     public AssetDay getAssetDay() {
         return assetDay;
     }
+
     public void setAssetDay(final AssetDay assetDay) {
         this.assetDay = assetDay;
+    }
+
+    @JsonView({ View.Member.class })
+    @Column(name = "vwap")
+    public BigDecimal getVwap() {
+        return vwap;
+    }
+
+    public void setVwap(final BigDecimal vwap) {
+        this.vwap = vwap;
+    }
+
+    @JsonView({ View.Member.class })
+    @Column(name = "volume")
+    public long getVolume() {
+        return volume;
+    }
+
+    public void setVolume(final long volume) {
+        this.volume = volume;
+    }
+
+    @JsonView({ View.Member.class })
+    @Column(name = "epoch_seconds")
+    public long getEpochSeconds() {
+        return epochSeconds;
+    }
+
+    public void setEpochSeconds(final long epochSeconds) {
+        this.epochSeconds = epochSeconds;
     }
 
     @Override
@@ -72,7 +104,6 @@ public class AssetMinute extends TradeBaseEntity {
         int result = 1;
         result = prime * result + (int) (epochSeconds ^ (epochSeconds >>> 32));
         result = prime * result + ((symbol == null) ? 0 : symbol.hashCode());
-        result = prime * result + ((type == null) ? 0 : type.hashCode());
         result = prime * result + ((value == null) ? 0 : value.hashCode());
         result = prime * result + (int) (volume ^ (volume >>> 32));
         result = prime * result + ((vwap == null) ? 0 : vwap.hashCode());
@@ -95,11 +126,6 @@ public class AssetMinute extends TradeBaseEntity {
                 return false;
         } else if (!symbol.equals(other.symbol))
             return false;
-        if (type == null) {
-            if (other.type != null)
-                return false;
-        } else if (!type.equals(other.type))
-            return false;
         if (value == null) {
             if (other.value != null)
                 return false;
@@ -115,31 +141,4 @@ public class AssetMinute extends TradeBaseEntity {
         return true;
     }
 
-    @Column(name = "vwap")
-    public BigDecimal getVwap() {
-        return vwap;
-    }
-    public void setVwap(final BigDecimal vwap) {
-        this.vwap = vwap;
-    }
-
-    @Column(name = "volume")
-    public long getVolume() {
-        return volume;
-    }
-    public void setVolume(final long volume) {
-        this.volume = volume;
-    }
-
-    @Column(name = "epoch_seconds")
-    public long getEpochSeconds() {
-        return epochSeconds;
-    }
-    public void setEpochSeconds(final long epochSeconds) {
-        this.epochSeconds = epochSeconds;
-    }
-
-    public AssetMinute(final String code, final Boolean defaultLang, final String dir) {
-        super();
-    }
 }

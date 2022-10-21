@@ -9,12 +9,15 @@ import javax.persistence.Entity;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
+import org.toasthub.core.general.api.View;
+
+import com.fasterxml.jackson.annotation.JsonView;
+
 @Entity
 @Table(name = "ta_asset_day")
 public class AssetDay extends TradeBaseEntity {
 
     private static final long serialVersionUID = 1L;
-    private String type;
     private String symbol;
     private BigDecimal open;
     private BigDecimal close;
@@ -28,12 +31,12 @@ public class AssetDay extends TradeBaseEntity {
     // Constructors
     public AssetDay() {
         super();
-        setType("AssetDay");
         this.setIdentifier("AssetDay");
     }
 
     
     // Setter/Getter
+    @JsonView({View.Member.class})
     @Column(name = "symbol")
     public String getSymbol() {
         return symbol;
@@ -42,14 +45,7 @@ public class AssetDay extends TradeBaseEntity {
         this.symbol = symbol;
     }
 
-    @Column(name = "type")
-    public String getType() {
-        return type;
-    }
-    public void setType(final String type) {
-        this.type = type;
-    }
-
+    @JsonView({View.Member.class})
     @OneToMany(mappedBy = "assetDay", cascade = CascadeType.ALL)
     public Set<AssetMinute> getAssetMinutes() {
         return assetMinutes;
@@ -58,6 +54,7 @@ public class AssetDay extends TradeBaseEntity {
         this.assetMinutes = assetMinutes;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "low")
     public BigDecimal getLow() {
         return low;
@@ -66,6 +63,7 @@ public class AssetDay extends TradeBaseEntity {
         this.low = low;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "high")
     public BigDecimal getHigh() {
         return high;
@@ -74,6 +72,7 @@ public class AssetDay extends TradeBaseEntity {
         this.high = high;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "close")
     public BigDecimal getClose() {
         return close;
@@ -82,6 +81,7 @@ public class AssetDay extends TradeBaseEntity {
         this.close = close;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "open")
     public BigDecimal getOpen() {
         return open;
@@ -90,6 +90,7 @@ public class AssetDay extends TradeBaseEntity {
         this.open = open;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "vwap")
     public BigDecimal getVwap() {
         return vwap;
@@ -98,6 +99,7 @@ public class AssetDay extends TradeBaseEntity {
         this.vwap = vwap;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "volume")
     public long getVolume() {
         return volume;
@@ -106,6 +108,7 @@ public class AssetDay extends TradeBaseEntity {
         this.volume = volume;
     }
 
+    @JsonView({View.Member.class})
     @Column(name = "epoch_seconds")
     public long getEpochSeconds() {
         return epochSeconds;
@@ -113,7 +116,8 @@ public class AssetDay extends TradeBaseEntity {
     public void setEpochSeconds(final long epochSeconds) {
         this.epochSeconds = epochSeconds;
     }
-    
+
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -124,11 +128,11 @@ public class AssetDay extends TradeBaseEntity {
         result = prime * result + ((low == null) ? 0 : low.hashCode());
         result = prime * result + ((open == null) ? 0 : open.hashCode());
         result = prime * result + ((symbol == null) ? 0 : symbol.hashCode());
-        result = prime * result + ((type == null) ? 0 : type.hashCode());
         result = prime * result + (int) (volume ^ (volume >>> 32));
         result = prime * result + ((vwap == null) ? 0 : vwap.hashCode());
         return result;
     }
+
 
     @Override
     public boolean equals(final Object obj) {
@@ -166,11 +170,6 @@ public class AssetDay extends TradeBaseEntity {
                 return false;
         } else if (!symbol.equals(other.symbol))
             return false;
-        if (type == null) {
-            if (other.type != null)
-                return false;
-        } else if (!type.equals(other.type))
-            return false;
         if (volume != other.volume)
             return false;
         if (vwap == null) {
@@ -180,4 +179,6 @@ public class AssetDay extends TradeBaseEntity {
             return false;
         return true;
     }
+    
+   
 }

@@ -1,10 +1,8 @@
 package org.toasthub.trade.cache;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -15,10 +13,17 @@ import org.toasthub.core.general.model.RestResponse;
 import org.toasthub.trade.algorithm.AlgorithmCruncherSvc;
 import org.toasthub.trade.custom_technical_indicator.CustomTechnicalIndicatorDao;
 import org.toasthub.trade.model.CustomTechnicalIndicator;
+import org.toasthub.trade.model.ExpectedException;
+import org.toasthub.trade.model.RequestValidation;
 import org.toasthub.trade.model.Symbol;
+import org.toasthub.trade.model.TISnapshot;
+import org.toasthub.trade.model.TISnapshotDetail;
 import org.toasthub.trade.model.TechnicalIndicator;
-import org.toasthub.trade.model.TradeConstant;
+import org.toasthub.trade.model.TechnicalIndicatorDetail;
 import org.toasthub.trade.model.TradeSignalCache;
+import org.toasthub.trade.technical_indicator.TechnicalIndicatorDao;
+import org.toasthub.trade.ti_snapshot.TISnapshotDao;
+import org.toasthub.trade.ti_snapshot.TISnapshotSvc;
 
 @Service("TACacheSvc")
 public class CacheSvcImpl implements ServiceProcessor, CacheSvc {
@@ -32,105 +37,256 @@ public class CacheSvcImpl implements ServiceProcessor, CacheSvc {
     private CustomTechnicalIndicatorDao customTechnicalIndicatorDao;
 
     @Autowired
+    @Qualifier("TARequestValidation")
+    private RequestValidation validator;
+
+    @Autowired
     private TradeSignalCache tradeSignalCache;
 
     @Autowired
+    @Qualifier("TACacheManager")
     private CacheManager cacheManager;
 
     @Autowired
     @Qualifier("TAAlgorithmCruncherSvc")
     private AlgorithmCruncherSvc algorithmCruncherSvc;
 
+    @Autowired
+    @Qualifier("TATechnicalIndicatorDao")
+    private TechnicalIndicatorDao technicalIndicatorDao;
+
+    @Autowired
+    @Qualifier("TATISnapshotSvc")
+    private TISnapshotSvc tiSnapshotSvc;
+
+    @Autowired
+    @Qualifier("TATISnapshotDao")
+    private TISnapshotDao tiSnapshotDao;
+
     @Override
     public void process(final RestRequest request, final RestResponse response) {
-        final String action = (String) request.getParams().get("action");
-        switch (action) {
-            case "ITEM":
-                item(request, response);
-                break;
-            case "LIST":
-                items(request, response);
-                break;
-            case "SAVE":
-                save(request, response);
-                break;
-            case "DELETE":
-                delete(request, response);
-                break;
-            case "BACKLOAD":
-                algorithmCruncherSvc.backloadAlg(request, response);
-                cacheManager.backloadTechnicalIndicator(request, response);
-                response.setStatus(RestResponse.SUCCESS);
-                break;
-            default:
-                System.out.println(action + "is not recognized as an action as cachesvc");
-                return;
+        try {
+            final String action = (String) request.getParams().get("action");
+            switch (action) {
+                case "ITEM":
+                    item(request, response);
+                    break;
+                case "LIST": {
+                    final List<CustomTechnicalIndicator> customTechnicalIndicators = customTechnicalIndicatorDao
+                            .getCustomTechnicalIndicators();
+
+                    customTechnicalIndicators.stream().forEach(customTechnicalIndicator -> {
+
+                        final List<String> effectiveSymbols = customTechnicalIndicator.getSymbols().stream()
+                                .map(symbol -> symbol.getSymbol()).toList();
+
+                        customTechnicalIndicator.setEffectiveSymbols(effectiveSymbols);
+
+                    });
+
+                    response.addParam(GlobalConstant.ITEMS, customTechnicalIndicators);
+                    response.setStatus(RestResponse.SUCCESS);
+                    break;
+                }
+                case "INITIALIZE_TECHNICAL_INDICATORS": {
+                    final Object id = request.getParam(GlobalConstant.ITEMID);
+                    final long validatedId = validator.validateId(id);
+
+                    final CustomTechnicalIndicator customTechnicalIndicator = customTechnicalIndicatorDao
+                            .findById(validatedId);
+
+                    final List<Symbol> symbols = customTechnicalIndicatorDao
+                            .getCustomTechnicalIndicatorSymbols(customTechnicalIndicator);
+
+                    final List<TechnicalIndicator> technicalIndicators = new ArrayList<TechnicalIndicator>();
+
+                    symbols.stream()
+                            .map(symbol -> symbol.getSymbol())
+                            .forEach(symbol -> {
+
+                                final TechnicalIndicator technicalIndicator = tradeSignalCache
+                                        .getTechnicalIndicatorMap()
+                                        .get(customTechnicalIndicator.getTechnicalIndicatorType() + "::"
+                                                + customTechnicalIndicator.getTechnicalIndicatorKey()
+                                                + "::"
+                                                + customTechnicalIndicator.getEvaluationPeriod() + "::" + symbol);
+
+                                if (technicalIndicator == null) {
+                                    return;
+                                }
+
+                                final List<TechnicalIndicatorDetail> technicalIndicatorDetails = cacheDao
+                                        .getTechnicalIndicatorDetails(technicalIndicator);
+
+                                technicalIndicator.setEffectiveDetails(technicalIndicatorDetails);
+
+                                technicalIndicators.add(technicalIndicator);
+                            });
+
+                    response.addParam(GlobalConstant.ITEMS, technicalIndicators);
+                    response.setStatus(RestResponse.SUCCESS);
+                    break;
+                }
+                case "SAVE":
+                    save(request, response);
+                    break;
+                case "DELETE":
+                    delete(request, response);
+                    break;
+                case "BACKLOAD": {
+                    if (request.getParam(GlobalConstant.ITEMID) == null) {
+                        throw new ExpectedException("Item Id is null");
+                    }
+
+                    if (request.getParam("startTime") == null) {
+                        throw new ExpectedException("Start time is null");
+                    }
+
+                    if (request.getParam("endTime") == null) {
+                        throw new ExpectedException("Start time is null");
+                    }
+
+                    final long itemId = Long.valueOf(String.valueOf(request.getParam(GlobalConstant.ITEMID)));
+
+                    final long startTime = Long.valueOf(String.valueOf(request.getParam("startTime")));
+
+                    final long endTime = Long.valueOf(String.valueOf(request.getParam("endTime")));
+
+                    algorithmCruncherSvc.backloadAlgorithm(itemId, startTime, endTime);
+
+                    System.out.println("Algorithms Backloaded !");
+
+                    cacheManager.backloadTechnicalIndicator(itemId, startTime);
+
+                    System.out.println("Technical Indicator Backloaded !");
+
+                    response.setStatus(RestResponse.SUCCESS);
+                    break;
+                }
+                case "GET_SNAPSHOT_DETAILS": {
+                    if (request.getParam(GlobalConstant.ITEMID) == null) {
+                        throw new ExpectedException("Item Id is null");
+                    }
+                    final long itemId = Long.valueOf(String.valueOf(request.getParam(GlobalConstant.ITEMID)));
+
+                    final TISnapshot snapshot = tiSnapshotDao.findSnapshot(itemId);
+
+                    final List<TISnapshotDetail> details = tiSnapshotDao.getDetails(snapshot);
+
+                    response.addParam(GlobalConstant.ITEMS, details);
+
+                    response.setStatus(RestResponse.SUCCESS);
+
+                    break;
+
+                }
+                case "MODIFY_SNAPSHOT": {
+                    if (request.getParam(GlobalConstant.ITEMID) == null) {
+                        throw new ExpectedException("Item Id is null");
+                    }
+
+                    if (request.getParam("startTime") == null) {
+                        throw new ExpectedException("Start time is null");
+                    }
+
+                    if (request.getParam("endTime") == null) {
+                        throw new ExpectedException("End time is null");
+                    }
+
+                    final long itemId = Long.valueOf(String.valueOf(request.getParam(GlobalConstant.ITEMID)));
+
+                    final long startTime = Long.valueOf(String.valueOf(request.getParam("startTime")));
+
+                    final long endTime = Long.valueOf(String.valueOf(request.getParam("endTime")));
+
+                    final TISnapshot initSnapshot = tiSnapshotDao.findSnapshot(itemId);
+
+                    final TechnicalIndicator technicalIndicator = technicalIndicatorDao.getTechnicalIndicator(
+                            initSnapshot.getSymbol(),
+                            initSnapshot.getEvaluationPeriod(),
+                            initSnapshot.getTechnicalIndicatorKey(),
+                            initSnapshot.getTechnicalIndicatorType());
+
+                    // ensures ample data exists to initialize snapshot
+                    algorithmCruncherSvc.backloadAlgorithm(technicalIndicator.getId(), startTime, endTime);
+
+                    System.out.println("Algorithms Backloaded !");
+
+                    initSnapshot.setUpdating(true);
+                    initSnapshot.resetSnapshot();
+
+                    final TISnapshot managedSnapshot = tiSnapshotDao.save(initSnapshot);
+
+                    final TISnapshot initializedSnapshot = tiSnapshotSvc.initializeSnapshot(managedSnapshot, startTime,
+                            endTime);
+
+                    initializedSnapshot.setUpdating(false);
+
+                    tiSnapshotDao.save(initializedSnapshot);
+
+                    System.out.println("Initialized Snapshot saved !");
+
+                    response.setStatus(RestResponse.SUCCESS);
+
+                    break;
+                }
+
+                case "GET_SNAPSHOTS": {
+                    final Object id = request.getParam(GlobalConstant.ITEMID);
+                    final long validatedId = validator.validateId(id);
+
+                    final CustomTechnicalIndicator customTechnicalIndicator = customTechnicalIndicatorDao
+                            .findById(validatedId);
+
+                    final List<TISnapshot> snapshots = tiSnapshotDao.getSnapshots(customTechnicalIndicator);
+
+                    response.addParam(GlobalConstant.ITEMS, snapshots);
+
+                    response.setStatus(RestResponse.SUCCESS);
+                    break;
+
+                }
+                default:
+                    throw new Exception("Action : " + action + " is not recognized");
+            }
+        } catch (final Exception e) {
+            response.setStatus("Exception : " + e.getMessage());
+            e.printStackTrace();
         }
 
     }
 
     @Override
-    public void save(final RestRequest request, final RestResponse response) {
-        final Collection<String> symbols = new ArrayList<String>();
-
-        for (final Object o : ArrayList.class.cast(request.getParam("SYMBOLS"))) {
-            symbols.add(String.class.cast(o));
-        }
-
-        symbols.stream()
-                .distinct()
-                .filter(symbol -> Arrays.asList(Symbol.SYMBOLS).contains(symbol))
+    public void save(final CustomTechnicalIndicator c) {
+        c.getSymbols().stream()
+                .map(symbol -> symbol.getSymbol())
                 .forEach(symbol -> {
-                    request.addParam(TradeConstant.SYMBOL, symbol);
-                    try {
-                        cacheDao.itemCount(request, response);
-                    } catch (final Exception e) {
-                        e.printStackTrace();
+                    final long itemCount = cacheDao.itemCount(c.getTechnicalIndicatorType(),
+                            c.getEvaluationPeriod(),
+                            c.getTechnicalIndicatorKey(), symbol);
+
+                    if (itemCount != 0) {
                         return;
                     }
 
-                    if ((Long) response.getParam(GlobalConstant.ITEMCOUNT) == 1) {
-                        return;
-                    }
+                    final TechnicalIndicator t = new TechnicalIndicator();
 
-                    final TechnicalIndicator temp = new TechnicalIndicator();
+                    t.setSymbol(symbol);
+                    t.setEvaluationPeriod(c.getEvaluationPeriod());
+                    t.setTechnicalIndicatorKey(c.getTechnicalIndicatorKey());
+                    t.setTechnicalIndicatorType(c.getTechnicalIndicatorType());
+                    t.setShortSMAEvaluationDuration(c.getShortSMAEvaluationDuration());
+                    t.setLongSMAEvaluationDuration(c.getLongSMAEvaluationDuration());
+                    t.setLbbEvaluationDuration(c.getLbbEvaluationDuration());
+                    t.setUbbEvaluationDuration(c.getUbbEvaluationDuration());
+                    t.setStandardDeviations(c.getStandardDeviations());
 
-                    temp.setEvaluationPeriod((String) request.getParam("EVALUATION_PERIOD"));
-                    temp.setTechnicalIndicatorType((String) request.getParam("TECHNICAL_INDICATOR_TYPE"));
-                    temp.setTechnicalIndicatorKey((String) request.getParam("TECHNICAL_INDICATOR_KEY"));
+                    final TechnicalIndicator managedTechnicalIndicator = TechnicalIndicator.class
+                            .cast(cacheDao.saveItem(t));
 
-                    temp.setSymbol(symbol);
+                    tradeSignalCache.insertTechnicalIndicator(managedTechnicalIndicator);
 
-                    if (request.getParam("SHORT_SMA_TYPE") != null) {
-                        temp.setShortSMAType((String) request.getParam("SHORT_SMA_TYPE"));
-                    }
-
-                    if (request.getParam("LONG_SMA_TYPE") != null) {
-                        temp.setLongSMAType((String) request.getParam("LONG_SMA_TYPE"));
-                    }
-
-                    if (request.getParam("LBB_TYPE") != null) {
-                        temp.setLBBType((String) request.getParam("LBB_TYPE"));
-                    }
-
-                    if (request.getParam("UBB_TYPE") != null) {
-                        temp.setUBBType((String) request.getParam("UBB_TYPE"));
-                    }
-
-                    if (request.getParam("STANDARD_DEVIATIONS") != null) {
-                        temp.setStandardDeviations((BigDecimal) request.getParam("STANDARD_DEVIATIONS"));
-                    }
-
-                    request.addParam(GlobalConstant.ITEM, temp);
-
-                    try {
-                        cacheDao.save(request, response);
-                    } catch (final Exception e) {
-                        e.printStackTrace();
-                    }
                 });
-
-        response.setStatus(RestResponse.SUCCESS);
 
     }
 
@@ -147,29 +303,45 @@ public class CacheSvcImpl implements ServiceProcessor, CacheSvc {
     @Override
     public void items(final RestRequest request, final RestResponse response) {
         try {
-            customTechnicalIndicatorDao.items(request, response);
+            final List<CustomTechnicalIndicator> customTechnicalIndicators = customTechnicalIndicatorDao
+                    .getCustomTechnicalIndicators();
+
+            customTechnicalIndicators.stream().forEach(customTechnicalIndicator -> {
+                customTechnicalIndicator.getSymbols().stream()
+                        .map(symbol -> symbol.getSymbol())
+                        .forEach(symbol -> {
+                            final TechnicalIndicator technicalIndicator = tradeSignalCache.getTechnicalIndicatorMap()
+                                    .get(customTechnicalIndicator.getTechnicalIndicatorType() + "::"
+                                            + customTechnicalIndicator.getTechnicalIndicatorKey()
+                                            + "::"
+                                            + customTechnicalIndicator.getEvaluationPeriod() + "::" + symbol);
+
+                            if (technicalIndicator == null) {
+                                return;
+                            }
+
+                            final List<TechnicalIndicatorDetail> technicalIndicatorDetails = cacheDao
+                                    .getTechnicalIndicatorDetails(technicalIndicator);
+
+                            technicalIndicator.setEffectiveDetails(technicalIndicatorDetails);
+
+                            customTechnicalIndicator.getTechnicalIndicators().add(technicalIndicator);
+                            customTechnicalIndicator.getEffectiveSymbols().add(symbol);
+
+                        });
+            });
+
+            response.addParam(GlobalConstant.ITEMS, customTechnicalIndicators);
+            response.setStatus(RestResponse.SUCCESS);
+
         } catch (final Exception e) {
             e.printStackTrace();
         }
+    }
 
-        final List<CustomTechnicalIndicator> customTechnicalIndicators = new ArrayList<CustomTechnicalIndicator>();
+    @Override
+    public void save(final RestRequest request, final RestResponse response) {
+        // TODO Auto-generated method stub
 
-        for (final Object o : ArrayList.class.cast(response.getParam(GlobalConstant.ITEMS))) {
-            customTechnicalIndicators.add(CustomTechnicalIndicator.class.cast(o));
-        }
-
-        customTechnicalIndicators.stream().forEach(item -> {
-            item.getSymbols().stream()
-                    .map(symbol -> symbol.getSymbol())
-                    .forEach(symbol -> {
-                        item.getTechnicalIndicators()
-                                .add(tradeSignalCache.getTechnicalIndicatorMap()
-                                        .get(item.getTechnicalIndicatorType() + "::" + item.getTechnicalIndicatorKey()
-                                                + "::"
-                                                + item.getEvaluationPeriod() + "::" + symbol));
-                    });
-        });
-
-        response.addParam(GlobalConstant.ITEMS, customTechnicalIndicators);
     }
 }

@@ -10,7 +10,10 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
+import org.toasthub.core.general.api.View;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonView;
 
 
 @Entity
@@ -55,6 +58,7 @@ public class HistoricalDetail extends TradeBaseEntity {
         this.historicalAnalysis = historicalAnalysis;
     }
     
+    @JsonView({View.Member.class})
     @Column(name = "high_price")
     public BigDecimal getHighPrice() {
         return highPrice;
@@ -63,6 +67,7 @@ public class HistoricalDetail extends TradeBaseEntity {
         this.highPrice = highPrice;
     }
     
+    @JsonView({View.Member.class})
     @Column(name = "sold_at")
     public BigDecimal getSoldAt() {
         return soldAt;
@@ -71,6 +76,7 @@ public class HistoricalDetail extends TradeBaseEntity {
         this.soldAt = soldAt;
     }
     
+    @JsonView({View.Member.class})
     @Column(name = "bought_at")
     public BigDecimal getBoughtAt() {
         return boughtAt;
@@ -79,6 +85,7 @@ public class HistoricalDetail extends TradeBaseEntity {
         this.boughtAt = boughtAt;
     }
     
+    @JsonView({View.Member.class})
     @Column(name = "sold_at_time")
     public long getSoldAtTime() {
         return soldAtTime;
@@ -87,6 +94,7 @@ public class HistoricalDetail extends TradeBaseEntity {
         this.soldAtTime = soldAtTime;
     }
     
+    @JsonView({View.Member.class})
     @Column(name = "bought_at_time")
     public long getBoughtAtTime() {
         return boughtAtTime;

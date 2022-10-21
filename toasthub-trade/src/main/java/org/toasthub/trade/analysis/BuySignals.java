@@ -28,89 +28,92 @@ public class BuySignals {
 
     public Boolean process(String alg , RestRequest request, RestResponse response) {
         Boolean result = false;
-        switch (alg) {
+        // switch (alg) {
 
-            case "goldenCross":
-                result = goldenCross(request, response);
-                break;
+        //     case "goldenCross":
+        //         result = goldenCross(request, response);
+        //         break;
 
-            case "touchesLBB":
-                result = touchesLBB(request , response);
-                break;
+        //     case "touchesLBB":
+        //         result = touchesLBB(request , response);
+        //         break;
 
-            case "signalLineCross":
-                result = signalLineCross(request , response);
-                break;
-            default:
-                result = false;
-                break;
-        }
+        //     case "signalLineCross":
+        //         result = signalLineCross(request , response);
+        //         break;
+        //     default:
+        //         result = false;
+        //         break;
+        // }
         return result;
     }
 
     
 
-    public Boolean goldenCross(RestRequest request, RestResponse response) {
-        try{
-        request.addParam(TradeConstant.IDENTIFIER , "SMA");
-
-        request.addParam(TradeConstant.TYPE, "15-day");
-        historicalAnalyzingDao.item(request, response);
-        SMA shortMovingAverage = (SMA) response.getParam(GlobalConstant.ITEM);
-
-        request.addParam(TradeConstant.TYPE, "50-day");
-        historicalAnalyzingDao.item(request, response);
-        SMA longMovingAverage = (SMA) response.getParam(GlobalConstant.ITEM);
-
-
-        if (shortMovingAverage.getValue().compareTo(longMovingAverage.getValue()) > 0)
-            return true;
+    public boolean goldenCross(RestRequest request, RestResponse response) {
         return false;
+        // try{
+        // request.addParam(TradeConstant.IDENTIFIER , "SMA");
 
-        }catch(Exception e){
-            e.printStackTrace();
-            return false;
-        }
+        // request.addParam(TradeConstant.TYPE, "15-day");
+        // historicalAnalyzingDao.item(request, response);
+        // SMA shortMovingAverage = (SMA) response.getParam(GlobalConstant.ITEM);
+
+        // request.addParam(TradeConstant.TYPE, "50-day");
+        // historicalAnalyzingDao.item(request, response);
+        // SMA longMovingAverage = (SMA) response.getParam(GlobalConstant.ITEM);
+
+
+        // if (shortMovingAverage.getValue().compareTo(longMovingAverage.getValue()) > 0)
+        //     return true;
+        // return false;
+
+        // }catch(Exception e){
+        //     e.printStackTrace();
+        //     return false;
+        // }
     }
 
     // indicates whether the 20 day sma touches or falls beneath the lower bollinger
     // band
-    public Boolean touchesLBB(RestRequest request, RestResponse response) {
-        try{
-        request.addParam(TradeConstant.IDENTIFIER, "LBB");
-        request.addParam(TradeConstant.TYPE, "20-day");
-        historicalAnalyzingDao.item(request, response);
-        LBB lbb = (LBB) response.getParam(GlobalConstant.ITEM);
-
-        if ( ((BigDecimal) (request.getParam("STOCKPRICE"))) . compareTo(lbb.getValue()) <= 0)
-            return true;
+    public boolean touchesLBB(RestRequest request, RestResponse response) {
         return false;
-        }catch(Exception e){
-            e.printStackTrace();
-            return false;
-        }
+        // try{
+        // request.addParam(TradeConstant.IDENTIFIER, "LBB");
+        // request.addParam(TradeConstant.TYPE, "20-day");
+        // historicalAnalyzingDao.item(request, response);
+        // LBB lbb = (LBB) response.getParam(GlobalConstant.ITEM);
+
+        // if ( ((BigDecimal) (request.getParam("STOCKPRICE"))) . compareTo(lbb.getValue()) <= 0)
+        //     return true;
+        // return false;
+        // }catch(Exception e){
+        //     e.printStackTrace();
+        //     return false;
+        // }
     }
 
     //indicates whether or not macd has crossed over the signal line within the period
-    public Boolean signalLineCross(RestRequest request, RestResponse response) {
-        try{
-        request.addParam(TradeConstant.IDENTIFIER, "MACD");
-        request.addParam(TradeConstant.TYPE, "Day");
-        historicalAnalyzingDao.item(request, response);
-        MACD macd = (MACD) response.getParam(GlobalConstant.ITEM);
-
-        request.addParam(TradeConstant.IDENTIFIER, "SL");
-        request.addParam(TradeConstant.TYPE, "Day");
-        historicalAnalyzingDao.item(request, response);
-        SL sl = (SL) response.getParam(GlobalConstant.ITEM);
-
-       if (macd.getValue()
-       .compareTo(sl.getValue()) > 0)
-           return true;
+    public boolean signalLineCross(RestRequest request, RestResponse response) {
         return false;
-        }catch(Exception e){
-            e.printStackTrace();
-            return false;
-        }
+    //     try{
+    //     request.addParam(TradeConstant.IDENTIFIER, "MACD");
+    //     request.addParam(TradeConstant.TYPE, "Day");
+    //     historicalAnalyzingDao.item(request, response);
+    //     MACD macd = (MACD) response.getParam(GlobalConstant.ITEM);
+
+    //     request.addParam(TradeConstant.IDENTIFIER, "SL");
+    //     request.addParam(TradeConstant.TYPE, "Day");
+    //     historicalAnalyzingDao.item(request, response);
+    //     SL sl = (SL) response.getParam(GlobalConstant.ITEM);
+
+    //    if (macd.getValue()
+    //    .compareTo(sl.getValue()) > 0)
+    //        return true;
+    //     return false;
+    //     }catch(Exception e){
+    //         e.printStackTrace();
+    //         return false;
+    //     }
     }
 }

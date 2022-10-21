@@ -26,6 +26,7 @@ import java.util.List;
 
 import javax.persistence.Entity;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 
 @Entity
 @Table(name = "ta_EMA")
@@ -64,6 +65,7 @@ public class EMA extends BaseAlg{
 
 	
 	// Methods
+	@Transient
 	public static BigDecimal calculateEMA(List<BigDecimal> list){
         BigDecimal initEma = SMA.calculateSMA(list);
         BigDecimal multiplier = BigDecimal.valueOf( 2.0/(list.size()+1) );
@@ -74,6 +76,7 @@ public class EMA extends BaseAlg{
         (initEma.multiply((BigDecimal.ONE.subtract(multiplier))));
     }
 
+	@Transient
 	public static BigDecimal calculateEMA(List<BigDecimal> list, BigDecimal EmaValue){
         BigDecimal multiplier = BigDecimal.valueOf( 2.0/(list.size()+1) );
         return 
