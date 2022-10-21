@@ -5,7 +5,7 @@ import java.util.List;
 
 import javax.persistence.NoResultException;
 
-import org.toasthub.core.common.BaseDao;
+import org.toasthub.core.common.BaseMemberDao;
 import org.toasthub.core.general.model.RestRequest;
 import org.toasthub.core.general.model.RestResponse;
 import org.toasthub.trade.model.AssetDay;
@@ -13,7 +13,7 @@ import org.toasthub.trade.model.AssetMinute;
 import org.toasthub.trade.model.TechnicalIndicator;
 import org.toasthub.trade.model.TechnicalIndicatorDetail;
 
-public interface CacheDao extends BaseDao {
+public interface CacheDao extends BaseMemberDao {
         public void saveAll(RestRequest request, RestResponse response) throws Exception;
 
         public AssetDay getLatestAssetDay(String symbol) throws NoResultException;

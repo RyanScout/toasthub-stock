@@ -28,12 +28,7 @@ import org.toasthub.core.common.EntityManagerDataSvc;
 import org.toasthub.core.general.model.GlobalConstant;
 import org.toasthub.core.general.model.RestRequest;
 import org.toasthub.core.general.model.RestResponse;
-import org.toasthub.trade.model.EMA;
 import org.toasthub.trade.model.HistoricalAnalysis;
-import org.toasthub.trade.model.LBB;
-import org.toasthub.trade.model.MACD;
-import org.toasthub.trade.model.SL;
-import org.toasthub.trade.model.SMA;
 import org.toasthub.trade.model.TradeConstant;
 
 

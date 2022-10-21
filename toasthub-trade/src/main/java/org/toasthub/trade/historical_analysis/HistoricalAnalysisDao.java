@@ -18,13 +18,13 @@ package org.toasthub.trade.historical_analysis;
 
 import java.util.List;
 
-import org.toasthub.core.common.BaseDao;
+import org.toasthub.core.common.BaseMemberDao;
 import org.toasthub.trade.model.CustomTechnicalIndicator;
 import org.toasthub.trade.model.TechnicalIndicator;
 import org.toasthub.trade.model.TechnicalIndicatorDetail;
 import org.toasthub.trade.model.Trade;
 
-public interface HistoricalAnalysisDao extends BaseDao {
+public interface HistoricalAnalysisDao extends BaseMemberDao {
         public List<TechnicalIndicatorDetail> getTechnicalIndicatorDetails(TechnicalIndicator technicalIndicator,
                         long startDate,
                         long endDate);

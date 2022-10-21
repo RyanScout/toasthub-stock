@@ -18,9 +18,9 @@ package org.toasthub.trade.analysis;
 
 import java.math.BigDecimal;
 
-import org.toasthub.core.common.BaseDao;
+import org.toasthub.core.common.BaseMemberDao;
 
 
-public interface HistoricalAnalyzingDao extends BaseDao {
+public interface HistoricalAnalyzingDao extends BaseMemberDao {
 	public BigDecimal queryAlgValue(String alg, String stock, String type, long epochSeconds);
 }
